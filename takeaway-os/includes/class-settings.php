@@ -5,6 +5,8 @@ defined('ABSPATH') || exit;
 final class TTOS_Settings {
     public static function hooks(): void {
         add_action('wp_head', array(__CLASS__, 'print_brand_css'), 20);
+        add_filter('body_class', array(__CLASS__, 'body_classes'));
+        add_filter('option_site_icon', array(__CLASS__, 'filter_site_icon'));
     }
 
     public static function defaults(): array {
@@ -25,8 +27,31 @@ final class TTOS_Settings {
             ),
             'branding' => array(
                 'logo_id'       => 0,
+                'favicon_id'    => 0,
                 'hero_image_id' => 0,
                 'primary'       => '#ff4000',
+                'accent'        => '#ffac00',
+                'bg'            => '#f9f4ee',
+                'surface'       => '#ffffff',
+                'surface_soft'  => '#f1eae0',
+                'text'          => '#1a1410',
+                'muted'         => '#6f655e',
+                'border'        => '#e8dfd4',
+                'success'       => '#18a844',
+                'warning'       => '#c47d0e',
+                'error'         => '#b33a3a',
+                'radius_sm'     => '10',
+                'radius_md'     => '16',
+                'radius_lg'     => '24',
+                'shadow'        => 'soft',
+                'default_mode'  => 'light',
+                'header_style'  => 'solid',
+                'hero_style'    => 'angled',
+                'card_style'    => 'soft',
+                'footer_style'  => 'dark',
+                // Legacy v0.2.x keys. Kept stored so old CSS aliases and
+                // saved client values keep working; new installs mirror the
+                // token values above.
                 'secondary'     => '#ffac00',
                 'dark'          => '#1a1410',
                 'cream'         => '#f9f4ee',
@@ -112,12 +137,134 @@ final class TTOS_Settings {
         return !empty($modules[$slug]);
     }
 
+    /**
+     * Sanitised brand token values. Single source of truth for the front-end
+     * token set; the admin preview and theme rely on the same values.
+     */
+    public static function brand_tokens(): array {
+        $branding = self::get('branding');
+        $defaults = self::defaults()['branding'];
+
+        $hex = static function ($value, string $fallback): string {
+            $colour = sanitize_hex_color((string) $value);
+            return $colour ?: $fallback;
+        };
+        $radius = static function ($value, $fallback): int {
+            $px = absint($value);
+            return ($px >= 0 && $px <= 60) ? $px : absint($fallback);
+        };
+        $choice = static function ($value, array $allowed, string $fallback): string {
+            $key = sanitize_key((string) $value);
+            return in_array($key, $allowed, true) ? $key : $fallback;
+        };
+
+        $tokens = array();
+        foreach (array('primary','accent','bg','surface','surface_soft','text','muted','border','success','warning','error','secondary','dark','cream') as $key) {
+            $tokens[$key] = $hex($branding[$key] ?? '', $defaults[$key]);
+        }
+        $tokens['radius_sm'] = $radius($branding['radius_sm'] ?? '', $defaults['radius_sm']);
+        $tokens['radius_md'] = $radius($branding['radius_md'] ?? '', $defaults['radius_md']);
+        $tokens['radius_lg'] = $radius($branding['radius_lg'] ?? '', $defaults['radius_lg']);
+        $tokens['shadow']       = $choice($branding['shadow'] ?? '', array('none', 'soft', 'strong'), 'soft');
+        $tokens['default_mode'] = $choice($branding['default_mode'] ?? '', array('light', 'dark', 'system'), 'light');
+        $tokens['header_style'] = $choice($branding['header_style'] ?? '', array('solid', 'transparent'), 'solid');
+        $tokens['hero_style']   = $choice($branding['hero_style'] ?? '', array('angled', 'minimal', 'photo'), 'angled');
+        $tokens['card_style']   = $choice($branding['card_style'] ?? '', array('soft', 'outlined', 'flat'), 'soft');
+        $tokens['footer_style'] = $choice($branding['footer_style'] ?? '', array('dark', 'light'), 'dark');
+        return $tokens;
+    }
+
+    private static function shadow_value(string $level, bool $dark_mode = false): string {
+        if ($level === 'none') {
+            return 'none';
+        }
+        if ($dark_mode) {
+            return $level === 'strong' ? '0 26px 70px rgba(0,0,0,.6)' : '0 16px 44px rgba(0,0,0,.45)';
+        }
+        return $level === 'strong' ? '0 26px 70px rgba(26,20,16,.16)' : '0 16px 44px rgba(26,20,16,.08)';
+    }
+
+    /**
+     * Fixed dark-mode surface palette. Brand colours stay constant between
+     * modes; only surfaces, text and depth swap. Per-token dark overrides can
+     * become settings later without changing the emitted variable names.
+     */
+    private static function dark_palette(): array {
+        return array(
+            'bg'           => '#131010',
+            'surface'      => '#1e1916',
+            'surface_soft' => '#29221d',
+            'text'         => '#f6f0e9',
+            'muted'        => '#b6aaa0',
+            'border'       => '#3b332c',
+        );
+    }
+
     public static function print_brand_css(): void {
-        $brand = self::get('branding');
-        $primary = sanitize_hex_color($brand['primary']) ?: '#ff4000';
-        $secondary = sanitize_hex_color($brand['secondary']) ?: '#ffac00';
-        $dark = sanitize_hex_color($brand['dark']) ?: '#1a1410';
-        $cream = sanitize_hex_color($brand['cream']) ?: '#f9f4ee';
-        echo '<style id="takeaway-os-brand">:root{--tt-primary:' . esc_html($primary) . ';--tt-secondary:' . esc_html($secondary) . ';--tt-dark:' . esc_html($dark) . ';--tt-cream:' . esc_html($cream) . ';}</style>';
+        $t = self::brand_tokens();
+
+        $light_vars = '--tt-primary:' . $t['primary']
+            . ';--tt-accent:' . $t['accent']
+            . ';--tt-bg:' . $t['bg']
+            . ';--tt-surface:' . $t['surface']
+            . ';--tt-surface-soft:' . $t['surface_soft']
+            . ';--tt-text:' . $t['text']
+            . ';--tt-muted:' . $t['muted']
+            . ';--tt-border:' . $t['border']
+            . ';--tt-success:' . $t['success']
+            . ';--tt-warning:' . $t['warning']
+            . ';--tt-error:' . $t['error']
+            . ';--tt-radius-sm:' . $t['radius_sm'] . 'px'
+            . ';--tt-radius-md:' . $t['radius_md'] . 'px'
+            . ';--tt-radius-lg:' . $t['radius_lg'] . 'px'
+            . ';--tt-shadow:' . self::shadow_value($t['shadow'])
+            // Legacy aliases for v0.2.x CSS. These stay pinned to the stored
+            // legacy values in every mode so the old front end never flips
+            // half-dark; new --tt-* consumers handle modes properly.
+            . ';--tt-secondary:' . $t['secondary']
+            . ';--tt-dark:' . $t['dark']
+            . ';--tt-cream:' . $t['cream']
+            . ';--tt-cream2:' . $t['surface_soft'];
+
+        $dark = self::dark_palette();
+        $dark_vars = '--tt-bg:' . $dark['bg']
+            . ';--tt-surface:' . $dark['surface']
+            . ';--tt-surface-soft:' . $dark['surface_soft']
+            . ';--tt-text:' . $dark['text']
+            . ';--tt-muted:' . $dark['muted']
+            . ';--tt-border:' . $dark['border']
+            . ';--tt-shadow:' . self::shadow_value($t['shadow'], true);
+
+        $css = ':root{' . $light_vars . '}';
+        if ($t['default_mode'] === 'dark') {
+            $css .= ':root{' . $dark_vars . '}';
+        } elseif ($t['default_mode'] === 'system') {
+            $css .= '@media (prefers-color-scheme: dark){:root{' . $dark_vars . '}}';
+        }
+
+        echo '<style id="takeaway-os-brand">' . $css . '</style>'; // phpcs:ignore WordPress.Security.EscapeOutput -- values sanitised in brand_tokens().
+    }
+
+    public static function body_classes(array $classes): array {
+        $t = self::brand_tokens();
+        $classes[] = 'tt-mode-' . $t['default_mode'];
+        $classes[] = 'tt-style-header-' . $t['header_style'];
+        $classes[] = 'tt-style-hero-' . $t['hero_style'];
+        $classes[] = 'tt-style-card-' . $t['card_style'];
+        $classes[] = 'tt-style-footer-' . $t['footer_style'];
+        return $classes;
+    }
+
+    /**
+     * Branding favicon wins at runtime when set. The stored WordPress
+     * site_icon option is never modified, so clearing the branding field
+     * restores whatever the site had before.
+     */
+    public static function filter_site_icon($value) {
+        $favicon_id = absint(self::get('branding', 'favicon_id'));
+        if ($favicon_id && wp_attachment_is_image($favicon_id)) {
+            return $favicon_id;
+        }
+        return $value;
     }
 }

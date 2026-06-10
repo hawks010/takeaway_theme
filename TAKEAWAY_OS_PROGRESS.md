@@ -532,3 +532,54 @@
 ### Accounts
 - `claude-admin` (administrator) remains in place for the v1.3.0 build and browser testing.
   **Must be removed or rotated before any client handover or production use.**
+
+## 2026-06-10 Phase 1 — Design tokens & branding foundation (v1.3.0-dev.1 / v0.3.0-dev.1)
+
+### Scope guardrails honoured
+- Worked only inside `~/domains/thatdeveloper.co.uk/public_html/takeaway`; `home`/`siteurl` unchanged
+- No homepage/menu/Woo template rebuild; no checkout logic, order status, cockpit/kitchen/CRM/report changes
+- Elementor family remains deactivated; Stripe + FluentSMTP remain active with expected Setup Health warnings
+
+### Backup path (created before deploy)
+- `/home/u363235284/backups/takeaway-os-v1.3-phase1-20260610/` (theme, plugin, db/takeaway.sql 6.4MB, ttos_settings_before.json)
+
+### Files changed
+- `takeaway-os/includes/class-settings.php` — branding defaults extended to 27 keys; new `brand_tokens()` (sanitised single source of truth); `print_brand_css()` rewritten to emit the full `--tt-*` token set + legacy aliases + dark/system mode blocks; `body_class` filter (`tt-mode-*`, `tt-style-header/hero/card/footer-*`); `option_site_icon` filter for branding favicon (runtime only, never writes the WP option)
+- `takeaway-os/includes/class-activator.php` — `migrate_branding_tokens()`: adds missing keys only, seeds accent←secondary, bg←cream, text←dark; runs from activate() and maybe_upgrade()
+- `takeaway-os/includes/class-admin.php` — `save_branding` handler rewritten (merges over saved section; per-type sanitisers; invalid colours keep previous value); `branding_form()` rebuilt (presets, favicon media field, 11-colour grid, radius/shadow, mode + header/hero/card/footer style selectors, live preview card); `branding_presets()` (Flame, Charcoal, Fresh Green, Midnight, Cream & Tomato, Minimal Mono); `select_field()` helper; `page_settings()` inline legacy branding form replaced with the shared `branding_form()` (was a duplicate that bypassed the new UI)
+- `takeaway-os/assets/admin.js` — branding module: preset fill with explicit confirm (nothing saved until Save clicked), live token preview
+- `takeaway-os/assets/admin.css` — branding form styles (presets, colour grid, preview card)
+- `takeaway-os/takeaway-os.php` — version `1.3.0-dev.1`
+- `takeaway-theme/assets/css/tokens.css` (new) — fallback brand tokens, type scale, spacing scale, section rhythm, container, breakpoints doc; `--tt-cream2` aliased to `--tt-surface-soft`
+- `takeaway-theme/assets/css/base.css` (new) — token-driven primitives: container, section, eyebrow, card (+ card-style body class variants), buttons (44px touch targets), form fields, status text, global :focus-visible, reduced-motion support
+- `takeaway-theme/assets/css/theme.css` — removed duplicate `:root` fallback (tokens.css owns it); removed `tt-skin-*` colour overrides (they beat the `:root` brand tokens, so custom Branding colours never applied — skins live on as presets); readability fix for `[takeaway_home_blocks]` (text/muted/offer colours — was white-on-white)
+- `takeaway-theme/inc/enqueue.php` — cascade tokens → base → theme
+- `takeaway-theme/functions.php`, `takeaway-theme/style.css` — version `0.3.0-dev.1`
+
+### Migration verified on staging
+- `ttos_version` → `1.3.0-dev.1`; branding 7 → 27 keys; **zero existing keys overwritten** (JSON diff against backup); seeds correct (accent=#ffac00←secondary, bg=#f9f4ee←cream, text=#1a1410←dark); logo_id/hero_image_id/style_skin preserved
+- Save round-trip test: saved Branding form with unchanged values → notice OK, settings JSON identical before/after (semantic diff: NONE)
+
+### Token list emitted (style#takeaway-os-brand)
+--tt-primary, --tt-accent, --tt-bg, --tt-surface, --tt-surface-soft, --tt-text, --tt-muted, --tt-border, --tt-success, --tt-warning, --tt-error, --tt-radius-sm/md/lg, --tt-shadow + legacy aliases --tt-secondary, --tt-dark, --tt-cream, --tt-cream2. Dark mode: `:root` override block (mode=dark) or `@media (prefers-color-scheme: dark)` (mode=system). Legacy aliases stay pinned to light values by design so v0.2.x CSS never half-flips; new tokens go live with Phase 3 templates.
+
+### Tests run
+- PHP lint: all changed PHP files clean; `node --check` admin.js clean; CSS brace balance verified; no .DS_Store/logs/junk in source dirs
+- WP-CLI: home/siteurl unchanged; takeaway-os 1.3.0-dev.1 + takeaway-theme 0.3.0-dev.1 active; Elementor/Pro/EA/Envato still inactive
+- Browser: homepage, menu, basket, checkout, my account all load with header+footer; tokens.css + base.css load; full token set in computed styles; body classes tt-mode-light + tt-style-* present; home-blocks heading now readable (was white-on-white)
+- Branding admin: presets render (6), 11-colour grid, favicon/radius/mode/style controls, live preview; preset fill tested (Fresh Green → fields + preview update, confirm dialog wording verified) then restored to Flame; nothing auto-saved
+- Admin screens: Setup Health 36/2/0 (Stripe + SMTP warnings preserved), cockpit, kitchen, CRM, reports all load
+- Functional: BACS collection order `#464` (£3.00, Chips, claude-phase1@example.com) placed through public checkout → on-hold in WooCommerce (CLI verified), visible in cockpit, kitchen, CRM; reports Collection split 5 → 6
+
+### Screenshots captured
+- `test-artifacts/screenshots/p1-branding-1.3.0-dev1.png` (new Branding UI), `p1-branding-preview-1.3.0-dev1.png` (mode selectors + live preview), `p1-branding-preset-1.3.0-dev1.png` (Fresh Green preset applied), `p1-setup-health-1.3.0-dev1.png`, `p1-order-received-1.3.0-dev1.png`
+
+### Known issues / notes
+- Homepage hero defects (broken Unsplash fallback, full menu grid on front page, empty public categories) remain by design — Phase 3 scope
+- Duplicate starter products on staging still present (observation from Phase 0)
+- `wp db export` still unusable on this host (disabled exec); backups use shell `mysqldump`
+- Dev versions `1.3.0-dev.1` / `0.3.0-dev.1` intentionally unpackaged; theme setup screen will show installed plugin newer than bundled 1.2.5 until final packaging
+- `claude-admin` user still in place; remove/rotate before client handover
+
+### Status
+Phase 1 deployed to staging and verified. Awaiting approval before Phase 2 (Site Content CRM).

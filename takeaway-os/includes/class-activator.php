@@ -6,6 +6,7 @@ final class TTOS_Activator {
     public static function activate(): void {
         self::add_roles();
         self::seed_settings();
+        self::migrate_branding_tokens();
         self::create_pages();
         update_option('ttos_version', TTOS_VERSION, false);
         update_option('ttos_do_activation_redirect', '1', false);
@@ -20,7 +21,43 @@ final class TTOS_Activator {
 
         self::add_roles();
         self::seed_settings();
+        self::migrate_branding_tokens();
         update_option('ttos_version', TTOS_VERSION, false);
+    }
+
+    /**
+     * v1.3.0 token migration. Adds missing branding keys only — existing
+     * saved values are never overwritten. New token values are seeded from
+     * the closest legacy colour so upgraded sites keep their current look:
+     * accent <- secondary, bg <- cream, text <- dark.
+     */
+    private static function migrate_branding_tokens(): void {
+        $settings = get_option('ttos_settings', array());
+        if (!is_array($settings)) {
+            return;
+        }
+        $branding = isset($settings['branding']) && is_array($settings['branding']) ? $settings['branding'] : array();
+        $defaults = TTOS_Settings::defaults()['branding'];
+        $seed_from_legacy = array('accent' => 'secondary', 'bg' => 'cream', 'text' => 'dark');
+
+        $changed = false;
+        foreach ($defaults as $key => $default_value) {
+            if (array_key_exists($key, $branding) && $branding[$key] !== '') {
+                continue;
+            }
+            $value = $default_value;
+            $legacy_key = $seed_from_legacy[$key] ?? '';
+            if ($legacy_key && !empty($branding[$legacy_key])) {
+                $value = $branding[$legacy_key];
+            }
+            $branding[$key] = $value;
+            $changed = true;
+        }
+
+        if ($changed) {
+            $settings['branding'] = $branding;
+            update_option('ttos_settings', $settings, false);
+        }
     }
 
     public static function deactivate(): void {

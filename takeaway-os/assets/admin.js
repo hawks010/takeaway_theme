@@ -420,3 +420,51 @@ jQuery(function($){
   setupOrderRefresh();
 
 });
+
+/* v1.3.0 branding: preset fills + live token preview */
+jQuery(function($){
+  const $form = $('.ttos-branding-form');
+  if (!$form.length) return;
+
+  function fieldName(key){ return 'branding[' + key + ']'; }
+
+  const previewVars = {
+    primary: '--tt-primary', accent: '--tt-accent', bg: '--tt-bg', surface: '--tt-surface',
+    surface_soft: '--tt-surface-soft', text: '--tt-text', muted: '--tt-muted', border: '--tt-border',
+    success: '--tt-success', warning: '--tt-warning', error: '--tt-error'
+  };
+
+  function refreshPreview(){
+    const card = $form.find('.ttos-brand-preview')[0];
+    if (!card) return;
+    Object.keys(previewVars).forEach(function(key){
+      const $el = $form.find('[name="' + fieldName(key) + '"]');
+      if ($el.length && $el.val()) card.style.setProperty(previewVars[key], $el.val());
+    });
+    ['radius_sm', 'radius_md', 'radius_lg'].forEach(function(key){
+      const $el = $form.find('[name="' + fieldName(key) + '"]');
+      if (!$el.length) return;
+      const px = parseInt($el.val() || '0', 10);
+      card.style.setProperty('--tt-' + key.replace('_', '-'), (isNaN(px) ? 0 : px) + 'px');
+    });
+    const shadows = { none: 'none', soft: '0 16px 44px rgba(26,20,16,.08)', strong: '0 26px 70px rgba(26,20,16,.16)' };
+    const level = $form.find('[name="' + fieldName('shadow') + '"]').val();
+    card.style.setProperty('--tt-shadow', shadows[level] || shadows.soft);
+  }
+
+  $form.on('click', '.ttos-brand-preset', function(e){
+    e.preventDefault();
+    let fills = {};
+    try { fills = JSON.parse(this.getAttribute('data-preset') || '{}'); } catch (err) { return; }
+    const label = $(this).text().trim();
+    if (!window.confirm('Apply the "' + label + '" preset?\n\nThis replaces the colour, radius and shadow fields below. Nothing is saved until you click "' + ($form.find('button.ttos-button').text().trim() || 'Save branding') + '".')) return;
+    Object.keys(fills).forEach(function(key){
+      const $el = $form.find('[name="' + fieldName(key) + '"]');
+      if ($el.length) $el.val(String(fills[key]));
+    });
+    refreshPreview();
+  });
+
+  $form.on('input change', 'input, select', refreshPreview);
+  refreshPreview();
+});

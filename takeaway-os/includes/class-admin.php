@@ -104,15 +104,37 @@ final class TTOS_Admin {
 
         if ($action === 'save_branding' && current_user_can('ttos_manage_settings')) {
             $raw = wp_unslash($_POST['branding'] ?? array());
-            $branding = array(
-                'logo_id'       => absint($raw['logo_id'] ?? 0),
-                'hero_image_id' => absint($raw['hero_image_id'] ?? 0),
-                'primary'       => sanitize_hex_color($raw['primary'] ?? '#ff4000'),
-                'secondary'     => sanitize_hex_color($raw['secondary'] ?? '#ffac00'),
-                'dark'          => sanitize_hex_color($raw['dark'] ?? '#1a1410'),
-                'cream'         => sanitize_hex_color($raw['cream'] ?? '#f9f4ee'),
-                'style_skin'    => sanitize_key($raw['style_skin'] ?? 'charcoal'),
+            if (!is_array($raw)) $raw = array();
+            // Merge over the currently saved section so keys the form did not
+            // post (including legacy secondary/dark/cream) are preserved
+            // instead of falling back to defaults.
+            $branding = TTOS_Settings::get('branding');
+            foreach (array('logo_id', 'favicon_id', 'hero_image_id') as $key) {
+                if (array_key_exists($key, $raw)) $branding[$key] = absint($raw[$key]);
+            }
+            foreach (array('primary','accent','bg','surface','surface_soft','text','muted','border','success','warning','error','secondary','dark','cream') as $key) {
+                if (!array_key_exists($key, $raw)) continue;
+                $hex = sanitize_hex_color((string) $raw[$key]);
+                if ($hex) $branding[$key] = $hex; // invalid colours keep the previous value
+            }
+            foreach (array('radius_sm', 'radius_md', 'radius_lg') as $key) {
+                if (!array_key_exists($key, $raw)) continue;
+                $branding[$key] = (string) min(60, absint($raw[$key]));
+            }
+            $choices = array(
+                'shadow'       => array('none', 'soft', 'strong'),
+                'default_mode' => array('light', 'dark', 'system'),
+                'header_style' => array('solid', 'transparent'),
+                'hero_style'   => array('angled', 'minimal', 'photo'),
+                'card_style'   => array('soft', 'outlined', 'flat'),
+                'footer_style' => array('dark', 'light'),
+                'style_skin'   => array('charcoal', 'burger', 'pizza', 'clean'),
             );
+            foreach ($choices as $key => $allowed) {
+                if (!array_key_exists($key, $raw)) continue;
+                $value = sanitize_key((string) $raw[$key]);
+                if (in_array($value, $allowed, true)) $branding[$key] = $value;
+            }
             TTOS_Settings::update_section('branding', $branding);
             self::redirect_notice('branding-saved');
         }
@@ -670,20 +692,111 @@ final class TTOS_Admin {
         echo '</div><button class="ttos-button">' . esc_html($button) . '</button></form></section>';
     }
 
+    private static function branding_presets(): array {
+        return array(
+            'flame' => array('label' => 'Flame', 'fills' => array(
+                'primary' => '#ff4000', 'accent' => '#ffac00', 'bg' => '#f9f4ee', 'surface' => '#ffffff', 'surface_soft' => '#f1eae0',
+                'text' => '#1a1410', 'muted' => '#6f655e', 'border' => '#e8dfd4', 'success' => '#18a844', 'warning' => '#c47d0e', 'error' => '#b33a3a',
+                'radius_sm' => '10', 'radius_md' => '16', 'radius_lg' => '24', 'shadow' => 'soft',
+            )),
+            'charcoal' => array('label' => 'Charcoal', 'fills' => array(
+                'primary' => '#e2451c', 'accent' => '#f5a623', 'bg' => '#f6f5f3', 'surface' => '#ffffff', 'surface_soft' => '#eceae6',
+                'text' => '#1c1a17', 'muted' => '#6e6862', 'border' => '#e2ded8', 'success' => '#18a844', 'warning' => '#c47d0e', 'error' => '#b33a3a',
+                'radius_sm' => '10', 'radius_md' => '16', 'radius_lg' => '24', 'shadow' => 'soft',
+            )),
+            'fresh_green' => array('label' => 'Fresh Green', 'fills' => array(
+                'primary' => '#1f9d55', 'accent' => '#ffc23c', 'bg' => '#f6faf4', 'surface' => '#ffffff', 'surface_soft' => '#e9f3e4',
+                'text' => '#15211a', 'muted' => '#5f6f64', 'border' => '#dce8d8', 'success' => '#1f9d55', 'warning' => '#c47d0e', 'error' => '#c0392b',
+                'radius_sm' => '10', 'radius_md' => '16', 'radius_lg' => '24', 'shadow' => 'soft',
+            )),
+            'midnight' => array('label' => 'Midnight', 'fills' => array(
+                'primary' => '#4f7cff', 'accent' => '#ffd166', 'bg' => '#f4f6fb', 'surface' => '#ffffff', 'surface_soft' => '#e9edf6',
+                'text' => '#101523', 'muted' => '#5d6577', 'border' => '#dde3ef', 'success' => '#18a844', 'warning' => '#c47d0e', 'error' => '#b33a3a',
+                'radius_sm' => '12', 'radius_md' => '18', 'radius_lg' => '26', 'shadow' => 'strong', 'default_mode' => 'dark',
+            )),
+            'cream_tomato' => array('label' => 'Cream & Tomato', 'fills' => array(
+                'primary' => '#d62828', 'accent' => '#f77f00', 'bg' => '#fdf6ec', 'surface' => '#fffdf8', 'surface_soft' => '#f6ead8',
+                'text' => '#271c19', 'muted' => '#75655c', 'border' => '#ecdcc8', 'success' => '#18a844', 'warning' => '#c47d0e', 'error' => '#b33a3a',
+                'radius_sm' => '12', 'radius_md' => '18', 'radius_lg' => '28', 'shadow' => 'soft',
+            )),
+            'minimal_mono' => array('label' => 'Minimal Mono', 'fills' => array(
+                'primary' => '#111111', 'accent' => '#555555', 'bg' => '#fafafa', 'surface' => '#ffffff', 'surface_soft' => '#f0f0f0',
+                'text' => '#111111', 'muted' => '#707070', 'border' => '#e3e3e3', 'success' => '#1f9d55', 'warning' => '#b88217', 'error' => '#c0392b',
+                'radius_sm' => '6', 'radius_md' => '10', 'radius_lg' => '14', 'shadow' => 'none',
+            )),
+        );
+    }
+
+    private static function select_field(string $label, string $name, string $value, array $options): void {
+        echo '<label>' . esc_html($label) . '<select name="' . esc_attr($name) . '">';
+        foreach ($options as $key => $option_label) {
+            echo '<option value="' . esc_attr($key) . '" ' . selected($value, $key, false) . '>' . esc_html($option_label) . '</option>';
+        }
+        echo '</select></label>';
+    }
+
     private static function branding_form(string $return = '', string $anchor = '', string $button = 'Save branding'): void {
         $branding = TTOS_Settings::get('branding');
-        echo '<section class="ttos-card" id="branding"><h2>Branding</h2><p class="ttos-muted">Owner-safe controls for the theme visuals. Pick images from the WordPress media gallery. We store the attachment IDs quietly in the background.</p><form method="post">';
+        $tokens = TTOS_Settings::brand_tokens();
+        echo '<section class="ttos-card ttos-branding-form" id="branding"><h2>Branding</h2><p class="ttos-muted">Owner-safe design controls. Colours, shape and mode become design tokens the whole front end uses. Images come from the media gallery; we store attachment IDs in the background.</p><form method="post">';
         wp_nonce_field('ttos_save_branding');
         echo '<input type="hidden" name="ttos_action" value="save_branding">';
         if ($return) echo '<input type="hidden" name="ttos_return" value="' . esc_attr($return) . '"><input type="hidden" name="ttos_anchor" value="' . esc_attr($anchor) . '">';
-        echo '<div class="ttos-grid ttos-grid-2">';
+
+        echo '<h3 class="ttos-brand-subhead">Quick presets</h3><p class="ttos-muted">Applying a preset replaces the colour, radius and shadow fields below. Nothing is stored until you save.</p><div class="ttos-brand-presets">';
+        foreach (self::branding_presets() as $key => $preset) {
+            $fills = $preset['fills'];
+            echo '<button type="button" class="ttos-brand-preset" data-preset="' . esc_attr(wp_json_encode($fills)) . '">'
+                . '<span class="ttos-preset-swatches"><i style="background:' . esc_attr($fills['primary']) . '"></i><i style="background:' . esc_attr($fills['accent']) . '"></i><i style="background:' . esc_attr($fills['bg']) . '"></i><i style="background:' . esc_attr($fills['text']) . '"></i></span>'
+                . esc_html($preset['label']) . '</button>';
+        }
+        echo '</div>';
+
+        echo '<h3 class="ttos-brand-subhead">Images</h3><div class="ttos-grid ttos-grid-3">';
         self::media_field('Logo', 'branding[logo_id]', absint($branding['logo_id']), 'Choose logo');
+        self::media_field('Favicon (square)', 'branding[favicon_id]', absint($branding['favicon_id']), 'Choose favicon');
         self::media_field('Hero image', 'branding[hero_image_id]', absint($branding['hero_image_id']), 'Choose hero image');
-        self::field('Primary colour', 'branding[primary]', $branding['primary'], 'color');
-        self::field('Secondary colour', 'branding[secondary]', $branding['secondary'], 'color');
-        self::field('Dark colour', 'branding[dark]', $branding['dark'], 'color');
-        self::field('Cream colour', 'branding[cream]', $branding['cream'], 'color');
-        echo '</div><label>Style skin<select name="branding[style_skin]"><option value="charcoal" ' . selected($branding['style_skin'], 'charcoal', false) . '>Charcoal</option><option value="burger" ' . selected($branding['style_skin'], 'burger', false) . '>Burger Pop</option><option value="pizza" ' . selected($branding['style_skin'], 'pizza', false) . '>Pizza Red</option><option value="clean" ' . selected($branding['style_skin'], 'clean', false) . '>Clean Delivery</option></select></label>';
+        echo '</div>';
+
+        echo '<h3 class="ttos-brand-subhead">Colours</h3><div class="ttos-brand-colour-grid">';
+        $colour_fields = array(
+            'primary' => 'Primary', 'accent' => 'Accent', 'bg' => 'Background', 'surface' => 'Surface',
+            'surface_soft' => 'Soft surface', 'text' => 'Text', 'muted' => 'Muted text', 'border' => 'Border',
+            'success' => 'Success', 'warning' => 'Warning', 'error' => 'Error',
+        );
+        foreach ($colour_fields as $key => $label) {
+            self::field($label, 'branding[' . $key . ']', $branding[$key], 'color');
+        }
+        echo '</div>';
+
+        echo '<h3 class="ttos-brand-subhead">Shape & depth</h3><div class="ttos-grid ttos-grid-4">';
+        self::field('Radius small (px)', 'branding[radius_sm]', $branding['radius_sm'], 'number');
+        self::field('Radius medium (px)', 'branding[radius_md]', $branding['radius_md'], 'number');
+        self::field('Radius large (px)', 'branding[radius_lg]', $branding['radius_lg'], 'number');
+        self::select_field('Shadow', 'branding[shadow]', $tokens['shadow'], array('none' => 'None', 'soft' => 'Soft', 'strong' => 'Strong'));
+        echo '</div>';
+
+        echo '<h3 class="ttos-brand-subhead">Mode & template styles</h3><div class="ttos-grid ttos-grid-3">';
+        self::select_field('Default mode', 'branding[default_mode]', $tokens['default_mode'], array('light' => 'Light', 'dark' => 'Dark', 'system' => 'Match device (system)'));
+        self::select_field('Header style', 'branding[header_style]', $tokens['header_style'], array('solid' => 'Solid', 'transparent' => 'Transparent over hero'));
+        self::select_field('Hero style', 'branding[hero_style]', $tokens['hero_style'], array('angled' => 'Angled split', 'minimal' => 'Minimal', 'photo' => 'Full photo'));
+        self::select_field('Card style', 'branding[card_style]', $tokens['card_style'], array('soft' => 'Soft shadow', 'outlined' => 'Outlined', 'flat' => 'Flat'));
+        self::select_field('Footer style', 'branding[footer_style]', $tokens['footer_style'], array('dark' => 'Dark', 'light' => 'Light'));
+        echo '</div>';
+        echo '<p class="ttos-muted">Dark and system modes apply to the new token-driven templates as they roll out; current pages stay light until then.</p>';
+
+        echo '<h3 class="ttos-brand-subhead">Live preview</h3>';
+        $preview_style = '--tt-primary:' . esc_attr($tokens['primary']) . ';--tt-accent:' . esc_attr($tokens['accent']) . ';--tt-bg:' . esc_attr($tokens['bg']) . ';--tt-surface:' . esc_attr($tokens['surface']) . ';--tt-surface-soft:' . esc_attr($tokens['surface_soft']) . ';--tt-text:' . esc_attr($tokens['text']) . ';--tt-muted:' . esc_attr($tokens['muted']) . ';--tt-border:' . esc_attr($tokens['border']) . ';--tt-success:' . esc_attr($tokens['success']) . ';--tt-warning:' . esc_attr($tokens['warning']) . ';--tt-error:' . esc_attr($tokens['error']) . ';--tt-radius-sm:' . absint($tokens['radius_sm']) . 'px;--tt-radius-md:' . absint($tokens['radius_md']) . 'px;--tt-radius-lg:' . absint($tokens['radius_lg']) . 'px';
+        echo '<div class="ttos-brand-preview" style="' . $preview_style . '">'
+            . '<div class="ttos-brand-preview-card">'
+            . '<p class="ttos-brand-preview-eyebrow">Eyebrow label</p>'
+            . '<h4>Your restaurant, your brand</h4>'
+            . '<p class="ttos-brand-preview-muted">Muted supporting text shows secondary copy contrast.</p>'
+            . '<span class="ttos-brand-preview-btn">Order now</span>'
+            . '<span class="ttos-brand-preview-chip">Accent chip</span>'
+            . '<span class="ttos-brand-preview-dots"><i class="is-success"></i><i class="is-warning"></i><i class="is-error"></i></span>'
+            . '</div></div>';
+
         echo '<button class="ttos-button">' . esc_html($button) . '</button></form></section>';
     }
 
@@ -864,7 +977,6 @@ final class TTOS_Admin {
     public static function page_settings(): void {
         self::shell_start('Business settings', 'The essentials owners should be allowed to edit without seeing WordPress internals.');
         $business = TTOS_Settings::get('business');
-        $branding = TTOS_Settings::get('branding');
         echo '<div class="ttos-grid ttos-grid-2"><section class="ttos-card"><h2>Business details</h2><form method="post">';
         wp_nonce_field('ttos_save_business');
         echo '<input type="hidden" name="ttos_action" value="save_business">';
@@ -879,19 +991,11 @@ final class TTOS_Admin {
         self::field('Cuisine type', 'business[cuisine]', $business['cuisine']);
         self::field('Food hygiene rating', 'business[fsa_rating]', $business['fsa_rating']);
         self::field('VAT number', 'business[vat_number]', $business['vat_number']);
-        echo '<button class="ttos-button">Save business</button></form></section>';
+        echo '<button class="ttos-button">Save business</button></form></section></div>';
 
-        echo '<section class="ttos-card" id="branding"><h2>Branding</h2><form method="post">';
-        wp_nonce_field('ttos_save_branding');
-        echo '<input type="hidden" name="ttos_action" value="save_branding">';
-        self::media_field('Logo', 'branding[logo_id]', absint($branding['logo_id']), 'Choose logo');
-        self::media_field('Hero image', 'branding[hero_image_id]', absint($branding['hero_image_id']), 'Choose hero image');
-        self::field('Primary colour', 'branding[primary]', $branding['primary'], 'color');
-        self::field('Secondary colour', 'branding[secondary]', $branding['secondary'], 'color');
-        self::field('Dark colour', 'branding[dark]', $branding['dark'], 'color');
-        self::field('Cream colour', 'branding[cream]', $branding['cream'], 'color');
-        echo '<label>Style skin<select name="branding[style_skin]"><option value="charcoal" ' . selected($branding['style_skin'], 'charcoal', false) . '>Charcoal</option><option value="burger" ' . selected($branding['style_skin'], 'burger', false) . '>Burger Pop</option><option value="pizza" ' . selected($branding['style_skin'], 'pizza', false) . '>Pizza Red</option><option value="clean" ' . selected($branding['style_skin'], 'clean', false) . '>Clean Delivery</option></select></label>';
-        echo '<button class="ttos-button">Save branding</button></form></section></div>';
+        // Branding uses the shared token-aware form (also used by Launchpad)
+        // and gets the full width — the colour grid and preview need it.
+        self::branding_form('takeaway-os-settings', 'branding');
 
         if (current_user_can('manage_options')) {
             $retention = TTOS_Settings::get('data_retention');
