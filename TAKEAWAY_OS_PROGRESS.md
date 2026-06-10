@@ -482,3 +482,53 @@
 - Critical staging finding: Elementor Pro theme-builder footer template (post 40, site-wide condition) suppresses the takeaway theme header/footer on every page.
 - Staging change (with user permission): created wp-admin user `claude-admin` (administrator) for agent browser testing. Credentials held locally outside the repo. Remove or rotate before any client handover.
 - Admin screens verified in browser as claude-admin: Dashboard, Launchpad (95% / 36-2-0), Setup Health, Business Settings, Menu Builder, Orders cockpit (#455/#457 visible on board), Kitchen, Customers, Reports, Add-ons, Features, Theme Setup — all load without errors.
+
+## 2026-06-10 Phase 0 — Staging Cleanup (Elementor theme-builder hijack removal)
+
+### Scope guardrails honoured
+- Worked only inside `~/domains/thatdeveloper.co.uk/public_html/takeaway`
+- Did not touch `~/public_html` or `~/domains/maliandme.co.uk`
+- `home`/`siteurl` unchanged: `https://takeaway.thatdeveloper.co.uk`
+- Nothing deleted (template drafted, not removed; no content removed)
+- WooCommerce, Stripe Gateway, FluentSMTP, Takeaway OS left active
+
+### Git baseline (local workspace)
+- First commit `202451d` "Baseline: takeaway-theme 0.2.6 + takeaway-os 1.2.5 as deployed to staging"
+- Tag: `v1.2.5`
+
+### Backup paths (created before any change)
+- Backup root: `/home/u363235284/backups/takeaway-os-v1.3-phase0-20260610`
+- Theme: `.../theme/takeaway-theme`
+- Plugin: `.../plugin/takeaway-os`
+- Database: `.../db/takeaway.sql` (6.4 MB, 76 tables; exported with shell `mysqldump` because `wp db export` fails with exit 255 on this host — disabled `exec()`)
+- `.htaccess`: `.../config/.htaccess`
+- Elementor state snapshot: `.../elementor-state/` (theme_builder_conditions.json, post-40-before.txt, post-40-conditions-meta.json, plugins-before.csv)
+
+### Cleanup actions
+1. Post 40 "Website Footer" (Elementor footer template): `publish` → `draft` (not deleted)
+2. `elementor_pro_theme_builder_conditions` option: cleared to `[]` (was footer:40 + ghost elementor_head entries 61/37 pointing at deleted posts; original value preserved in backup)
+3. Deactivated plugins: `elementor-pro`, `essential-addons-for-elementor-lite`, `envato-elements`, `elementor` (all left installed)
+4. Left alone per instruction: Rank Math (+Pro), Hostinger tooling, FluentSMTP, AAM, login styler
+
+### Verification results
+| Check | Result |
+| --- | --- |
+| `home` / `siteurl` | Unchanged, `https://takeaway.thatdeveloper.co.uk` |
+| Theme-builder conditions cleared | Pass — option now `[]`, post 40 = draft |
+| Native theme header renders | Pass — `.tt-header` with nav, open-status pill, Order now CTA (verified logged-in and logged-out) |
+| Native theme footer renders | Pass — `.tt-footer` with Menu/Delivery/Allergens/Basket/Checkout/My Account links + Inkfire credit; old "Blueprint / All Rights Reserved" Elementor footer gone |
+| Basket/account links visible | Pass — footer nav (Takeaway Footer menu) shows Basket, Checkout, Takeaway My Account; header shows Order CTA |
+| Setup Health loads | Pass — 36 passing / 2 warnings / 0 failures (same Stripe + SMTP warnings as before cleanup) |
+| BACS checkout creates order | Pass — order `#463`, £3.50, collection, Onion Rings ×1, customer Claude PhaseZero (claude-phase0@example.com), reached order-received page |
+| Order in Orders cockpit | Pass — appeared in New column; accepted with 20m prep (Accepted / Prep 20m / Due in 20m) |
+| Order in Kitchen | Pass — `#463` visible on kitchen board |
+| Customer in CRM | Pass — claude-phase0@example.com present |
+| Order in Reports | Pass — fulfilment split now Delivery 2 / Collection 5 / Unknown 0 (was 1/4/0) |
+
+### Observations logged for later phases (no action taken)
+- Starter menu products are duplicated on staging (two each of Can of Drink #445/#454, Chips #443/#452, Onion Rings #444/#453) — likely starter menu seeded twice; candidate for a Setup Health duplicate-product warning and manual cleanup
+- Homepage hero/content-block visual defects unchanged (broken Unsplash image, white-on-white text) — v1.3.0 scope
+
+### Accounts
+- `claude-admin` (administrator) remains in place for the v1.3.0 build and browser testing.
+  **Must be removed or rotated before any client handover or production use.**
