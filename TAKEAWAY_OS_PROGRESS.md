@@ -637,3 +637,54 @@ Per-type: `sanitize_text_field` plain text; controlled `wp_kses_post` for rich t
 
 ### Status
 Phase 2 deployed to staging and verified. No final package produced. Awaiting approval before Phase 3 (homepage/header/footer templates consuming Site Content + tokens).
+
+## 2026-06-10 Phase 3 — Public shell & homepage (theme v0.3.0-dev.2)
+
+### Scope guardrails honoured
+- No menu page rebuild, no Woo template restyle, no policy generation, no public banner/popup, no checkout/order-status changes
+- Elementor family remains inactive; home/siteurl unchanged; no final package produced
+
+### Backup path (created before deploy)
+- `/home/u363235284/backups/takeaway-os-v1.3-phase3-20260610/` (theme, plugin, db/takeaway.sql)
+
+### Files changed (theme only this phase)
+- `inc/template-helpers.php` (new) — tt_content/tt_business_name/tt_phone/tt_email/tt_address_lines, tt_trading, tt_menu_url, tt_cta_url (tel:/mailto:/wa.me/path-safe), tt_open_status + pill (override/temporary-closure aware, past-midnight safe), tt_hours_summary (consecutive-day grouping), tt_image (alt fallback + lazy), tt_stars (accessible), tt_cart_count_badge, tt_active_offers (schedule-aware), tt_social_links
+- `header.php` — skip link + loads site-header and mobile-drawer parts
+- `footer.php` — loads site-footer part
+- `template-parts/header/site-header.php` (new) — logo/brand, nav, open-status pill, phone, account, basket+count, Order CTA, hamburger; solid/transparent via Branding body class
+- `template-parts/header/mobile-drawer.php` (new) — dialog drawer: nav, account, delivery checker, call link, Order CTA
+- `template-parts/footer/site-footer.php` (new) — brand/text/socials, contact, grouped hours, quick links, legal links (privacy/allergens/accessibility-if-page-exists), trust row (hygiene/Google/TripAdvisor), admin-controlled built-by, dark/light variant; all hide-empty
+- `front-page.php` — section orchestrator over `tt_home_sections` filter (12 parts); no menu grid, no hardcoded copy
+- `template-parts/home/` (12 new) — hero, trust-strip, featured-food, why-direct, offers, about, booking, opening-hours, contact-map, reviews, newsletter, bottom-cta
+- `assets/css/header.css`, `footer.css`, `home.css` (new, readable, token-driven); `assets/js/theme.js` rewritten (sticky header + accessible drawer: aria-expanded, ESC, overlay close, focus trap + return, scroll lock; vanilla)
+- `functions.php` — requires template-helpers; Woo cart-fragments filter for live `.tt-cart-count`; version 0.3.0-dev.2; `inc/enqueue.php` — header/footer CSS sitewide, home.css on front page only; `style.css` version
+
+### Homepage sections & fallback rules (verified live)
+Rendering with current staging content: hero (Site Content title→business name; broken-Unsplash fallback replaced by token gradient visual), trust strip (delivery ~35m + collection ~25m from trading fallback, hygiene 5/5 linked, Google 4.7★(182) linked), featured food (latest products fallback; image-fallback block), why-direct (3 neutral fallback cards), opening hours (Mon Closed / Tue–Sun 17:00–22:00 grouped + "Opens at 17:00" status pill), contact (address/phone/email; map hidden — no lat/lng set), reviews (1 manual review with accessible stars), bottom CTA. Correctly hidden (no content/disabled): offers, about, booking, newsletter. No admin helper text leaks publicly; zero broken images.
+
+### Compatibility fixes landed
+- Hardcoded Unsplash hero: gone (token gradient fallback)
+- Full `[takeaway_menu]` grid removed from the front page (menu page untouched)
+- White-on-white home block path no longer used on the homepage (shortcode kept for back-compat)
+- New native header/footer on every public page (menu/basket/checkout/account/tracker/delivery/allergens verified)
+
+### Tests run
+- PHP lint all theme files, node --check theme.js, CSS brace balance, junk scan: clean
+- Homepage desktop + mobile (390px): structure, no horizontal overflow, gradient hero fallback
+- Drawer: opens (aria-expanded true, focus to close button, scroll locked), ESC closes (aria false), overlay close wired; verified via CDP key events
+- All 7 public pages: new header/footer/drawer present; all 7 admin screens load; Setup Health steady 44/2/0
+- BACS proof order **#466** (£3.00 Chips, collection, claude-phase3@example.com): on-hold/Bank transfer staging (CLI), in cockpit, kitchen, CRM; reports Collection 7 → 8
+
+### Screenshots
+`test-artifacts/screenshots/p3-home-top-0.3.0-dev2.png`, `p3-home-mid1`, `p3-home-mid2`, `p3-home-footer`, `p3-home-mobile`, `p3-home-mobile2`, `p3-footer-mobile`, `p3-drawer-open` (all -0.3.0-dev2.png)
+
+### Known issues / notes
+- `blogname` changed to "Takeaaway" outside this session (no deployed code path writes it; only save_business does and was never submitted). Left as-is; flag for correction with the real identity later
+- Stylesheet `?ver=` is still 0.3.0-dev.2 across CSS edits during dev — browsers may need a hard refresh on staging; final packaging bumps versions properly
+- Header phone/nav/CTA nowrap fix appended to header.css post-deploy after visual review (deployed)
+- Old `.tt-header`/`.tt-hero` CSS in theme.css is now dormant on the homepage but still used by inner pages (page-head) until Phases 4–6 retire it
+- Drawer panel sits under the admin bar when logged in as admin — cosmetic, logged-out customers unaffected
+- `claude-admin` remains; remove/rotate before client handover
+
+### Status
+Phase 3 deployed and verified. Awaiting approval before Phase 4 (menu page rebuild).

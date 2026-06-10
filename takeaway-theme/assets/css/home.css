@@ -1,0 +1,171 @@
+/*
+ * Homepage sections (v0.3.0). Mobile-first; token-driven. Sections share the
+ * base rhythm (.tt-section) and card primitives from base.css.
+ */
+
+/* --- Section heads --- */
+.tt-section-head { display: flex; align-items: end; justify-content: space-between; gap: var(--tt-space-4); flex-wrap: wrap; }
+.tt-section h2 { font-size: var(--tt-text-3xl); line-height: 1.05; letter-spacing: -.02em; margin: 0 0 var(--tt-space-4); }
+.tt-section-sub { color: var(--tt-muted); max-width: 560px; margin: 0 0 var(--tt-space-5); }
+.tt-section-head-cta { margin-bottom: var(--tt-space-4); }
+
+/* --- Hero --- */
+.tt-home-hero { position: relative; padding: var(--tt-space-7) 0 var(--tt-space-6); overflow: hidden; }
+.tt-home-hero.has-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: var(--tt-hero-bg);
+    background-size: cover;
+    background-position: center;
+    opacity: .14;
+}
+.tt-home-hero-grid { position: relative; display: grid; gap: var(--tt-space-6); }
+.tt-home-hero-copy h1 { font-size: var(--tt-text-display); line-height: .98; letter-spacing: -.03em; margin: var(--tt-space-2) 0 var(--tt-space-4); }
+.tt-home-hero-sub { font-size: var(--tt-text-lg); line-height: 1.6; color: var(--tt-muted); max-width: 540px; margin: 0 0 var(--tt-space-5); }
+
+.tt-fulfilment-toggle { display: inline-flex; gap: 6px; background: var(--tt-surface-soft); border: 1px solid var(--tt-border); border-radius: 999px; padding: 5px; margin: 0 0 var(--tt-space-5); }
+.tt-fulfilment-pill { padding: 9px 18px; border-radius: 999px; text-decoration: none; font-weight: 800; font-size: var(--tt-text-sm); color: var(--tt-text); }
+.tt-fulfilment-pill:hover, .tt-fulfilment-pill:first-child { background: var(--tt-surface); box-shadow: 0 2px 10px rgba(0,0,0,.07); }
+
+.tt-home-hero-actions { display: flex; gap: var(--tt-space-3); flex-wrap: wrap; margin: 0 0 var(--tt-space-5); }
+
+.tt-postcode-check label { display: block; font-weight: 800; font-size: var(--tt-text-sm); margin-bottom: var(--tt-space-2); }
+.tt-postcode-check-row { display: flex; gap: var(--tt-space-2); max-width: 380px; }
+.tt-postcode-check-row input {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-sm);
+    background: var(--tt-surface);
+    padding: 12px 14px;
+    font: inherit;
+    min-height: 44px;
+}
+
+.tt-home-hero-visual { display: grid; align-items: center; }
+.tt-home-hero-imgwrap { border-radius: var(--tt-radius-lg); overflow: hidden; box-shadow: var(--tt-shadow); aspect-ratio: 5 / 4; }
+.tt-home-hero-imgwrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tt-home-hero-placeholder {
+    position: relative;
+    aspect-ratio: 5 / 4;
+    border-radius: var(--tt-radius-lg);
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--tt-primary), color-mix(in srgb, var(--tt-primary) 55%, var(--tt-accent)));
+    box-shadow: var(--tt-shadow);
+}
+.tt-blob { position: absolute; border-radius: 50%; opacity: .35; }
+.tt-blob-1 { width: 55%; aspect-ratio: 1; background: var(--tt-accent); top: -12%; right: -10%; }
+.tt-blob-2 { width: 40%; aspect-ratio: 1; background: #fff; bottom: -14%; left: -8%; opacity: .18; }
+.tt-blob-3 { width: 22%; aspect-ratio: 1; background: #fff; top: 38%; left: 42%; opacity: .22; }
+
+/* --- Trust strip --- */
+.tt-trust-strip { background: var(--tt-text); color: var(--tt-bg); padding: var(--tt-space-4) 0; }
+.tt-trust-strip-row { display: flex; gap: var(--tt-space-3) var(--tt-space-6); flex-wrap: wrap; align-items: center; }
+.tt-trust-item { display: inline-flex; align-items: center; gap: var(--tt-space-2); font-weight: 700; font-size: var(--tt-text-sm); }
+.tt-trust-item a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.tt-trust-icon { opacity: .85; }
+
+/* --- Featured food --- */
+.tt-featured-grid { display: grid; gap: var(--tt-space-4); }
+.tt-featured-card { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+.tt-featured-media { aspect-ratio: 16 / 10; background: var(--tt-surface-soft); }
+.tt-featured-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tt-featured-media-empty { display: grid; place-items: center; }
+.tt-featured-media-empty span { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, var(--tt-primary), var(--tt-accent)); opacity: .5; }
+.tt-featured-body { padding: var(--tt-space-4) var(--tt-space-5) var(--tt-space-5); display: grid; gap: var(--tt-space-2); }
+.tt-featured-body h3 { margin: 0; font-size: var(--tt-text-xl); }
+.tt-featured-body p { margin: 0; color: var(--tt-muted); font-size: var(--tt-text-sm); }
+.tt-featured-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--tt-space-3); margin-top: var(--tt-space-2); }
+.tt-featured-price { color: var(--tt-primary); font-size: var(--tt-text-lg); }
+.tt-featured-link { font-weight: 800; text-decoration: none; color: var(--tt-text); }
+.tt-featured-link:hover { color: var(--tt-primary); }
+
+/* --- Why direct --- */
+.tt-home-whydirect { background: var(--tt-surface-soft); }
+.tt-whydirect-grid { display: grid; gap: var(--tt-space-4); }
+.tt-whydirect-card h3 { margin: var(--tt-space-2) 0; font-size: var(--tt-text-xl); }
+.tt-whydirect-card p { margin: 0; color: var(--tt-muted); }
+.tt-whydirect-num { font-weight: 900; color: var(--tt-primary); letter-spacing: .08em; }
+
+/* --- Offers --- */
+.tt-offers-grid { display: grid; gap: var(--tt-space-4); }
+.tt-offer-card { padding: 0; overflow: hidden; }
+.tt-offer-media { aspect-ratio: 16 / 9; background: var(--tt-surface-soft); }
+.tt-offer-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tt-offer-body { padding: var(--tt-space-5); display: grid; gap: var(--tt-space-3); justify-items: start; }
+.tt-offer-body h3 { margin: 0; font-size: var(--tt-text-xl); }
+.tt-offer-text { color: var(--tt-muted); }
+.tt-offer-text p { margin: 0; }
+
+/* --- About --- */
+.tt-about-grid { display: grid; gap: var(--tt-space-6); align-items: center; }
+.tt-about-text { color: var(--tt-muted); line-height: 1.7; }
+.tt-about-media img { border-radius: var(--tt-radius-lg); box-shadow: var(--tt-shadow); width: 100%; height: auto; display: block; }
+.tt-about-dinein { font-weight: 700; }
+
+/* --- Booking / Newsletter cards --- */
+.tt-booking-card, .tt-newsletter-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--tt-space-5);
+    flex-wrap: wrap;
+    padding: var(--tt-space-6);
+}
+.tt-booking-card h2, .tt-newsletter-card h2 { margin-bottom: var(--tt-space-2); }
+.tt-booking-text, .tt-newsletter-text { color: var(--tt-muted); max-width: 520px; }
+.tt-booking-text p, .tt-newsletter-text p { margin: 0; }
+.tt-booking-note { color: var(--tt-muted); font-size: var(--tt-text-sm); margin: var(--tt-space-2) 0 0; }
+
+/* --- Opening hours --- */
+.tt-hours-grid { display: grid; gap: var(--tt-space-6); align-items: start; }
+.tt-hours-list { list-style: none; margin: 0; padding: var(--tt-space-5); display: grid; gap: 0; }
+.tt-hours-list li { display: flex; justify-content: space-between; gap: var(--tt-space-4); padding: 10px 0; border-bottom: 1px solid var(--tt-border); }
+.tt-hours-list li:last-child { border-bottom: 0; }
+.tt-hours-list span { color: var(--tt-muted); font-weight: 700; }
+.tt-hours-closure { background: color-mix(in srgb, var(--tt-warning) 14%, transparent); color: var(--tt-text); border-left: 4px solid var(--tt-warning); border-radius: var(--tt-radius-sm); padding: var(--tt-space-3) var(--tt-space-4); font-weight: 700; }
+
+/* --- Contact & map --- */
+.tt-contact-grid { display: grid; gap: var(--tt-space-5); align-items: stretch; }
+.tt-contact-address { font-style: normal; white-space: pre-line; line-height: 1.7; color: var(--tt-muted); margin: 0 0 var(--tt-space-3); }
+.tt-contact-list { list-style: none; margin: 0 0 var(--tt-space-3); padding: 0; display: grid; gap: 6px; }
+.tt-contact-list a { font-weight: 800; color: var(--tt-text); text-decoration: none; }
+.tt-contact-list a:hover { color: var(--tt-primary); }
+.tt-contact-note { color: var(--tt-muted); font-size: var(--tt-text-sm); margin: var(--tt-space-2) 0 0; }
+.tt-contact-map { border-radius: var(--tt-radius-lg); overflow: hidden; box-shadow: var(--tt-shadow); min-height: 320px; display: grid; }
+.tt-contact-map iframe { width: 100%; height: 100%; min-height: 320px; border: 0; display: block; }
+.tt-contact-map-link { place-items: center; background: var(--tt-surface-soft); }
+
+/* --- Reviews --- */
+.tt-reviews-grid { display: grid; gap: var(--tt-space-4); }
+.tt-review-card { margin: 0; display: grid; gap: var(--tt-space-3); align-content: start; }
+.tt-review-text { margin: 0; font-size: var(--tt-text-lg); line-height: 1.55; }
+.tt-review-meta { color: var(--tt-muted); font-size: var(--tt-text-sm); }
+.tt-review-meta cite { font-style: normal; font-weight: 800; color: var(--tt-text); }
+.tt-stars { letter-spacing: 2px; color: var(--tt-accent); font-size: 18px; }
+.tt-star { color: var(--tt-accent); }
+.tt-star:not(.is-full):not(.is-half) { opacity: .35; }
+
+/* --- Bottom CTA --- */
+.tt-home-bottomcta { background: var(--tt-text); color: var(--tt-bg); }
+.tt-bottomcta-inner { text-align: center; display: grid; gap: var(--tt-space-3); justify-items: center; }
+.tt-bottomcta-text { color: color-mix(in srgb, var(--tt-bg) 75%, transparent); max-width: 480px; }
+.tt-bottomcta-text p { margin: 0; }
+.tt-bottomcta-btn { padding: 14px 30px; font-size: var(--tt-text-lg); }
+
+/* --- Breakpoints --- */
+@media (min-width: 621px) {
+    .tt-featured-grid, .tt-offers-grid, .tt-reviews-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tt-whydirect-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 901px) {
+    .tt-home-hero-grid { grid-template-columns: 1.05fr .95fr; align-items: center; gap: var(--tt-space-8); }
+    .tt-featured-grid, .tt-whydirect-grid, .tt-reviews-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .tt-offers-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tt-about-grid { grid-template-columns: 1.1fr .9fr; }
+    .tt-about-grid.no-image { grid-template-columns: 1fr; max-width: 760px; }
+    .tt-hours-grid { grid-template-columns: 1fr 1.2fr; }
+    .tt-contact-grid { grid-template-columns: .9fr 1.1fr; }
+    .tt-contact-grid.no-map { grid-template-columns: 1fr; max-width: 640px; }
+}

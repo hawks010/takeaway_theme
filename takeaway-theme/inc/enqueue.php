@@ -8,6 +8,11 @@ function ttheme_enqueue(): void {
     // saved branding always wins over the stylesheet fallbacks.
     wp_enqueue_style('takeaway-theme-tokens', TTHEME_URL . '/assets/css/tokens.css', array(), TTHEME_VERSION);
     wp_enqueue_style('takeaway-theme-base', TTHEME_URL . '/assets/css/base.css', array('takeaway-theme-tokens'), TTHEME_VERSION);
+    wp_enqueue_style('takeaway-theme-header', TTHEME_URL . '/assets/css/header.css', array('takeaway-theme-base'), TTHEME_VERSION);
+    wp_enqueue_style('takeaway-theme-footer', TTHEME_URL . '/assets/css/footer.css', array('takeaway-theme-base'), TTHEME_VERSION);
+    if (is_front_page()) {
+        wp_enqueue_style('takeaway-theme-home', TTHEME_URL . '/assets/css/home.css', array('takeaway-theme-base'), TTHEME_VERSION);
+    }
     wp_enqueue_style('takeaway-theme', TTHEME_URL . '/assets/css/theme.css', array('takeaway-theme-base'), TTHEME_VERSION);
     wp_enqueue_script('takeaway-theme', TTHEME_URL . '/assets/js/theme.js', array(), TTHEME_VERSION, true);
 }
