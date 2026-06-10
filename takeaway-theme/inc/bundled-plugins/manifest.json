@@ -1,0 +1,9 @@
+{
+  "takeaway-os": {
+    "name": "Takeaway OS",
+    "slug": "takeaway-os",
+    "main_file": "takeaway-os/takeaway-os.php",
+    "version": "1.2.5",
+    "package": "takeaway-os.zip"
+  }
+}

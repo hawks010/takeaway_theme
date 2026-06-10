@@ -1,0 +1,52 @@
+Takeaway Theme / Takeaway OS critical check
+Build date: 2026-06-08
+Theme target: 0.2.5-bundled
+Plugin target: 1.2.4
+
+Local verification completed:
+- PHP syntax checks across all theme and plugin PHP files
+- JS syntax checks across admin/frontend/theme scripts
+- ZIP structure checks for takeaway-os-v1.2.4.zip and takeaway-theme-v0.2.5-bundled.zip
+- Bundled theme archive contains takeaway-theme/ with bundled takeaway-os.zip
+- Bundled plugin archive contains takeaway-os/
+
+Confirmed staging target:
+- SSH host: hostinger-shared
+- Docroot: ~/domains/thatdeveloper.co.uk/public_html/takeaway
+- home/siteurl: https://takeaway.thatdeveloper.co.uk
+- untouched: ~/public_html
+- untouched: ~/domains/maliandme.co.uk
+
+Staging versions after deployment:
+- Theme: takeaway-theme 0.2.5
+- Plugin: takeaway-os 1.2.4
+- WooCommerce: 10.8.1
+- WooCommerce Stripe Gateway: 10.7.0
+- FluentSMTP: 2.2.95
+
+Checkout debug outcome:
+- Earlier "no order created" diagnosis was incorrect because wp post list was not the right verification path for this WooCommerce order storage setup
+- Real bug fixed: advanced delivery-zone validation and fees were applying to collection orders
+- Additional reports bug fixed: fulfilment split now reads _ttos_fulfilment_method and no longer reports everything as Unknown
+
+Verified on staging:
+- Setup Health: 100% complete, 30 pass / 0 warn / 0 fail
+- Theme setup: bundled 1.2.4 matches installed 1.2.4 and plugin is active
+- Browser collection checkout reaches order-received page
+- Delivery checkout creates an order with the correct delivery-zone fee
+- Order cockpit shows the created order
+- Kitchen screen accepts the browser-created order with a prep time
+- CRM shows the customer from the browser-created order
+- Reports page loads and now shows Delivery 1 / Collection 4 / Unknown 0
+
+Artifacts:
+- takeaway-os-v1.2.4.zip
+- takeaway-theme-v0.2.5-bundled.zip
+- TAKEAWAY_OS_PROGRESS.md
+- test-artifacts/screenshots/*
+
+Result:
+- Safe for local testing: Yes
+- Safe for staging testing: Yes
+- Safe for first client beta: Yes for controlled staging/demo use
+- Safe for paid production install: No, not until live payment and email delivery are verified
