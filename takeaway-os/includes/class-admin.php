@@ -12,6 +12,21 @@ final class TTOS_Admin {
         add_action('admin_bar_menu', array(__CLASS__, 'admin_bar'), 100);
         add_action('wp_ajax_ttos_order_board', array(__CLASS__, 'ajax_order_board'));
         add_action('wp_ajax_ttos_order_action', array(__CLASS__, 'ajax_order_action'));
+        add_action('in_admin_header', array(__CLASS__, 'suppress_foreign_notices'), 1000);
+    }
+
+    /**
+     * Hide third-party admin notices on Takeaway OS screens only. The owner
+     * dashboard should not be buried under SEO/host/SMTP banners. Notices
+     * still show everywhere else in wp-admin; Takeaway OS renders its own
+     * notices inside the shell, not via admin_notices.
+     */
+    public static function suppress_foreign_notices(): void {
+        if (!function_exists('get_current_screen')) return;
+        $screen = get_current_screen();
+        if (!$screen || strpos((string) $screen->id, 'takeaway-os') === false) return;
+        remove_all_actions('admin_notices');
+        remove_all_actions('all_admin_notices');
     }
 
     public static function menu(): void {
@@ -464,6 +479,7 @@ final class TTOS_Admin {
             'takeaway-os-customers' => 'Customers',
             'takeaway-os-reports' => 'Reports',
             'takeaway-os-features' => 'Features',
+            'takeaway-os-site-content' => 'Site Content',
             'takeaway-os-settings' => 'Settings',
             'takeaway-os-payments' => 'Payments',
             'takeaway-os-delivery' => 'Delivery',

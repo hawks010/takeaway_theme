@@ -583,3 +583,57 @@
 
 ### Status
 Phase 1 deployed to staging and verified. Awaiting approval before Phase 2 (Site Content CRM).
+
+## 2026-06-10 Phase 2 — Site Content CRM foundation (v1.3.0-dev.2)
+
+### Scope guardrails honoured
+- No homepage/menu/Woo template rebuild; no public banner/popup rendering (config only, disabled by default); no checkout/order-status changes
+- Elementor family remains inactive; home/siteurl unchanged; no final v1.3.0 package produced
+
+### Backup path (created before deploy)
+- `/home/u363235284/backups/takeaway-os-v1.3-phase2-20260610/` (theme, plugin, db/takeaway.sql 6.4MB, ttos_settings_before.json)
+
+### Files changed
+- `takeaway-os/includes/class-site-content.php` (new, ~1,100 lines) — `TTOS_Site_Content`: versioned `ttos_site_content` option, defaults, add-only `migrate()`, per-section sanitisers, 14-tab admin screen (13 content tabs + Export/Import), save handling, JSON export, upload→preview→confirm/cancel import, template helper functions (`ttos_get_site_content()`, `ttos_get_site_content_value()`, `ttos_get_business_type()`, `ttos_get_opening_hours()`)
+- `takeaway-os/takeaway-os.php` — require + hook new class; version `1.3.0-dev.2`
+- `takeaway-os/includes/class-activator.php` — `migrate_site_content()` called from activate() and maybe_upgrade()
+- `takeaway-os/includes/class-admin.php` — Site Content nav item; `suppress_foreign_notices()` (removes third-party admin_notices on Takeaway OS screens only)
+- `takeaway-os/includes/class-setup-health.php` — Site Content nav item; 8 new checks via `site_content_checks()` + `schedule_check()` (all warnings, never hard failures)
+- `takeaway-os/includes/class-operations.php` — Site Content nav item
+- `takeaway-os/assets/admin.css` — subtab pills, field/repeater/hours-grid styles, warning callout, sticky save bar
+
+### Option structure (`ttos_site_content`)
+`version` (1.3.0) + 13 sections: homepage (35 keys incl. hero, CTAs, toggles, featured products/categories multi-selects, why-direct repeater ≤6, about, booking, newsletter, bottom CTA), menu_page (13), business_info (22 incl. ratings + business_type enum), opening_times (7 structured days × 8 fields + closure + override), delivery_collection (11), contact_map (14), reviews (4 + items repeater ≤12), offers (items repeater ≤12), social_links (8), footer (14 incl. admin-controlled built-by), policies (9 starter texts + admin warning), banner (12, disabled), popup (15, disabled, allow_on_checkout default off)
+
+### Sanitisation strategy
+Per-type: `sanitize_text_field` plain text; controlled `wp_kses_post` for rich text; `esc_url_raw` + http(s) check for URLs; CTA targets additionally allow `tel:`/`mailto:`/wa.me/relative paths; `sanitize_email`; booleans normalised '1'/'0'; enums whitelisted; attachment IDs `absint` + attachment existence check; times `HH:MM` regex; datetimes `YYYY-MM-DDTHH:MM` regex; ratings clamped 0–5; repeaters drop empty rows, cap rows, reindex; featured product/category IDs validated against post type/term. All saves: `ttos_manage_settings` + nonce per action.
+
+### Migration behaviour (verified)
+- First load created the option complete (14 top-level keys); `ttos_version` → 1.3.0-dev.2
+- `migrate()` is add-only: existing values never modified; missing sections/keys seeded from defaults
+
+### Tests run
+- PHP lint clean on all changed files; admin.css braces balanced; no junk files
+- All 14 tabs load, 0 PHP errors, **0 foreign admin notices** (suppression verified — previously FluentSMTP/Rank Math/Hostinger banners on every screen)
+- Save round-trips: business_info (all 22 keys intact, values exact incl. rating 4.7), opening_times (closed flag/times/notes), reviews repeater (3 blank rows + 1 filled → exactly 1 normalised item), footer
+- Attachment field: set logo_id 99 → preview rendered → saved 99; Remove → saved 0
+- Export: JSON with format/version/plugin stamps, 27 branding keys + 14 content sections
+- Import: upload → preview card (source site, date, section list) → cancel → "Nothing was changed" (confirm path not applied to avoid touching content)
+- Branding screen intact (6 presets + live preview)
+- Setup Health: **44 pass / 2 warnings / 0 failures** (36 + 8 new checks; the 2 warnings remain Stripe + SMTP; new checks pass because test content was saved during verification)
+- Public pages all load with header/footer: home, menu, basket, checkout, my account
+- Cockpit, kitchen, CRM, reports all load
+- BACS proof order **#465** (£3.00, 2× Can of Drink, collection, claude-phase2@example.com): WooCommerce CLI confirmed on-hold/Bank transfer staging; visible in cockpit, kitchen, CRM; reports Collection split 6 → 7
+
+### Screenshots
+`test-artifacts/screenshots/p2-sc-homepage-1.3.0-dev2.png`, `p2-sc-hours-1.3.0-dev2.png`, `p2-export-import-1.3.0-dev2.png`, `p2-import-preview-1.3.0-dev2.png`, `p2-setup-health-1.3.0-dev2.png`, `p2-popup-tab-1.3.0-dev2.png`
+
+### Known issues / notes
+- Test content saved on staging during verification (Blueprint Kitchen business info, Tue–Sun 17:00–22:00 hours, 1 review) — real content for Phase 3 testing, intentionally left in place
+- Repeaters use fixed blank rows (add-row JS enhancement possible later); featured pickers are native multi-selects (fine ≤200 products)
+- Site Content team: `_notice` key inside policies is an internal marker, never rendered publicly
+- Homepage defects (broken Unsplash hero etc.) remain by design — Phase 3 scope
+- `claude-admin` user still in place; remove/rotate before client handover
+
+### Status
+Phase 2 deployed to staging and verified. No final package produced. Awaiting approval before Phase 3 (homepage/header/footer templates consuming Site Content + tokens).

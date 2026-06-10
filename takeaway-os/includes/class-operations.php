@@ -163,7 +163,7 @@ final class TTOS_Operations {
     private static function nav(): void {
         $items = array(
             'takeaway-os' => 'Dashboard', 'takeaway-os-launchpad' => 'Launchpad', 'takeaway-os-setup-health' => 'Setup Health', 'takeaway-os-menu' => 'Menu', 'takeaway-os-orders' => 'Orders', 'takeaway-os-kitchen' => 'Kitchen',
-            'takeaway-os-customers' => 'Customers', 'takeaway-os-reports' => 'Reports', 'takeaway-os-features' => 'Features', 'takeaway-os-operations' => 'Operations', 'takeaway-os-golive' => 'Go Live', 'takeaway-os-modules' => 'Add-ons'
+            'takeaway-os-customers' => 'Customers', 'takeaway-os-reports' => 'Reports', 'takeaway-os-site-content' => 'Site Content', 'takeaway-os-features' => 'Features', 'takeaway-os-operations' => 'Operations', 'takeaway-os-golive' => 'Go Live', 'takeaway-os-modules' => 'Add-ons'
         );
         $current = isset($_GET['page']) ? sanitize_key($_GET['page']) : 'takeaway-os';
         echo '<nav class="ttos-nav">';

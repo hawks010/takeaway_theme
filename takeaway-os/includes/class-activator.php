@@ -7,6 +7,7 @@ final class TTOS_Activator {
         self::add_roles();
         self::seed_settings();
         self::migrate_branding_tokens();
+        self::migrate_site_content();
         self::create_pages();
         update_option('ttos_version', TTOS_VERSION, false);
         update_option('ttos_do_activation_redirect', '1', false);
@@ -22,7 +23,15 @@ final class TTOS_Activator {
         self::add_roles();
         self::seed_settings();
         self::migrate_branding_tokens();
+        self::migrate_site_content();
         update_option('ttos_version', TTOS_VERSION, false);
+    }
+
+    /** v1.3.0 Site Content option. Add-only; never modifies existing values. */
+    private static function migrate_site_content(): void {
+        if (class_exists('TTOS_Site_Content')) {
+            TTOS_Site_Content::migrate();
+        }
     }
 
     /**

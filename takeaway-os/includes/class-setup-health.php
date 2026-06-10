@@ -216,7 +216,86 @@ final class TTOS_Setup_Health {
         $checks[] = self::make_check('starter_menu', 'Starter menu content exists', self::starter_content_exists(), 'Published menu products exist.', 'Create starter content or add real menu products.', true);
         $checks[] = self::make_check('theme_active', 'Theme is active', $theme_active, 'The Takeaway theme is active.', 'The site is not currently using the Takeaway theme.', true);
 
+        foreach (self::site_content_checks() as $check) {
+            $checks[] = $check;
+        }
+
         return $checks;
+    }
+
+    /**
+     * v1.3.0 Site Content checks. Content gaps are warnings only — this is
+     * a beta/staging build, missing content must not hard-fail Setup Health.
+     */
+    private static function site_content_checks(): array {
+        if (!class_exists('TTOS_Site_Content')) {
+            return array();
+        }
+        $checks = array();
+
+        $option_exists = is_array(get_option('ttos_site_content'));
+        $checks[] = self::make_check('site_content_option', 'Site Content storage initialised', $option_exists, 'The Site Content option exists.', 'Open Takeaway OS → Site Content and save any tab to initialise it.');
+
+        $business_name = (string) TTOS_Site_Content::get('business_info', 'business_name', '');
+        if ($business_name === '') {
+            $business_name = (string) TTOS_Settings::get('business', 'restaurant_name');
+        }
+        $checks[] = self::make_check('site_content_business_name', 'Business name available for templates', trim($business_name) !== '', 'A business name is available (Site Content or Business Settings).', 'Add the business name in Takeaway OS → Site Content → Business Info.');
+
+        $hours = TTOS_Site_Content::get('opening_times');
+        $hours_configured = false;
+        foreach ((array) ($hours['days'] ?? array()) as $day) {
+            if (!empty($day['closed']) && $day['closed'] === '1') { $hours_configured = true; break; }
+            if (!empty($day['open']) && !empty($day['close'])) { $hours_configured = true; break; }
+        }
+        $checks[] = self::make_check('site_content_hours', 'Opening hours configured', $hours_configured, 'Weekly opening hours are set.', 'Fill in opening hours in Takeaway OS → Site Content → Opening Times.');
+
+        $hero_title = (string) TTOS_Site_Content::get('homepage', 'hero_title', '');
+        $checks[] = self::make_check('site_content_hero', 'Homepage hero headline available', trim($hero_title . $business_name) !== '', 'A hero title or business name is available for the homepage.', 'Add a hero title in Site Content → Homepage, or set the business name.');
+
+        $footer = TTOS_Site_Content::get('footer');
+        $business = TTOS_Site_Content::get('business_info');
+        $footer_ready = trim((string) $footer['text']) !== ''
+            || trim((string) $business['phone']) !== ''
+            || trim((string) $business['email']) !== ''
+            || trim((string) TTOS_Settings::get('business', 'email')) !== '';
+        $checks[] = self::make_check('site_content_footer', 'Footer basics present', $footer_ready, 'Footer has text or business contact details to show.', 'Add footer text or business contact details in Site Content.');
+
+        $hygiene = trim((string) $business['hygiene_rating']);
+        if ($hygiene === '') {
+            $hygiene = trim((string) TTOS_Settings::get('business', 'fsa_rating'));
+        }
+        $checks[] = self::make_check('site_content_hygiene', 'Food hygiene rating recorded', $hygiene !== '', 'A food hygiene rating is recorded.', 'Add the FSA hygiene rating in Site Content → Business Info. Optional but strongly recommended for trust.');
+
+        $checks[] = self::schedule_check('banner');
+        $checks[] = self::schedule_check('popup');
+
+        return $checks;
+    }
+
+    private static function schedule_check(string $section): array {
+        $config = TTOS_Site_Content::get($section);
+        $enabled = ($config['enabled'] ?? '0') === '1';
+        $label = $section === 'banner' ? 'Banner schedule valid' : 'Popup schedule valid';
+        if (!$enabled) {
+            return self::make_check('site_content_' . $section . '_schedule', $label, true, ucfirst($section) . ' is disabled — no schedule to validate.', '');
+        }
+        $start = (string) ($config['start'] ?? '');
+        $end   = (string) ($config['end'] ?? '');
+        $valid = true;
+        $problem = '';
+        if ($start !== '' && $end !== '' && strtotime($end) <= strtotime($start)) {
+            $valid = false;
+            $problem = 'The end date/time is before the start date/time.';
+        } elseif ($end !== '' && strtotime($end) < time()) {
+            $valid = false;
+            $problem = 'The end date/time is in the past — it will never show.';
+        }
+        if ($valid && trim((string) ($config['title'] ?? '') . (string) ($config['message'] ?? '')) === '') {
+            $valid = false;
+            $problem = 'It is enabled but has no title or message.';
+        }
+        return self::make_check('site_content_' . $section . '_schedule', $label, $valid, ucfirst($section) . ' schedule looks valid.', $problem . ' Fix it in Site Content → ' . ucfirst($section) . '.');
     }
 
     public static function launchpad_summary_card(): string {
@@ -315,6 +394,7 @@ final class TTOS_Setup_Health {
             'takeaway-os-kitchen' => 'Kitchen',
             'takeaway-os-customers' => 'Customers',
             'takeaway-os-reports' => 'Reports',
+            'takeaway-os-site-content' => 'Site Content',
             'takeaway-os-settings' => 'Settings',
             'takeaway-os-payments' => 'Payments',
             'takeaway-os-delivery' => 'Delivery',
