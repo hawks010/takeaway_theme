@@ -316,6 +316,12 @@ final class TTOS_Operations {
         return array_unique($out);
     }
 
+    /** Public accessor for the configured delivery postcode prefixes. */
+    public static function postcode_prefixes(): array {
+        $trading = TTOS_Settings::get('trading');
+        return self::basic_postcodes((string) ($trading['delivery_postcodes'] ?? ''));
+    }
+
     public static function save_order_meta($order, array $data): void {
         $method = sanitize_key(wp_unslash($_POST['ttos_fulfilment_method'] ?? ''));
         $time = sanitize_text_field(wp_unslash($_POST['ttos_requested_time'] ?? 'asap'));

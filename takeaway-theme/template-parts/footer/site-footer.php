@@ -32,17 +32,37 @@ $quick_links = array(
     __('My account', 'takeaway-theme')  => function_exists('wc_get_page_permalink') ? wc_get_page_permalink('myaccount') : '',
 );
 
+// Legal links: prefer Takeaway-generated policy pages, hide what doesn't exist.
+$tt_policy_link = static function (string $key): string {
+    $id = absint(get_option('ttos_page_' . $key, 0));
+    return ($id && get_post_status($id) === 'publish') ? (string) get_permalink($id) : '';
+};
 $legal_links = array();
-if ($show('show_legal_links') && function_exists('get_privacy_policy_url') && get_privacy_policy_url()) {
-    $legal_links[__('Privacy policy', 'takeaway-theme')] = get_privacy_policy_url();
+if ($show('show_legal_links')) {
+    $legal_specs = array(
+        'policy_privacy' => __('Privacy policy', 'takeaway-theme'),
+        'policy_cookies' => __('Cookies', 'takeaway-theme'),
+        'policy_terms'   => __('Terms & conditions', 'takeaway-theme'),
+        'policy_refunds' => __('Refunds', 'takeaway-theme'),
+        'policy_delivery' => __('Delivery policy', 'takeaway-theme'),
+        'policy_hygiene' => __('Food hygiene', 'takeaway-theme'),
+        'policy_business' => __('Business details', 'takeaway-theme'),
+    );
+    foreach ($legal_specs as $key => $label) {
+        $url = $tt_policy_link($key);
+        if ($url !== '') $legal_links[$label] = $url;
+    }
+    if (!isset($legal_links[__('Privacy policy', 'takeaway-theme')]) && function_exists('get_privacy_policy_url') && get_privacy_policy_url()) {
+        $legal_links[__('Privacy policy', 'takeaway-theme')] = get_privacy_policy_url();
+    }
 }
 if ($show('show_allergen_link')) {
     $allergens_url = ttheme_page_url('allergens', '');
     if ($allergens_url !== home_url('')) $legal_links[__('Allergen information', 'takeaway-theme')] = $allergens_url;
 }
 if ($show('show_accessibility_link')) {
-    $accessibility = get_page_by_path('accessibility-statement');
-    if ($accessibility) $legal_links[__('Accessibility', 'takeaway-theme')] = get_permalink($accessibility);
+    $accessibility_url = $tt_policy_link('policy_accessibility');
+    if ($accessibility_url !== '') $legal_links[__('Accessibility', 'takeaway-theme')] = $accessibility_url;
 }
 ?>
 <footer class="tt-sitefooter tt-sitefooter-<?php echo esc_attr(sanitize_key(ttheme_brand('footer_style', 'dark') ?: 'dark')); ?>">

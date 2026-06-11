@@ -65,6 +65,60 @@ final class TTOS_Page_Manager {
                 'content' => '[takeaway_rewards]',
                 'label' => 'Customer rewards page',
             ),
+            'contact' => array(
+                'title' => 'Contact',
+                'slug' => 'contact',
+                'content' => '[takeaway_contact]',
+                'label' => 'Contact page',
+            ),
+            'policy_privacy' => array(
+                'title' => 'Privacy Policy',
+                'slug' => 'privacy-policy',
+                'content' => '[takeaway_policy key="privacy"]',
+                'label' => 'Privacy policy page',
+            ),
+            'policy_cookies' => array(
+                'title' => 'Cookie Policy',
+                'slug' => 'cookie-policy',
+                'content' => '[takeaway_policy key="cookies"]',
+                'label' => 'Cookie policy page',
+            ),
+            'policy_terms' => array(
+                'title' => 'Terms & Conditions',
+                'slug' => 'terms-and-conditions',
+                'content' => '[takeaway_policy key="terms"]',
+                'label' => 'Terms & conditions page',
+            ),
+            'policy_refunds' => array(
+                'title' => 'Refunds & Cancellations',
+                'slug' => 'refunds-cancellations',
+                'content' => '[takeaway_policy key="refunds"]',
+                'label' => 'Refunds policy page',
+            ),
+            'policy_delivery' => array(
+                'title' => 'Delivery Policy',
+                'slug' => 'delivery-policy',
+                'content' => '[takeaway_policy key="delivery"]',
+                'label' => 'Delivery policy page',
+            ),
+            'policy_accessibility' => array(
+                'title' => 'Accessibility Statement',
+                'slug' => 'accessibility-statement',
+                'content' => '[takeaway_policy key="accessibility"]',
+                'label' => 'Accessibility statement page',
+            ),
+            'policy_hygiene' => array(
+                'title' => 'Food Hygiene & Safety',
+                'slug' => 'food-hygiene',
+                'content' => '[takeaway_policy key="hygiene"]',
+                'label' => 'Food hygiene page',
+            ),
+            'policy_business' => array(
+                'title' => 'Business Details',
+                'slug' => 'business-details',
+                'content' => '[takeaway_policy key="contact_details"]',
+                'label' => 'Business details page',
+            ),
         );
     }
 

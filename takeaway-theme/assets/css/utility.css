@@ -1,0 +1,98 @@
+/*
+ * Utility, policy and 404 pages (v0.3.0). Token-driven.
+ */
+
+/* Shared front card (legacy class, new look) */
+.ttos-front-card {
+    background: var(--tt-surface);
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-md);
+    box-shadow: var(--tt-shadow);
+    padding: var(--tt-space-5);
+    margin: 0 0 var(--tt-space-4);
+}
+.ttos-front-card h2 { margin-top: 0; font-size: var(--tt-text-xl); }
+
+/* --- Order tracker --- */
+.ttos-tracker-form label { display: block; font-weight: 700; font-size: var(--tt-text-sm); margin-bottom: var(--tt-space-2); }
+.ttos-tracker-row { display: flex; gap: var(--tt-space-2); max-width: 380px; }
+.ttos-tracker-row input {
+    flex: 1; min-width: 0;
+    border: 1px solid var(--tt-border); border-radius: var(--tt-radius-sm);
+    background: var(--tt-bg); padding: 12px 14px; font: inherit; min-height: 44px;
+}
+.ttos-tracker-result h3 { margin: 0 0 var(--tt-space-2); }
+.ttos-tracker-status {
+    display: inline-block;
+    background: color-mix(in srgb, var(--tt-primary) 12%, transparent);
+    color: var(--tt-primary);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-weight: 800;
+    margin: 0;
+}
+
+/* --- Delivery checker --- */
+.ttos-delivery-checker { max-width: 560px; }
+.ttos-delivery-check label { display: block; font-weight: 700; font-size: var(--tt-text-sm); margin-bottom: var(--tt-space-2); }
+.ttos-delivery-check-row { display: flex; gap: var(--tt-space-2); }
+.ttos-delivery-check-row input {
+    flex: 1; min-width: 0;
+    border: 1px solid var(--tt-border); border-radius: var(--tt-radius-sm);
+    background: var(--tt-surface); padding: 12px 14px; font: inherit; min-height: 44px;
+    text-transform: uppercase;
+}
+.ttos-check-result {
+    margin: var(--tt-space-4) 0 0;
+    border-radius: var(--tt-radius-sm);
+    padding: var(--tt-space-4);
+    border: 1px solid var(--tt-border);
+    background: var(--tt-surface);
+}
+.ttos-check-result.is-yes { border-left: 4px solid var(--tt-success); }
+.ttos-check-result.is-no { border-left: 4px solid var(--tt-error); }
+.ttos-check-result.is-unknown { border-left: 4px solid var(--tt-warning); }
+.ttos-check-result a { font-weight: 800; color: var(--tt-primary); }
+.ttos-check-zone, .ttos-check-meta { color: var(--tt-muted); font-size: var(--tt-text-sm); margin: var(--tt-space-3) 0 0; }
+
+/* --- Policy pages --- */
+.ttos-policy { max-width: 720px; line-height: 1.75; }
+.ttos-policy p { margin: 0 0 var(--tt-space-4); }
+.ttos-policy h3 { margin: var(--tt-space-6) 0 var(--tt-space-3); }
+.ttos-policy-details { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; max-width: 520px; }
+.ttos-policy-details li { display: flex; justify-content: space-between; gap: var(--tt-space-4); padding: 10px 0; border-bottom: 1px solid var(--tt-border); }
+.ttos-policy-details span { color: var(--tt-muted); font-weight: 700; }
+
+/* --- Contact page --- */
+.ttos-contact-intro { color: var(--tt-muted); max-width: 640px; margin: 0 0 var(--tt-space-5); }
+.ttos-contact-cols { display: grid; gap: var(--tt-space-5); align-items: start; }
+.ttos-contact-address { font-style: normal; white-space: pre-line; line-height: 1.7; color: var(--tt-muted); margin: 0 0 var(--tt-space-3); }
+.ttos-contact-links { list-style: none; margin: 0 0 var(--tt-space-3); padding: 0; display: grid; gap: 8px; }
+.ttos-contact-links a { font-weight: 800; color: var(--tt-text); text-decoration: none; }
+.ttos-contact-links a:hover { color: var(--tt-primary); }
+.ttos-contact-note { color: var(--tt-muted); font-size: var(--tt-text-sm); }
+.ttos-contact-hours-title { margin: var(--tt-space-4) 0 var(--tt-space-2); font-size: var(--tt-text-base); }
+.ttos-contact-hours { list-style: none; margin: 0; padding: 0; }
+.ttos-contact-hours li { display: flex; justify-content: space-between; gap: var(--tt-space-4); padding: 7px 0; border-bottom: 1px solid var(--tt-border); font-size: var(--tt-text-sm); }
+.ttos-contact-hours li:last-child { border-bottom: 0; }
+.ttos-contact-hours span { color: var(--tt-muted); font-weight: 700; }
+.ttos-contact-map { border-radius: var(--tt-radius-md); overflow: hidden; box-shadow: var(--tt-shadow); min-height: 320px; display: grid; }
+.ttos-contact-map iframe { width: 100%; height: 100%; min-height: 320px; border: 0; display: block; }
+.ttos-contact-map-link { place-items: center; background: var(--tt-surface-soft); }
+@media (min-width: 901px) { .ttos-contact-cols { grid-template-columns: .9fr 1.1fr; } }
+
+/* --- Allergens page --- */
+.ttos-allergens-call { margin-top: var(--tt-space-5); }
+
+/* --- 404 --- */
+.tt-404-inner { text-align: center; display: grid; justify-items: center; gap: var(--tt-space-4); }
+.tt-404-inner h1 { font-size: var(--tt-text-display); line-height: 1; letter-spacing: -.03em; margin: 0; }
+.tt-404-sub { color: var(--tt-muted); max-width: 480px; margin: 0; }
+.tt-404-actions { display: flex; gap: var(--tt-space-3); flex-wrap: wrap; justify-content: center; }
+.tt-404-products { display: grid; gap: var(--tt-space-4); width: 100%; margin-top: var(--tt-space-6); }
+.tt-404-product { padding: 0; overflow: hidden; text-decoration: none; color: var(--tt-text); text-align: left; }
+.tt-404-product-media { display: block; aspect-ratio: 16 / 10; background: var(--tt-surface-soft); }
+.tt-404-product-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tt-404-product-body { display: flex; justify-content: space-between; gap: var(--tt-space-3); padding: var(--tt-space-4); }
+.tt-404-product-price { color: var(--tt-primary); font-weight: 800; }
+@media (min-width: 621px) { .tt-404-products { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

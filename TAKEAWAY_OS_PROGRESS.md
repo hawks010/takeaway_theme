@@ -688,3 +688,67 @@ Rendering with current staging content: hero (Site Content title→business name
 
 ### Status
 Phase 3 deployed and verified. Awaiting approval before Phase 4 (menu page rebuild).
+
+## 2026-06-10 Phase 4 (combined) — Complete public front end (os 1.3.0-dev.3 / theme 0.3.0-dev.3)
+
+### Scope guardrails honoured
+- No popup/banner rendering, no broad admin polish, no packaging, no live Stripe changes, no checkout-logic changes, no order-status changes
+- Elementor family remains inactive; home/siteurl unchanged; worked only in the takeaway docroot; nothing deleted
+
+### Staging identity fix
+- `blogname` "Takeaaway" → "Blueprint Kitchen". Confirmed the typo was NOT product code: the only write path is the nonce-protected `save_business` handler (never submitted in any phase); change came from outside the product.
+
+### Backup path (created before deploy)
+- `/home/u363235284/backups/takeaway-os-v1.3-phase4-20260610/` (theme, plugin, db/takeaway.sql)
+
+### Plugin changes (takeaway-os 1.3.0-dev.3)
+- `class-shortcodes.php` rebuilt:
+  - `takeaway_menu`: compact (no internal giant heading), search + dietary chips + collapsible allergen filters per Site Content toggles, sticky category nav, public "Uncategorized" excluded, empty categories hidden (or staff-only helper in admin_helper mode), redesigned product cards (image fallback block, dietary/badge chips, allergen line), sticky basket with plain-text subtotal (wrap bug fixed) hidden at 0 items; **configurator modal, required options, price preview and cart-item meta preserved untouched**
+  - `takeaway_delivery_checker`: fake inline-JS "Looks good" replaced with an honest server-side postcode prefix check (GET form, no JS): match → deliver + min order/estimate; no match → polite no + collection note; prefixes unconfigured/invalid input → honest "confirmed at checkout" message
+  - `takeaway_order_tracker`: labelled form, status pill, not-found message
+  - `takeaway_allergens`: renders the Site Content allergens policy text + call-us CTA
+  - `takeaway_contact` (new): business info, WhatsApp/phone/email, parking/accessibility notes, opening-hours table, OSM embed or Google Maps link
+  - `takeaway_policy` (new): renders Site Content policy by key; staff-only "Starter content only. Review before production." note; business-details block on contact_details/hygiene policies
+- `class-page-manager.php`: 9 new specs — contact + 8 policy pages (privacy, cookies, terms, refunds, delivery, accessibility, hygiene, business details), all `[takeaway_policy]` shortcode containers
+- `class-operations.php`: public `postcode_prefixes()` accessor (checkout validation logic untouched)
+- `assets/frontend.js`: unified search/diet/allergen filtering (hides empty sections + their nav links), IntersectionObserver scroll-spy for the category nav
+
+### Theme changes (takeaway-theme 0.3.0-dev.3)
+- `archive-product.php`: compact menu pagehead (Site Content eyebrow/title/subtitle/intro/help, optional bg image, postcode mini-form) — double-heading bug gone
+- `page.php`: compact pagehead + content (giant 84px banner gone for all pages)
+- `404.php` (new): friendly recovery + View menu / Check delivery / Contact CTAs + 3 product cards
+- `assets/css/menu.css`, `woo.css`, `utility.css` (new, readable, token-driven; loaded after theme.css so new rules win): Woo restyle is **CSS-only — zero template overrides**, covering notices, forms with visible labels, buttons, cart table, 2-col sticky-review checkout, order-received cards, My Account pill nav + content card, addresses, login/register/lost-password cards
+- `template-parts/footer/site-footer.php`: legal links now resolve the generated policy pages (hide-if-missing), accessibility link wired
+- enqueue cascade + version bumps
+
+### Page generation (explicit safe repair, no overwrites)
+Ran `TTOS_Page_Manager::ensure_all('fresh_if_unsafe')` — 9 pages created. Pre-existing "Contact" (94) and WP "Privacy Policy" (3) were NOT touched: safe mode created "Takeaway Contact" (467) and "Takeaway Privacy Policy" (469) alongside. Footer privacy link prefers the generated page.
+
+### Test config note
+- `trading.delivery_postcodes` set to "MK18, MK17" on staging to exercise the real delivery checker (was empty). Both outcomes verified: MK18 1AA → deliver + £12 min + ~35 min estimate; LU1 1AA → outside area + collection note.
+
+### Tests run (browser + CLI)
+- Menu: compact head ✓, toolbar ✓, category nav (5 populated cats; Chicken/Desserts/Meal Deals/Uncategorized hidden) ✓, no admin-copy leak ✓, 18 cards with chips ✓
+- Search "pizza" → 4 products, only Pizza section + nav link visible ✓
+- Configurator: modal opens, required "Crust *", price preview £8.99 → £10.49 with Deep pan ✓; add to basket → sticky bar "1 item · £10.49" + header badge ✓
+- Mobile (390px): no overflow; sticky basket = fixed bottom bar, hidden at 0 items, visible with 1 item ✓; cart emptied afterwards
+- Cart: token table, item meta "Crust: Deep pan +£1.50" ✓; Checkout: 2-col, labelled fields, fulfilment field intact ✓
+- BACS proof order **#485** (£10.49 Margherita w/ Deep pan, collection): order-received page ✓, on-hold/Bank transfer staging (CLI) ✓, item meta "Crust: Deep pan" on the order (DB) ✓, cockpit ✓, kitchen ✓, CRM ✓, reports Collection 8 → 9 ✓
+- Utility: tracker resolves #485 ("On hold") ✓; delivery checker yes/no/honest paths ✓; allergens (policy text + call CTA) ✓; contact page (address/phone/WhatsApp/hours) ✓; policy page renders with staff-only review note ✓; 404 branded with recovery CTAs ✓
+- Homepage regression: still no menu grid ✓, header/drawer/footer fine ✓, footer shows 13 quick+legal links ✓
+- Logged-out account page serves the (now styled) Woo login form (curl) ✓
+- Admin: Branding, Site Content, Setup Health (44/2/0 — unchanged, warnings still Stripe + SMTP), cockpit, kitchen, CRM, reports all load ✓
+- Lint: PHP/JS/CSS all clean; no junk files
+
+### Screenshots
+`test-artifacts/screenshots/p4-*-dev3.png` — menu desktop/mobile, mobile basket CTA, configurator, sticky basket, cart, checkout, order received, account, tracker, delivery yes/no, allergens, contact, policy, 404
+
+### Known issues / notes
+- The delivery checker validates by postcode *prefix* only (no radius/geocoding); the limitation is mirrored honestly in the UI ("confirmed at checkout" when unconfigured). Full zone validation remains a checkout concern.
+- Old stray pages remain by design (no deletions): "Contact" (94), WP "Privacy Policy" (3), old "Home" (30), "My Account" (395) — candidates for the duplicate-page warnings in compressed Phase 5.
+- Meal Deals/Rewards pages render via existing Features shortcodes; they inherit the new utility/card styling but get no bespoke redesign this phase.
+- CSS `?ver=` bumped to 0.3.0-dev.3 this phase, so stylesheet cache-busting is correct on staging.
+- `claude-admin` remains; remove/rotate before client handover.
+
+### Status
+Combined Phase 4 deployed and verified. **No final packages produced.** Awaiting approval for compressed Phase 5 (banner/popup rendering, Setup Health repair additions, admin polish).

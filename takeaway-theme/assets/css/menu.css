@@ -1,0 +1,194 @@
+/*
+ * Menu / ordering experience (v0.3.0). Styles the takeaway_menu shortcode
+ * output and the compact menu page head. Token-driven, mobile-first.
+ */
+
+/* --- Page head --- */
+.tt-pagehead { background: var(--tt-surface-soft); padding: var(--tt-space-6) 0 var(--tt-space-5); }
+.tt-pagehead h1 { font-size: var(--tt-text-3xl); line-height: 1.05; letter-spacing: -.02em; margin: 0; }
+.tt-pagehead-sub { color: var(--tt-muted); margin: var(--tt-space-2) 0 0; }
+.tt-pagehead-row { display: grid; gap: var(--tt-space-5); align-items: end; }
+.tt-pagehead-menu.has-bg { position: relative; overflow: hidden; }
+.tt-pagehead-menu.has-bg::before { content: ''; position: absolute; inset: 0; background-image: var(--tt-pagehead-bg); background-size: cover; background-position: center; opacity: .12; }
+.tt-pagehead-menu .tt-pagehead-row { position: relative; }
+.tt-pagecontent { padding: var(--tt-space-6) 0 var(--tt-space-8); }
+.tt-menu-content { padding: var(--tt-space-5) 0 var(--tt-space-8); }
+.tt-menu-intro, .tt-menu-help { color: var(--tt-muted); max-width: 640px; margin: 0 0 var(--tt-space-5); }
+.tt-menu-help { margin: var(--tt-space-6) 0 0; }
+
+/* --- Toolbar: search + filters --- */
+.ttos-menu-toolbar {
+    display: grid;
+    gap: var(--tt-space-3);
+    background: var(--tt-surface);
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-md);
+    padding: var(--tt-space-4);
+    margin: 0 0 var(--tt-space-4);
+}
+.ttos-filter-search-wrap { display: block; }
+.ttos-filter-search {
+    width: 100%;
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-sm);
+    padding: 12px 14px;
+    font: inherit;
+    min-height: 44px;
+    background: var(--tt-bg);
+}
+.ttos-filter-diets { display: flex; gap: var(--tt-space-2); flex-wrap: wrap; }
+.ttos-filter-diet {
+    border: 1px solid var(--tt-border);
+    background: var(--tt-surface);
+    color: var(--tt-text);
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-weight: 700;
+    font-size: var(--tt-text-sm);
+    cursor: pointer;
+    min-height: 38px;
+}
+.ttos-filter-diet[aria-pressed="true"] { background: var(--tt-text); border-color: var(--tt-text); color: var(--tt-bg); }
+.ttos-filter-allergens summary { cursor: pointer; font-weight: 700; color: var(--tt-muted); }
+.ttos-filter-allergens-list { display: flex; flex-wrap: wrap; gap: var(--tt-space-2) var(--tt-space-4); padding: var(--tt-space-3) 0 0; }
+.ttos-filter-allergens-list label { display: inline-flex; align-items: center; gap: 6px; font-size: var(--tt-text-sm); color: var(--tt-muted); }
+
+/* --- Sticky category nav --- */
+.ttos-cat-nav {
+    position: sticky;
+    top: 64px;
+    z-index: 40;
+    background: color-mix(in srgb, var(--tt-bg) 92%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    margin: 0 0 var(--tt-space-5);
+    padding: var(--tt-space-2) 0;
+    border-bottom: 1px solid var(--tt-border);
+}
+.ttos-cat-nav-row { display: flex; gap: var(--tt-space-2); overflow-x: auto; scrollbar-width: none; }
+.ttos-cat-nav-row::-webkit-scrollbar { display: none; }
+.ttos-cat-nav a {
+    flex-shrink: 0;
+    text-decoration: none;
+    color: var(--tt-muted);
+    font-weight: 800;
+    font-size: var(--tt-text-sm);
+    padding: 9px 14px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+.ttos-cat-nav a:hover { color: var(--tt-primary); }
+.ttos-cat-nav a.is-active { background: var(--tt-text); color: var(--tt-bg); }
+
+/* --- Sections & cards --- */
+.ttos-menu-section { margin: 0 0 var(--tt-space-7); scroll-margin-top: 130px; }
+.ttos-menu-section-title { font-size: var(--tt-text-2xl); letter-spacing: -.01em; margin: 0 0 var(--tt-space-2); }
+.ttos-menu-section-desc { color: var(--tt-muted); margin: 0 0 var(--tt-space-4); }
+
+.ttos-product-grid { display: grid; gap: var(--tt-space-4); }
+.ttos-product {
+    background: var(--tt-surface);
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-md);
+    box-shadow: var(--tt-shadow);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.ttos-product-media { aspect-ratio: 16 / 10; background: var(--tt-surface-soft); }
+.ttos-product-media img, .ttos-product-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ttos-product-media-empty { display: grid; place-items: center; }
+.ttos-product-media-empty span { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--tt-primary), var(--tt-accent)); opacity: .45; }
+.ttos-product-body { padding: var(--tt-space-4) var(--tt-space-4) var(--tt-space-5); display: grid; gap: var(--tt-space-2); align-content: start; flex: 1; }
+.ttos-product-title { display: flex; gap: var(--tt-space-3); align-items: baseline; justify-content: space-between; }
+.ttos-product-title h3 { margin: 0; font-size: var(--tt-text-xl); line-height: 1.2; }
+.ttos-product-price { color: var(--tt-primary); font-size: var(--tt-text-lg); white-space: nowrap; }
+.ttos-product-desc { margin: 0; color: var(--tt-muted); font-size: var(--tt-text-sm); line-height: 1.55; }
+.ttos-product-allergens { color: var(--tt-muted); }
+.ttos-product-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+.ttos-chip {
+    display: inline-block;
+    background: var(--tt-surface-soft);
+    border: 1px solid var(--tt-border);
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: var(--tt-text-xs);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+.ttos-chip-popular { background: color-mix(in srgb, var(--tt-accent) 22%, transparent); border-color: color-mix(in srgb, var(--tt-accent) 50%, transparent); }
+.ttos-chip-vegan, .ttos-chip-vegetarian { background: color-mix(in srgb, var(--tt-success) 14%, transparent); border-color: color-mix(in srgb, var(--tt-success) 38%, transparent); }
+.ttos-chip-spicy { background: color-mix(in srgb, var(--tt-error) 12%, transparent); border-color: color-mix(in srgb, var(--tt-error) 35%, transparent); }
+.ttos-product.is-sold { opacity: .55; }
+.ttos-order-btn.is-disabled { background: var(--tt-muted); cursor: not-allowed; }
+
+/* Buttons inside cards (legacy class, token look) */
+.ttos-order-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tt-primary);
+    color: #fff;
+    border: 0;
+    border-radius: var(--tt-radius-sm);
+    padding: 11px 18px;
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
+    min-height: 44px;
+    white-space: nowrap;
+}
+
+/* Staff-only helper note */
+.ttos-admin-note {
+    background: color-mix(in srgb, var(--tt-warning) 12%, transparent);
+    border-left: 4px solid var(--tt-warning);
+    border-radius: var(--tt-radius-sm);
+    padding: var(--tt-space-3) var(--tt-space-4);
+    color: var(--tt-text);
+    font-size: var(--tt-text-sm);
+    font-weight: 600;
+    margin: 0 0 var(--tt-space-4);
+}
+
+/* --- Sticky basket --- */
+.ttos-sticky-cart {
+    position: sticky;
+    bottom: var(--tt-space-4);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--tt-space-4);
+    margin: var(--tt-space-6) auto 0;
+    max-width: 720px;
+    background: var(--tt-text);
+    color: var(--tt-bg);
+    border-radius: var(--tt-radius-md);
+    padding: var(--tt-space-3) var(--tt-space-4);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .25);
+}
+.ttos-sticky-cart[data-count="0"] { display: none; }
+.ttos-sticky-cart-info strong { display: block; }
+.ttos-sticky-cart-info span { font-size: var(--tt-text-sm); opacity: .8; }
+
+@media (max-width: 620px) {
+    /* Mobile: fixed bottom basket CTA bar */
+    .ttos-sticky-cart {
+        position: fixed;
+        left: var(--tt-space-3);
+        right: var(--tt-space-3);
+        bottom: var(--tt-space-3);
+        margin: 0;
+        max-width: none;
+    }
+    .ttos-cat-nav { top: 58px; }
+}
+@media (min-width: 621px) { .ttos-product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 901px) {
+    .ttos-product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .tt-pagehead-row { grid-template-columns: 1fr auto; }
+    .ttos-menu-toolbar { grid-template-columns: minmax(220px, 1fr) auto auto; align-items: center; }
+}
