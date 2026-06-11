@@ -117,3 +117,80 @@
     wrap.querySelectorAll('.ttos-menu-section').forEach(function(section){ observer.observe(section); });
   }
 })();
+
+/* v1.3.0 banner + popup behaviour: dismissal memory, schedule handled server-side */
+(function(){
+  function storageKey(prefix, hash){ return prefix + '-' + hash; }
+
+  /* Banner */
+  var banner = document.querySelector('[data-ttos-banner]');
+  if (banner) {
+    var bHash = banner.getAttribute('data-ttos-banner');
+    var remember = banner.getAttribute('data-remember') === '1';
+    var store = remember ? window.localStorage : window.sessionStorage;
+    var dismissed = false;
+    try { dismissed = store.getItem(storageKey('ttos-banner', bHash)) === '1'; } catch (e) {}
+    if (!dismissed) banner.hidden = false;
+    banner.addEventListener('click', function(e){
+      if (!e.target.closest('[data-ttos-banner-close]')) return;
+      banner.hidden = true;
+      try { store.setItem(storageKey('ttos-banner', bHash), '1'); } catch (err) {}
+    });
+  }
+
+  /* Popup */
+  var popup = document.querySelector('[data-ttos-popup]');
+  if (!popup) return;
+  var pHash = popup.getAttribute('data-ttos-popup');
+  var frequency = popup.getAttribute('data-frequency') || 'session';
+  var delay = parseInt(popup.getAttribute('data-delay') || '3', 10) * 1000;
+  var key = storageKey('ttos-popup', pHash);
+  var lastFocused = null;
+
+  function suppressed(){
+    try {
+      if (frequency === 'session') return window.sessionStorage.getItem(key) === '1';
+      var until = parseInt(window.localStorage.getItem(key) || '0', 10);
+      return until > Date.now();
+    } catch (e) { return false; }
+  }
+  function markSeen(){
+    try {
+      if (frequency === 'session') { window.sessionStorage.setItem(key, '1'); return; }
+      var ms = frequency === 'week' ? 7 * 86400000 : 86400000;
+      window.localStorage.setItem(key, String(Date.now() + ms));
+    } catch (e) {}
+  }
+  function focusables(){
+    return popup.querySelectorAll('a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])');
+  }
+  function openPopup(){
+    lastFocused = document.activeElement;
+    popup.hidden = false;
+    var close = popup.querySelector('.ttos-popup-close') || focusables()[0];
+    if (close) close.focus();
+  }
+  function closePopup(){
+    popup.hidden = true;
+    markSeen();
+    if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+  }
+
+  if (suppressed()) return;
+  window.setTimeout(openPopup, isNaN(delay) ? 3000 : delay);
+
+  popup.addEventListener('click', function(e){
+    if (e.target.closest('[data-ttos-popup-close]')) { e.preventDefault(); closePopup(); }
+  });
+  document.addEventListener('keydown', function(e){
+    if (popup.hidden) return;
+    if (e.key === 'Escape') { closePopup(); return; }
+    if (e.key === 'Tab') {
+      var items = focusables();
+      if (!items.length) return;
+      var first = items[0], last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  });
+})();

@@ -26,6 +26,7 @@ final class TTOS_Setup_Health {
             'setup_health_reset_launchpad',
             'setup_health_run_email_test',
             'setup_health_test_order_mode',
+            'setup_health_disable_builder',
         );
 
         if (!in_array($action, $actions, true)) {
@@ -96,6 +97,28 @@ final class TTOS_Setup_Health {
             $message = "This is a Takeaway OS setup health email test.\n\nSite: " . home_url('/') . "\nTime: " . current_time('mysql');
             $sent = wp_mail($admin_email, $subject, $message);
             self::redirect($sent ? 'email-sent' : 'email-failed', 'actions');
+        }
+
+        if ($action === 'setup_health_disable_builder') {
+            if (!current_user_can('manage_options')) {
+                wp_die(esc_html__('Only administrators can disable page-builder templates.', 'takeaway-os'));
+            }
+            $conditions = get_option('elementor_pro_theme_builder_conditions', array());
+            $drafted = 0;
+            if (is_array($conditions)) {
+                foreach ($conditions as $location => $templates) {
+                    if (!is_array($templates)) continue;
+                    foreach (array_keys($templates) as $template_id) {
+                        $template_id = absint($template_id);
+                        if ($template_id && get_post_type($template_id) === 'elementor_library' && get_post_status($template_id) === 'publish') {
+                            wp_update_post(array('ID' => $template_id, 'post_status' => 'draft'));
+                            $drafted++;
+                        }
+                    }
+                }
+            }
+            update_option('elementor_pro_theme_builder_conditions', array());
+            self::redirect('builder-disabled', 'actions');
         }
 
         if ($action === 'setup_health_test_order_mode') {
@@ -270,7 +293,76 @@ final class TTOS_Setup_Health {
         $checks[] = self::schedule_check('banner');
         $checks[] = self::schedule_check('popup');
 
+        foreach (self::integrity_checks() as $check) {
+            $checks[] = $check;
+        }
+
         return $checks;
+    }
+
+    /**
+     * v1.3.0 integrity checks: page-builder hijacks, duplicate pages and
+     * placeholder identity. The Elementor check is critical because a
+     * leftover theme-builder template silently removes the theme header
+     * and footer on every page (observed in the field).
+     */
+    private static function integrity_checks(): array {
+        $checks = array();
+
+        $conditions = get_option('elementor_pro_theme_builder_conditions', array());
+        $hijack = is_array($conditions) && array_filter($conditions);
+        $checks[] = self::make_check(
+            'builder_hijack',
+            'No page-builder header/footer hijack',
+            !$hijack,
+            'No Elementor theme-builder templates are overriding the theme header/footer.',
+            'Elementor Pro theme-builder conditions are registered and will replace the Takeaway theme header/footer on every page. Use the repair action below to disable them.',
+            true
+        );
+
+        $checks[] = self::duplicate_page_check('home', 'page_on_front', 'Home');
+        $checks[] = self::duplicate_page_check('account', 'woocommerce_myaccount_page_id', 'My Account');
+
+        $blogname = strtolower(trim((string) get_option('blogname')));
+        $placeholder = in_array($blogname, array('', 'blueprint', 'takeaaway', 'wordpress'), true);
+        $checks[] = self::make_check('site_identity', 'Site identity is not a placeholder', !$placeholder, 'The site title looks like a real business identity.', 'The WordPress site title still looks like a placeholder ("' . esc_html(get_option('blogname')) . '"). Set the business name in Takeaway OS → Business Settings.');
+
+        $policy_keys = array('policy_privacy', 'policy_cookies', 'policy_terms', 'policy_refunds', 'policy_delivery', 'policy_accessibility', 'policy_hygiene', 'policy_business', 'contact');
+        $missing = array();
+        foreach ($policy_keys as $key) {
+            $status = TTOS_Page_Manager::status($key);
+            if (($status['state'] ?? 'missing') !== 'ready') $missing[] = $key;
+        }
+        $checks[] = self::make_check('policy_pages', 'Policy and contact pages generated', !$missing, 'All policy/contact pages exist with their Takeaway content markers.', count($missing) . ' policy/contact pages are missing. Run "Create / repair public pages" below.');
+
+        return $checks;
+    }
+
+    /**
+     * Warn when extra published pages share the title of an assigned core
+     * page — the classic leftover-site trap (old "Home"/"My Account" pages
+     * still published next to the generated ones).
+     */
+    private static function duplicate_page_check(string $key, string $option_name, string $title): array {
+        $assigned = absint(get_option($option_name, 0));
+        $duplicates = array();
+        $matches = get_posts(array(
+            'post_type' => 'page', 'post_status' => 'publish', 'numberposts' => 20,
+            'title' => $title, 'fields' => 'ids',
+        ));
+        foreach ((array) $matches as $page_id) {
+            $page_id = (int) $page_id;
+            if ($page_id && $page_id !== $assigned && !get_post_meta($page_id, '_ttos_generated_page', true)) {
+                $duplicates[] = '#' . $page_id;
+            }
+        }
+        return self::make_check(
+            'duplicate_' . $key,
+            'No duplicate "' . $title . '" pages',
+            !$duplicates,
+            'No stray published pages share the "' . $title . '" title.',
+            'Published page(s) ' . implode(', ', $duplicates) . ' also use the title "' . $title . '" but are not the assigned page. Customers may land on the wrong one — review and draft them manually (nothing is deleted automatically).'
+        );
     }
 
     private static function schedule_check(string $section): array {
@@ -345,6 +437,10 @@ final class TTOS_Setup_Health {
         self::action_form('setup_health_test_order_mode', 'Run test order mode setup', 'Shows guidance for enabling a manual/test payment route before placing a staging order.');
 
         if (current_user_can('manage_options')) {
+            $builder_conditions = get_option('elementor_pro_theme_builder_conditions', array());
+            if (is_array($builder_conditions) && array_filter($builder_conditions)) {
+                self::action_form('setup_health_disable_builder', 'Disable conflicting page-builder templates', 'Admin-only: drafts the Elementor theme-builder templates hijacking the theme header/footer and clears their display conditions. Templates are drafted, never deleted.');
+            }
             self::action_form('setup_health_replace_pages', 'Replace content repair', 'Admin-only: replace existing Takeaway-generated page content instead of creating a fresh safe page.');
         }
 
@@ -428,6 +524,7 @@ final class TTOS_Setup_Health {
             'email-failed' => 'The test email could not be sent. Check your email plugin or mail transport.',
             'email-missing' => 'A valid admin email is required before sending a test email.',
             'email-not-configured' => 'Email delivery is not configured yet. Configure SMTP before running a delivery test.',
+            'builder-disabled' => 'Conflicting page-builder templates were drafted and their display conditions cleared. Nothing was deleted.',
             'test-order-guidance' => 'Next step: open WooCommerce payment settings, enable a safe test/manual gateway, then place a checkout test from the public site.',
         );
 

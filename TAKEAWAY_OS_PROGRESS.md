@@ -752,3 +752,46 @@ Ran `TTOS_Page_Manager::ensure_all('fresh_if_unsafe')` — 9 pages created. Pre-
 
 ### Status
 Combined Phase 4 deployed and verified. **No final packages produced.** Awaiting approval for compressed Phase 5 (banner/popup rendering, Setup Health repair additions, admin polish).
+
+## 2026-06-10 Phase 5 (combined) — Product systems polish (os 1.3.0-dev.4)
+
+### Scope guardrails honoured
+- No packaging, no live Stripe changes, no checkout-logic/order-status changes; Elementor family inactive; home/siteurl unchanged
+
+### Backup path (created before deploy)
+- `/home/u363235284/backups/takeaway-os-v1.3-phase5-20260610/` (theme, plugin, db)
+
+### Banner + popup public rendering (plugin)
+- `includes/class-public-ui.php` (new): banner at `wp_body_open`, popup at `wp_footer` priority 5. Both: disabled by default, schedule-aware (start/end vs site time), page-targeted (all/selected; front-page id mapped), content-fingerprint hashes so a changed announcement re-appears after dismissal
+- Banner: 4 styles (info/warning/offer/closed), CTA, dismissible, remember-dismissal → localStorage (session-only otherwise)
+- Popup: 5 types, image, CTA, delay (0–120s), frequency session/day/week (sessionStorage / localStorage expiry), focus trap + ESC + labelled close + focus return, **suppressed on checkout AND cart unless allow_on_checkout** — verified markup completely absent on checkout
+- `assets/frontend.css`/`frontend.js`: token-driven styles + vanilla behaviour
+- **Bug found & fixed during verification:** popup originally rendered at `wp_footer` priority 20 — the same priority core prints footer scripts, and core registers first, so `frontend.js` ran before the popup markup existed and bailed. Moved render to priority 5; full behaviour then verified live (1s delay → opens with focus on close; Tab wraps close → CTA → close; ESC closes + session flag; reload suppressed; banner dismiss remembered across reloads)
+
+### Setup Health additions (5 new checks → 51 total)
+- `builder_hijack` (**critical**): fails when `elementor_pro_theme_builder_conditions` is non-empty — the field-observed hijack that silently removes the theme header/footer
+- `duplicate_home` / `duplicate_account` (warnings): published non-generated pages sharing the assigned page's title — correctly flags stray staging pages #30 "Home" and #395 "My Account"
+- `site_identity` (warning): placeholder blogname detection
+- `policy_pages` (warning): all 9 policy/contact pages exist with markers
+- New repair action `setup_health_disable_builder` (admin-only, shown only when a hijack is detected): drafts the offending elementor_library templates and clears the conditions — never deletes
+- Staging totals: 44/2/0 → **47 pass / 4 warnings / 0 failures** (51 checks). The 4 warnings: Stripe, SMTP (expected, unchanged) + duplicate Home + duplicate My Account (genuine stray-page findings; manual review, nothing auto-deleted)
+
+### Admin polish (restrained)
+- `assets/admin.css`: keyboard `:focus-visible` outlines across the shell, button/nav hover feedback, table row hover, horizontal-scroll nav/subtabs on small screens. No structural changes — cockpit/kitchen/CRM/reports untouched
+
+### Tests run
+- Banner: shows on home (warning style + CTA), dismiss → hidden + remembered across reloads; absent everywhere once disabled
+- Popup: full a11y behaviour verified via CDP key events (see bug note); not rendered on checkout; absent once disabled
+- Both configs restored to **disabled** after testing (content preserved in Site Content for demo use)
+- Setup Health 47/4/0 with new checks rendering (dup warning cites page #30 by id)
+- Admin sweep: Branding, Site Content, Launchpad, cockpit, kitchen, CRM, reports all load
+- Public clean check: no banner/popup markup when disabled; header/footer fine
+- BACS proof order **#486** (£3.50 Onion Rings, collection, claude-phase5@example.com): on-hold (CLI), cockpit ✓, kitchen ✓, CRM ✓, reports Collection 9 → 10
+- Lint: PHP/JS/CSS clean
+- Note: admin browser session expired mid-test (cookie invalidation, cause unknown — possibly AAM); re-login with claude-admin succeeded, no code involvement
+
+### Screenshots
+`test-artifacts/screenshots/p5-banner-popup-dev4.png` (banner + popup together), `p5-popup-open-dev4.png`, `p5-setup-health-dev4.png`
+
+### Status
+Phase 5 deployed and verified. **No final packages produced.** Remaining: compressed Phase 6 (full QA matrix, update-path test, packaging, critical check, docs).

@@ -113,3 +113,17 @@
 .ttos-callout-warning{border-left:4px solid #c47d0e;background:#fdf6e7;padding:12px 16px;border-radius:8px;margin:0 0 16px}
 .ttos-notice-error{background:#fbeaea;border-left:4px solid #b33a3a}
 .ttos-sc-field-stack{display:grid;gap:4px;align-content:start}
+
+/* v1.3.0 admin polish: keyboard focus, hover feedback, small-screen nav */
+.ttos-wrap :focus{outline:none}
+.ttos-wrap :focus-visible{outline:3px solid var(--ttos-fire);outline-offset:2px;border-radius:4px}
+.ttos-button,.ttos-mini,.ttos-pill{transition:transform .15s ease,box-shadow .15s ease,opacity .15s ease}
+.ttos-button:hover,.ttos-mini:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(255,64,0,.24)}
+.ttos-button-dark:hover{box-shadow:0 12px 28px rgba(26,20,16,.26)!important}
+.ttos-nav a{transition:background .15s ease,color .15s ease}
+.ttos-nav a:hover{background:rgba(26,20,16,.12)}
+.ttos-card{transition:box-shadow .2s ease}
+.ttos-table tbody tr:hover{background:rgba(26,20,16,.025)}
+.ttos-notice{font-weight:700}
+.ttos-subtabs a{transition:background .15s ease,border-color .15s ease}
+@media(max-width:900px){.ttos-nav{overflow-x:auto;flex-wrap:nowrap;padding-bottom:6px}.ttos-nav a{white-space:nowrap}.ttos-subtabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:6px}.ttos-subtabs a{white-space:nowrap}}
