@@ -1,0 +1,117 @@
+Takeaway OS v1.3.0 / Takeaway Theme v0.3.0 — Critical Check Report
+Generated: 2026-06-14
+Base commit: 93456e8 (Phase 5 combined)
+
+================================================================
+PHP LINT
+================================================================
+Plugin (takeaway-os/includes/ + takeaway-os.php):  CLEAN — no syntax errors
+Theme  (takeaway-theme/**/*.php):                  CLEAN — no syntax errors
+
+================================================================
+DEBUG OUTPUT
+================================================================
+var_dump / print_r / error_log in PHP:   NONE
+console.log / debugger in frontend.js:  NONE
+console.log / debugger in theme.js:     NONE
+console.log / debugger in admin.js:     NONE
+Accidental wp_die() without auth:       NONE
+
+================================================================
+HARDCODED STAGING / CREDENTIALS
+================================================================
+Hardcoded staging URLs (thatdeveloper, localhost):  NONE in plugin/theme source
+  - "staging" appears only in UI copy and Setup Health hint text (expected)
+Hardcoded credentials / secret keys:                NONE
+Hardcoded IPs (127.0.0.1, 192.168.x):              NONE in plugin/theme source
+Environment files (.env):                           NOT present in source
+
+================================================================
+TODO / FIXME MARKERS
+================================================================
+None found in any plugin or theme PHP file.
+
+================================================================
+PAGE DELETION LOGIC
+================================================================
+wp_delete_post in plugin/theme:  NONE
+wp_trash_post in plugin/theme:   1 occurrence — class-features.php:562
+  → Meal Deal product cleanup only (trashes a WC product, not a generated page)
+  → Not a page deletion action; acceptable
+Direct page removal in repair actions:  NONE — repair actions use wp_update_post
+  to draft Elementor templates, never delete posts or pages.
+
+================================================================
+CHECKOUT / PAYMENT HOOKS
+================================================================
+All hooks present are unchanged since Phase 4:
+  class-operations.php:   woocommerce_checkout_fields (fulfilment field injection)
+                          woocommerce_checkout_process (validate fulfilment)
+                          woocommerce_checkout_create_order (save order meta)
+                          woocommerce_order_status_changed (log)
+  class-woocommerce.php:  woocommerce_checkout_create_order_line_item (configured item meta)
+  class-production.php:   woocommerce_checkout_process (block if paused)
+  class-features.php:     woocommerce_checkout_create_order_line_item (meal deal meta)
+                          woocommerce_order_status_completed (award rewards)
+                          woocommerce_checkout_process (advanced zone validation)
+
+No new checkout/payment hooks introduced in Phase 5. Confirmed.
+
+================================================================
+NONCE / CAPABILITY PROTECTION
+================================================================
+class-admin.php handle_posts():
+  → is_admin() + current_user_can('ttos_access') + check_admin_referer() ✓
+  → save_business/save_branding/save_trading etc: + ttos_manage_settings ✓
+
+class-setup-health.php handle_posts():
+  → is_admin() + current_user_can('ttos_manage_settings') + check_admin_referer() ✓
+  → setup_health_replace_pages: extra manage_options check ✓
+  → setup_health_disable_builder: extra manage_options check ✓
+
+AJAX handlers (class-admin.php):
+  → ajax_order_board():  current_user_can('ttos_view_orders') + check_ajax_referer() ✓
+  → ajax_order_action(): current_user_can('ttos_update_orders') + check_ajax_referer() ✓
+
+================================================================
+ELEMENTOR HIJACK REPAIR ACTION
+================================================================
+setup_health_disable_builder:
+  → Admin-only: manage_options capability check ✓
+  → Nonce: check_admin_referer('ttos_setup_health_disable_builder') ✓
+  → Action: wp_update_post post_status=draft on elementor_library posts only ✓
+  → Clears elementor_pro_theme_builder_conditions option ✓
+  → Never deletes posts or pages ✓
+
+================================================================
+BROKEN SHORTCODES / MISSING CLASSES
+================================================================
+All shortcodes registered in class-shortcodes.php.
+All classes loaded via takeaway-os.php requires.
+PHP lint clean confirms no missing includes at parse time.
+
+================================================================
+PRODUCTION-DESTRUCTIVE ACTIONS
+================================================================
+NONE found. No wp_delete_post on pages, no DROP/TRUNCATE queries,
+no option deletion outside expected plugin scope.
+
+================================================================
+STAGING-ONLY PATHS
+================================================================
+scripts/staging_takeaway_browser.mjs — automation helper in scripts/ directory.
+NOT included in plugin or theme source directories.
+Will be excluded from release ZIPs by packaging script. ✓
+
+================================================================
+RESULT
+================================================================
+PASS — No critical issues found.
+Zero failures. Zero fatal PHP errors. Zero debug leaks.
+Zero hardcoded credentials. Zero staging-only paths in distributed code.
+Zero unauthorised action paths. Zero checkout logic changes post-Phase-4.
+
+Known acceptable items:
+- "staging" appears in Setup Health UI copy (expected, informational)
+- wp_trash_post in class-features.php:562 is for Meal Deal product cleanup
+- scripts/ directory contains automation helpers excluded from ZIPs

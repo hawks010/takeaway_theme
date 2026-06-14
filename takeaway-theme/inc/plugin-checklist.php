@@ -46,7 +46,7 @@ function ttheme_bundled_manifest(): array {
             'name'      => 'Takeaway OS',
             'slug'      => 'takeaway-os',
             'main_file' => 'takeaway-os/takeaway-os.php',
-            'version'   => '1.2.5',
+            'version'   => '1.3.0',
             'package'   => 'takeaway-os.zip',
         ),
     );
@@ -59,7 +59,7 @@ function ttheme_takeaway_os_manifest(): array {
             'name'      => 'Takeaway OS',
             'slug'      => 'takeaway-os',
             'main_file' => 'takeaway-os/takeaway-os.php',
-            'version'   => '1.2.5',
+            'version'   => '1.3.0',
             'package'   => 'takeaway-os.zip',
         )
     );

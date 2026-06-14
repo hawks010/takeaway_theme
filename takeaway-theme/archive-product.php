@@ -41,6 +41,9 @@ if ($is_menu) :
 </section>
 <section class="tt-wrap tt-menu-content">
     <?php
+    // WooCommerce notices (e.g. required-option validation errors) must print
+    // here — this custom template bypasses the standard Woo wrappers.
+    if (function_exists('wc_print_notices')) wc_print_notices();
     if ($intro !== '') echo '<div class="tt-menu-intro">' . wp_kses_post(wpautop($intro)) . '</div>';
     echo do_shortcode('[takeaway_menu]');
     if (shortcode_exists('takeaway_meal_deals')) {

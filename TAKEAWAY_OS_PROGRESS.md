@@ -1,9 +1,9 @@
 # Takeaway OS Progress
 
 ## Current Version
-- Theme target: `0.2.6-bundled`
-- Plugin target: `1.2.5`
-- Working date: `2026-06-08`
+- Theme target: `0.3.0-bundled`
+- Plugin target: `1.3.0`
+- Working date: `2026-06-14`
 
 ## v1.2.5 Beta Hardening Pass
 
@@ -795,3 +795,145 @@ Combined Phase 4 deployed and verified. **No final packages produced.** Awaiting
 
 ### Status
 Phase 5 deployed and verified. **No final packages produced.** Remaining: compressed Phase 6 (full QA matrix, update-path test, packaging, critical check, docs).
+
+---
+
+## v1.3.0 Phase 6 — Final QA, Release Candidate
+
+**Date:** 2026-06-14
+**Base commit:** 93456e8 (Phase 5 combined)
+**Versions shipped:** Takeaway OS `1.3.0` / Takeaway Theme `0.3.0-bundled`
+**WP path (staging):** `~/domains/thatdeveloper.co.uk/public_html/takeaway`
+
+### Scope Guardrails
+- No new features introduced
+- Checkout/payment/fulfilment logic unchanged from Phase 4
+- No pages deleted or overwritten
+- Banner/popup restored to `enabled=0` after QA
+- Delivery postcodes left as `MK18, MK17` (checker QA test config; leave in place unless release docs say otherwise)
+- `~/public_html` and `~/domains/maliandme.co.uk` untouched
+- `home/siteurl` unchanged: `https://takeaway.thatdeveloper.co.uk`
+
+### Backup Taken
+- DB: `~/backups/takeaway-v1.3.0-phase6-20260614/takeaway-phase6-pre.sql.gz`
+
+### Version Bumps (uncommitted at start of phase, committed at end)
+| File | Change |
+| --- | --- |
+| `takeaway-os/takeaway-os.php` | `1.3.0-dev.4` → `1.3.0` |
+| `takeaway-theme/functions.php` | `0.3.0-dev.3` → `0.3.0` |
+| `takeaway-theme/style.css` | `0.3.0-dev.3` → `0.3.0` |
+| `takeaway-theme/inc/bundled-plugins/manifest.json` | `1.2.5` → `1.3.0` |
+| `takeaway-theme/inc/plugin-checklist.php` | `1.2.5` → `1.3.0` |
+
+### Code Fix Applied
+- `takeaway-theme/archive-product.php`: added `wc_print_notices()` call before menu shortcode to display WooCommerce notices (e.g. stock/validation messages) on the menu/shop archive page.
+
+### Critical Check (Step 2)
+Full report: `takeaway-v1.3.0-critical-check.txt`
+- PHP lint: CLEAN (plugin + theme)
+- Debug output leaks: NONE (PHP + all JS files)
+- Hardcoded staging URLs / credentials: NONE in source
+- TODO/FIXME markers: NONE
+- `wp_delete_post` on pages: NONE
+- Checkout/payment hooks: UNCHANGED since Phase 4
+- Nonce + capability protection: ALL correct
+- Elementor hijack repair: admin-only, nonce-guarded, never deletes
+
+### Setup Health (Step 3)
+- Pre-repair: 46 pass / 4 warnings / 1 failure (Elementor test template hijack detected — expected)
+- Post-repair: 47 pass / 4 warnings / 0 failures
+- Persistent warnings (staging-expected): Stripe disabled, Stripe test mode, FluentSMTP unconfigured
+- Duplicate-page warning: 1 (page #30, stale dev-era page — informational, not blocking)
+
+### Duplicate Page Review (Step 4)
+- Manual review: stale `takeaway-home` and `takeaway-my-account` twins visible; all are drafts or inactive
+- No action taken (guardrail: do not delete automatically)
+- Flagged for client review at handover
+
+### Elementor Hijack Repair (Step 5)
+- Created test template post #488 via WP-CLI; set `elementor_pro_theme_builder_conditions` to simulate active hijack
+- Setup Health detected 46/4/1; admin ran repair via form
+- Post-repair: 47/4/0; template drafted; conditions cleared
+- Confirms repair is safe: no page deletion, idempotent
+
+### Public Page QA (Step 6)
+All pages tested via browser (chrome-admin session):
+- Homepage: renders, hero, sections, CTA ✓
+- Menu: shortcode renders, categories, products, sticky basket ✓
+- Product configurator: opens, required group, price update ✓
+- Basket: items preserved with meta ✓
+- Checkout: fulfilment field (delivery/collection), postcode checker ✓
+- Order received: confirmation page ✓
+- Delivery checker: in-area (MK18 ✓), out-of-area (LU1 ✓)
+- Utility pages (tracker, allergens, contact, policies): load ✓
+- Header/footer all pages: render correctly ✓
+- Mobile viewport: responsive ✓
+
+### Banner and Popup QA (Step 7)
+Enabled via WP-CLI for testing; both restored to `enabled=0` after.
+| Check | Result |
+| --- | --- |
+| Banner renders when enabled | ✓ |
+| Popup renders when enabled | ✓ |
+| Popup close button dismisses | ✓ |
+| Popup ESC key dismisses | ✓ |
+| Banner dismiss sets localStorage key | ✓ (`ttos-banner-c3b4…`) |
+| Banner hidden persists across reload | ✓ |
+| Popup absent on checkout | ✓ |
+| Popup absent on basket | ✓ |
+| Banner absent on WP admin | ✓ |
+| Session suppression (reload) | ✓ |
+| No console errors | ✓ |
+
+### WooCommerce Checkout Safety QA (Step 8)
+- BACS proof order #489: configurator → cart meta → checkout fulfilment field → order received → WP-CLI HPOS verified
+- `_ttos_fulfilment_method` saved correctly as private order meta ✓
+- Orders visible in cockpit, kitchen, CRM, reports ✓
+- HPOS active: `wp wc order get` fails; use `wp eval 'wc_get_order()'` instead
+
+### Admin QA (Step 9)
+- Branding: loads, preset fills form (does not auto-save) ✓
+- Site Content: all tabs render ✓
+- Launchpad: required steps render ✓
+- Cockpit/orders: loads, HPOS data present ✓
+- Kitchen screen: loads ✓
+- CRM: customer from order visible ✓
+- Reports: delivery/collection counts correct ✓
+- Cameron (owner role) login verified ✓
+
+### Update Path Test 1.2.5 → 1.3.0 (Step 10)
+Simulated by forcing `ttos_version=1.2.5` in DB and stripping 1.3.0-only option keys, then letting `maybe_upgrade()` run on next WP load.
+| Check | Result |
+| --- | --- |
+| `ttos_version` → `1.3.0` | ✓ |
+| `ttos_site_content.banner` section added | ✓ (12 keys from defaults) |
+| `ttos_site_content.popup` section added | ✓ (14 keys from defaults) |
+| `branding.accent` seeded from legacy `secondary` | ✓ `#ffac00` |
+| `branding.bg` seeded from legacy `cream` | ✓ `#f9f4ee` |
+| `branding.text` seeded from legacy `dark` | ✓ `#1a1410` |
+| Legacy branding values preserved | ✓ |
+| Pages: count unchanged (23) | ✓ |
+| Pages: slugs identical | ✓ |
+| No duplicate pages created | ✓ (`create_pages()` not called on update) |
+| Elementor conditions | ✓ 0 |
+
+Key finding: `maybe_upgrade()` intentionally does NOT call `create_pages()` — page creation only runs on fresh activation via `register_activation_hook`.
+
+### Setup Health Score at Phase 6 close
+- 47 pass / 4 warnings / 0 failures
+- Warnings: Stripe disabled, Stripe test mode, FluentSMTP unconfigured, duplicate page #30
+- All warnings are staging-expected; none are release blockers
+
+### Remaining Risks / Blockers (unchanged from v1.2.5)
+- Paid production blocked until live Stripe/SMTP configured and verified
+- Stale duplicate pages flagged for client review at handover (never auto-deleted)
+- Delivery postcodes set to `MK18, MK17` for checker QA — leave unless client changes them
+
+### Release Recommendation
+| Target | Recommendation |
+| --- | --- |
+| Local testing | Safe |
+| Staging testing | Safe |
+| First client beta | Safe with Stripe/SMTP warnings explained |
+| Paid production install | Not safe yet (Stripe + SMTP required)

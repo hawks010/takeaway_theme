@@ -90,8 +90,9 @@
 .ttos-brand-preview-dots .is-error{background:var(--tt-error,#b33a3a)}
 
 /* v1.3.0 Site Content screen */
-.ttos-subtabs{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 20px}
-.ttos-subtabs a{display:inline-block;padding:8px 13px;border:1px solid #d9d2c8;border-radius:999px;background:#fff;color:#3c352e;text-decoration:none;font-weight:700;font-size:13px}
+.ttos-subtabs{display:flex;flex-wrap:nowrap;gap:6px;margin:14px 0 20px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
+.ttos-subtabs::-webkit-scrollbar{display:none}
+.ttos-subtabs a{display:inline-block;padding:8px 13px;border:1px solid #d9d2c8;border-radius:999px;background:#fff;color:#3c352e;text-decoration:none;font-weight:700;font-size:13px;white-space:nowrap}
 .ttos-subtabs a:hover{border-color:#a89f93}
 .ttos-subtabs a.active{background:#1a1410;border-color:#1a1410;color:#fff}
 .ttos-subtabs a:focus-visible{outline:3px solid #ff4000;outline-offset:2px}
@@ -126,4 +127,4 @@
 .ttos-table tbody tr:hover{background:rgba(26,20,16,.025)}
 .ttos-notice{font-weight:700}
 .ttos-subtabs a{transition:background .15s ease,border-color .15s ease}
-@media(max-width:900px){.ttos-nav{overflow-x:auto;flex-wrap:nowrap;padding-bottom:6px}.ttos-nav a{white-space:nowrap}.ttos-subtabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:6px}.ttos-subtabs a{white-space:nowrap}}
+@media(max-width:900px){.ttos-nav{overflow-x:auto;flex-wrap:nowrap;padding-bottom:6px}.ttos-nav a{white-space:nowrap}}
