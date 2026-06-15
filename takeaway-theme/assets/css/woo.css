@@ -414,7 +414,7 @@ mark.order-status.status-on-hold    { background: color-mix(in srgb, var(--tt-wa
     transition: border-color .15s;
     box-sizing: border-box;
 }
-.woocommerce-MyAccount-content .woocommerce-form-row input:focus { outline: none; border-color: var(--tt-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--tt-primary) 15%, transparent); }
+.woocommerce-MyAccount-content .woocommerce-form-row input:focus { outline: 3px solid var(--tt-primary); outline-offset: 2px; border-color: var(--tt-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--tt-primary) 15%, transparent); }
 .woocommerce-MyAccount-content .woocommerce-form-row.form-row-first,
 .woocommerce-MyAccount-content .woocommerce-form-row.form-row-last { display: grid; }
 .woocommerce-MyAccount-content .woocommerce-form-row.form-row-first { float: none !important; }
@@ -425,7 +425,7 @@ mark.order-status.status-on-hold    { background: color-mix(in srgb, var(--tt-wa
 .woocommerce-MyAccount-content form > .form-row-first { margin-right: var(--tt-space-2); }
 
 /* ── Responsive: stack on mobile ──────────────────────────── */
-@media (max-width: 768px) {
+@media (max-width: 620px) {
     .woocommerce-account .woocommerce {
         grid-template-columns: 1fr;
         grid-template-areas: "notices" "nav" "content";
@@ -483,14 +483,16 @@ mark.order-status.status-on-hold    { background: color-mix(in srgb, var(--tt-wa
         border-bottom: 0;
         text-align: left;
     }
+    .woocommerce-cart-form table.shop_table td::before,
     .woocommerce-cart table.cart td::before {
-        content: attr(data-title) ": ";
-        font-weight: 800;
-        font-size: var(--tt-text-xs);
+        content: attr(data-title);
+        font-weight: 700;
         color: var(--tt-muted);
         text-transform: uppercase;
+        font-size: var(--tt-text-xs);
         letter-spacing: .05em;
-        display: inline;
+        display: block;
+        margin-bottom: var(--tt-space-1);
     }
     .woocommerce-cart table.cart tr { border-bottom: 1px solid var(--tt-border); padding: var(--tt-space-3) 0; }
     .woocommerce-cart table.cart td.product-thumbnail { display: none; }
@@ -573,7 +575,8 @@ mark.order-status.status-on-hold    { background: color-mix(in srgb, var(--tt-wa
 .woocommerce-checkout form .form-row input.input-text:focus,
 .woocommerce-checkout form .form-row textarea:focus,
 .woocommerce-checkout form .form-row select:focus {
-    outline: none;
+    outline: 3px solid var(--tt-primary);
+    outline-offset: 2px;
     border-color: var(--tt-primary);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--tt-primary) 15%, transparent);
 }
@@ -758,7 +761,8 @@ mark.order-status.status-on-hold    { background: color-mix(in srgb, var(--tt-wa
 .woocommerce form.register input.input-text:focus,
 .woocommerce form.lost_reset_password input.input-text:focus,
 .woocommerce-ResetPassword input.input-text:focus {
-    outline: none;
+    outline: 3px solid var(--tt-primary);
+    outline-offset: 2px;
     border-color: var(--tt-primary);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--tt-primary) 15%, transparent);
 }
@@ -826,7 +830,8 @@ mark.order-status.status-on-hold    { background: color-mix(in srgb, var(--tt-wa
 }
 .woocommerce .track_order input[type="text"]:focus,
 .woocommerce .track_order input[type="email"]:focus {
-    outline: none;
+    outline: 3px solid var(--tt-primary);
+    outline-offset: 2px;
     border-color: var(--tt-primary);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--tt-primary) 15%, transparent);
 }

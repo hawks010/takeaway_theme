@@ -19,7 +19,7 @@
 .ttos-tracker-row input {
     flex: 1; min-width: 0;
     border: 1px solid var(--tt-border); border-radius: var(--tt-radius-sm);
-    background: var(--tt-bg); padding: 12px 14px; font: inherit; min-height: 44px;
+    background: var(--tt-bg); padding: 12px 14px; font: inherit; min-height: var(--tt-input-h, 48px);
 }
 .ttos-tracker-result h3 { margin: 0 0 var(--tt-space-2); }
 .ttos-tracker-status {
@@ -325,7 +325,8 @@
     font: inherit;
     font-size: var(--tt-text-base);
     color: var(--tt-text);
-    outline: none;
+    min-height: var(--tt-input-h, 48px);
+    outline: none; /* base reset — focus rule below adds proper ring */
     transition: border-color .15s ease, box-shadow .15s ease;
     box-sizing: border-box;
 }
@@ -361,7 +362,7 @@
     background: var(--tt-primary);
     color: var(--tt-surface);
     border: none;
-    border-radius: 999px;
+    border-radius: var(--tt-radius-sm);
     padding: 13px 28px;
     font: inherit;
     font-size: var(--tt-text-base);
@@ -369,7 +370,7 @@
     cursor: pointer;
     text-decoration: none;
     transition: opacity .15s ease, transform .1s ease;
-    min-height: 48px;
+    min-height: var(--tt-input-h, 48px);
 }
 .page-contact .wpcf7 input[type="submit"]:hover,
 .page-contact .wpforms-submit:hover,
@@ -482,20 +483,20 @@
     line-height: 1.6;
 }
 
-/* "Back to menu" pill CTA */
+/* "Back to menu" CTA */
 .back-to-menu {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     background: var(--tt-primary);
     color: var(--tt-surface);
-    border-radius: 999px;
+    border-radius: var(--tt-radius-sm);
     padding: 13px 28px;
     font-size: var(--tt-text-base);
     font-weight: 800;
     text-decoration: none;
     transition: opacity .15s ease, transform .1s ease;
-    min-height: 48px;
+    min-height: var(--tt-input-h, 48px);
 }
 .back-to-menu:hover {
     opacity: .88;

@@ -8,6 +8,12 @@
  * template-by-template in later phases.
  */
 
+/* --- Layout tokens --- */
+:root {
+    --tt-header-h: 80px;   /* updated by JS scroll handler; used for sticky nav offset */
+    --tt-input-h:  48px;   /* canonical height for inputs, selects, and primary buttons */
+}
+
 *, *::before, *::after { box-sizing: border-box; }
 
 body {
@@ -64,13 +70,35 @@ img { max-width: 100%; height: auto; }
     font-size: var(--tt-text-base);
     text-decoration: none;
     cursor: pointer;
-    min-height: 44px; /* touch target */
+    min-height: var(--tt-input-h); /* canonical height token */
 }
 .tt-btn.ghost {
     background: transparent;
     color: var(--tt-text);
     border-color: var(--tt-border);
     box-shadow: none;
+}
+
+/* --- Global input/button height (canonical --tt-input-h) --- */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="number"],
+input[type="password"],
+input[type="search"],
+input[type="url"],
+textarea,
+select {
+    min-height: var(--tt-input-h);
+    box-sizing: border-box;
+}
+textarea { min-height: calc(var(--tt-input-h) * 2.5); }
+
+.tt-btn,
+.woocommerce-button.button,
+button[type="submit"],
+input[type="submit"] {
+    min-height: var(--tt-input-h);
 }
 
 /* --- Form field primitives --- */
@@ -85,7 +113,7 @@ img { max-width: 100%; height: auto; }
     color: var(--tt-text);
     padding: 12px 14px;
     font: inherit;
-    min-height: 44px;
+    min-height: var(--tt-input-h);
 }
 .tt-field small { font-weight: 400; color: var(--tt-muted); }
 

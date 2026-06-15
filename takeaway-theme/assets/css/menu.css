@@ -142,7 +142,8 @@
     transition: border-color .15s;
 }
 .ttos-filter-search:focus {
-    outline: none;
+    outline: 3px solid var(--tt-primary);
+    outline-offset: 2px;
     border-color: var(--tt-primary);
 }
 .ttos-filter-diets {
@@ -203,7 +204,7 @@
    ============================================================ */
 .ttos-cat-nav {
     position: sticky;
-    top: 64px;
+    top: var(--tt-header-h, 80px);
     z-index: 40;
     background: color-mix(in srgb, var(--tt-bg) 92%, transparent);
     backdrop-filter: blur(10px);
@@ -285,7 +286,7 @@ li.product-cat-uncategorized,
    ============================================================ */
 .ttos-menu-section {
     margin: 0 0 var(--tt-space-7);
-    scroll-margin-top: 130px;
+    scroll-margin-top: var(--tt-header-h, 80px);
 }
 .ttos-menu-section-title {
     font-size: var(--tt-text-2xl);
@@ -360,10 +361,15 @@ li.product-cat-uncategorized,
     margin: 0;
     font-size: var(--tt-text-xl);
     line-height: 1.2;
+    /* Clamp to 2 lines — prevents long titles from breaking card grid alignment */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
-/* Price: brand colour, bold */
+/* Price: text colour, bold (CTA button is the only orange element per card) */
 .ttos-product-price {
-    color: var(--tt-primary);
+    color: var(--tt-text);
     font-size: var(--tt-text-lg);
     font-weight: 700;
     white-space: nowrap;
@@ -494,11 +500,11 @@ ul.products li.product h2 {
     margin: var(--tt-space-4) var(--tt-space-4) var(--tt-space-2);
     line-height: 1.2;
 }
-/* Price — brand colour, bold */
+/* Price — text colour, bold (CTA button is the only orange element per card) */
 ul.products li.product .price,
 ul.products li.product .price ins,
 ul.products li.product .price .woocommerce-Price-amount {
-    color: var(--tt-primary);
+    color: var(--tt-text);
     font-weight: 700;
     font-size: var(--tt-text-lg);
 }
@@ -743,9 +749,11 @@ button.plus:focus-visible {
         margin: 0;
         max-width: none;
     }
-    .ttos-cat-nav { top: 58px; }
-    /* Compact toolbar stacking on small screens */
-    .ttos-menu-toolbar { gap: var(--tt-space-2); }
+    .ttos-cat-nav { top: var(--tt-header-h, 80px); }
+    /* Compact toolbar stacking on small screens — single column */
+    .ttos-menu-toolbar { grid-template-columns: 1fr; gap: var(--tt-space-3); }
+    .ttos-filter-allergens { max-width: none; }
+    .ttos-filter-search { width: 100%; }
 }
 
 /* 621 – 900px — 2-column card grid */
