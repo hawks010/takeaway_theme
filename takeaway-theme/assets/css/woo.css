@@ -206,7 +206,7 @@
 .woocommerce-MyAccount-navigation li a:hover { background: var(--tt-surface-soft); }
 .woocommerce-MyAccount-navigation li.is-active > a {
     background: color-mix(in srgb, var(--tt-primary) 10%, transparent);
-    color: var(--tt-primary);
+    color: var(--tt-text); /* dark text on tinted bg passes regardless of primary contrast; tint still shows active state */
     font-weight: 850;
 }
 /* Logout link: danger colour */
@@ -278,7 +278,7 @@ mark.order-status {
     display: inline-block;
     white-space: nowrap;
 }
-mark.order-status.status-processing { background: color-mix(in srgb, var(--tt-primary) 12%, transparent); color: var(--tt-primary); }
+mark.order-status.status-processing { background: color-mix(in srgb, var(--tt-primary) 12%, transparent); color: var(--tt-text); } /* dark text on tinted bg passes 4.5:1 at 12px regardless of primary hue */
 mark.order-status.status-completed  { background: color-mix(in srgb, var(--tt-success) 12%, transparent); color: var(--tt-success); }
 mark.order-status.status-cancelled,
 mark.order-status.status-refunded   { background: color-mix(in srgb, var(--tt-error)   12%, transparent); color: var(--tt-error); }
@@ -340,7 +340,7 @@ mark.order-status.status-on-hold    { background: color-mix(in srgb, var(--tt-wa
 .woocommerce-Address-title .edit {
     font-size: var(--tt-text-xs);
     font-weight: 750;
-    color: var(--tt-primary);
+    color: var(--tt-text); /* primary at 12px fails 4.5:1 on light brand colours */
     text-decoration: none;
     padding: 4px 10px;
     border-radius: 999px;

@@ -2,7 +2,7 @@
 
 defined('ABSPATH') || exit;
 
-define('TTHEME_VERSION', '0.3.6');
+define('TTHEME_VERSION', '0.3.7');
 define('TTHEME_DIR', get_template_directory());
 define('TTHEME_URL', get_template_directory_uri());
 
@@ -12,11 +12,19 @@ require_once TTHEME_DIR . '/inc/template-helpers.php';
 require_once TTHEME_DIR . '/inc/plugin-checklist.php';
 require_once TTHEME_DIR . '/inc/contact.php';
 
-// Live basket count in the header via WooCommerce cart fragments.
+// Live basket updates in the header via WooCommerce cart fragments.
 add_filter('woocommerce_add_to_cart_fragments', function (array $fragments): array {
+    // Fragment 1: count badge.
     ob_start();
     tt_cart_count_badge();
     $fragments['.tt-cart-count'] = ob_get_clean();
+
+    // Fragment 2: basket preview panel (line items, subtotal, CTAs).
+    $inner = tt_cart_preview_html();
+    $fragments['div#tt-cart-preview'] = '<div class="tt-cart-preview" id="tt-cart-preview"'
+        . ' role="region" aria-label="' . esc_attr__('Basket preview', 'takeaway-theme') . '">'
+        . $inner . '</div>';
+
     return $fragments;
 });
 

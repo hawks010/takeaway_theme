@@ -293,6 +293,71 @@ final class TTOS_Setup_Health {
         $checks[] = self::schedule_check('banner');
         $checks[] = self::schedule_check('popup');
 
+        // Branding asset checks (warn only — content gaps, not broken site)
+        $logo_id    = absint(class_exists('TTOS_Settings') ? (TTOS_Settings::get('branding', 'logo_id') ?: 0) : 0);
+        $favicon_id = absint(class_exists('TTOS_Settings') ? (TTOS_Settings::get('branding', 'favicon_id') ?: 0) : 0);
+        $checks[] = self::make_check(
+            'branding_logo',
+            'Site logo uploaded',
+            $logo_id > 0,
+            'A site logo has been uploaded in Branding.',
+            'No site logo has been uploaded. The site will show the business initial letter as a fallback. Upload a logo in Branding → Logo.'
+        );
+        $checks[] = self::make_check(
+            'branding_favicon',
+            'Favicon uploaded',
+            $favicon_id > 0,
+            'A favicon has been uploaded in Branding.',
+            'No favicon has been uploaded. Browsers will show a blank tab icon. Upload one in Branding → Favicon.'
+        );
+
+        // Social links: optional warn (not a site-breaking gap)
+        $social_keys = array('instagram','facebook','tiktok','twitter','youtube','whatsapp','google','tripadvisor');
+        $social_set  = 0;
+        foreach ($social_keys as $key) {
+            if (trim((string) TTOS_Site_Content::get('social_links', $key, '')) !== '') {
+                $social_set++;
+            }
+        }
+        $checks[] = self::make_check(
+            'social_links_configured',
+            'Social links configured',
+            $social_set > 0,
+            $social_set . ' social link(s) configured.',
+            'No social links have been added. Social icons will be hidden from the header. Add them in Site Content → Social Links (optional).'
+        );
+
+        // Delivery/collection completeness
+        $dc = TTOS_Site_Content::get('delivery_collection');
+        $dc_set = count(array_filter((array) $dc, static function ($v) { return $v !== '' && $v !== null; }));
+        $dc_total = max(1, count((array) $dc));
+        $dc_percent = (int) round($dc_set / $dc_total * 100);
+        $checks[] = self::make_check(
+            'delivery_collection_data',
+            'Delivery & Collection details filled',
+            $dc_percent >= 50,
+            'Delivery & Collection: ' . $dc_set . '/' . $dc_total . ' fields filled.',
+            'Delivery & Collection section is mostly empty (' . $dc_set . '/' . $dc_total . ' fields). Fill in zone details, minimums, and collection settings in Site Content → Delivery & Collection.'
+        );
+
+        // Staging-only user accounts — warn before production handover
+        $staging_logins = array('claude-admin', 'claude_admin', 'codex_staging_takeaway', 'codex-staging');
+        $found_staging = array();
+        foreach ($staging_logins as $login) {
+            $u = get_user_by('login', $login);
+            if ($u) {
+                $found_staging[] = $login . ' (ID ' . $u->ID . ')';
+            }
+        }
+        $checks[] = self::make_check(
+            'staging_users_removed',
+            'Staging-only admin accounts removed',
+            empty($found_staging),
+            'No staging-only admin accounts detected.',
+            'Staging admin account(s) still exist: ' . implode(', ', $found_staging) . '. Delete or rotate credentials before paid production handover.',
+            false // warn, not critical — the site works fine, but it is a security concern pre-launch
+        );
+
         foreach (self::integrity_checks() as $check) {
             $checks[] = $check;
         }
@@ -1195,7 +1260,10 @@ final class TTOS_Setup_Health {
         }
 
         // CHECK 6 — brand_input_border (UI components need 3:1 per WCAG 1.4.11)
-        $ratio = self::contrast_ratio($t['border'], $t['bg']);
+        // Use the *computed* --tt-border-input token (auto-darkened by the plugin) rather than the
+        // raw border token, so this check reflects what browsers actually see.
+        $computed_input_border = method_exists('TTOS_Settings', 'computed_border_input') ? TTOS_Settings::computed_border_input() : $t['border'];
+        $ratio = self::contrast_ratio($computed_input_border, $t['bg']);
         if ($ratio >= 3.0) {
             $checks[] = array(
                 'id'      => 'brand_input_border',

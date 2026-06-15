@@ -187,6 +187,69 @@ function tt_cart_count_badge(): void {
     echo '<span class="tt-cart-count" data-count="' . esc_attr((string) $count) . '">' . esc_html((string) $count) . '</span>';
 }
 
+/**
+ * Basket preview panel inner HTML — used in header template and as a WC fragment.
+ * When the cart has items: line items + subtotal + View Basket / Checkout CTAs.
+ * When empty: empty state + Browse Menu CTA.
+ */
+function tt_cart_preview_html(): string {
+    $cart_url     = function_exists('wc_get_cart_url')     ? wc_get_cart_url()     : '';
+    $checkout_url = function_exists('wc_get_checkout_url') ? wc_get_checkout_url() : '';
+    $menu_url     = tt_menu_url();
+    $has_wc       = function_exists('WC') && WC()->cart;
+    $count        = $has_wc ? (int) WC()->cart->get_cart_contents_count() : 0;
+
+    ob_start();
+
+    if (!$has_wc || $count === 0) {
+        // Empty state.
+        echo '<div class="tt-cpreview-empty">';
+        echo '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>';
+        echo '<p>' . esc_html__('Your basket is empty', 'takeaway-theme') . '</p>';
+        echo '<a class="tt-btn" href="' . esc_url($menu_url) . '">' . esc_html__('Browse menu', 'takeaway-theme') . '</a>';
+        echo '</div>';
+    } else {
+        // Line items.
+        echo '<ul class="tt-cpreview-items" aria-label="' . esc_attr__('Basket items', 'takeaway-theme') . '">';
+        foreach (WC()->cart->get_cart() as $item) {
+            $product = $item['data'] ?? null;
+            if (!$product) continue;
+            $name  = method_exists($product, 'get_name') ? (string) $product->get_name() : '';
+            $qty   = (int) ($item['quantity'] ?? 1);
+            $total = function_exists('wc_price') ? wc_price((float) ($item['line_total'] ?? 0)) : '';
+            echo '<li class="tt-cpreview-item">';
+            echo '<span class="tt-cpreview-qty" aria-hidden="true">' . esc_html((string) $qty) . '×</span>';
+            echo '<span class="tt-cpreview-name">' . esc_html($name) . '</span>';
+            if ($total !== '') {
+                echo '<span class="tt-cpreview-price">' . wp_kses_post($total) . '</span>';
+            }
+            echo '</li>';
+        }
+        echo '</ul>';
+
+        // Subtotal.
+        if (function_exists('wc_price')) {
+            $subtotal = (float) WC()->cart->get_subtotal();
+            echo '<div class="tt-cpreview-subtotal">';
+            echo '<span>' . esc_html__('Subtotal', 'takeaway-theme') . '</span>';
+            echo '<strong>' . wp_kses_post(wc_price($subtotal)) . '</strong>';
+            echo '</div>';
+        }
+
+        // CTAs.
+        echo '<div class="tt-cart-btns">';
+        if ($cart_url !== '') {
+            echo '<a class="tt-btn ghost" href="' . esc_url($cart_url) . '">' . esc_html__('View basket', 'takeaway-theme') . '</a>';
+        }
+        if ($checkout_url !== '') {
+            echo '<a class="tt-btn" href="' . esc_url($checkout_url) . '">' . esc_html__('Checkout', 'takeaway-theme') . '</a>';
+        }
+        echo '</div>';
+    }
+
+    return ob_get_clean();
+}
+
 /** Offer rows that are enabled and inside their schedule window. */
 function tt_active_offers(): array {
     $items = tt_content('offers', 'items', array());

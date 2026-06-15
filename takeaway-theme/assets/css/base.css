@@ -40,7 +40,7 @@ img { max-width: 100%; height: auto; }
     font-weight: 800;
     letter-spacing: .16em;
     text-transform: uppercase;
-    color: var(--tt-primary);
+    color: var(--tt-muted); /* muted passes WCAG AA at all brand colours; primary at 12px fails 4.5:1 when set to a light hue */
     margin: 0 0 var(--tt-space-3);
 }
 

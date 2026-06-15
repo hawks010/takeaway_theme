@@ -197,11 +197,7 @@ $logout_url    = function_exists('wc_logout_url') ? wc_logout_url(home_url('/'))
                 </button>
                 <div class="tt-cart-preview" id="tt-cart-preview"
                      role="region" aria-label="<?php esc_attr_e('Basket preview', 'takeaway-theme'); ?>">
-                    <p class="tt-cart-hint"><?php esc_html_e('Choose your method below and we\'ll get your order started.', 'takeaway-theme'); ?></p>
-                    <div class="tt-cart-btns">
-                        <a class="tt-btn ghost" href="<?php echo esc_url($cart_url); ?>"><?php esc_html_e('View basket', 'takeaway-theme'); ?></a>
-                        <a class="tt-btn" href="<?php echo esc_url(tt_menu_url()); ?>"><?php esc_html_e('Start order', 'takeaway-theme'); ?></a>
-                    </div>
+                    <?php echo tt_cart_preview_html(); // phpcs:ignore WordPress.Security.EscapeOutput ?>
                 </div>
             </div>
             <?php endif; ?>
