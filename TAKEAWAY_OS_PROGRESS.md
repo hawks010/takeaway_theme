@@ -1,9 +1,42 @@
 # Takeaway OS Progress
 
 ## Current Version
-- Theme target: `0.3.0-bundled`
-- Plugin target: `1.3.0`
-- Working date: `2026-06-14`
+- Theme: `takeaway-theme 0.3.4` (deployed 2026-06-15)
+- Plugin: `takeaway-os 1.3.0` (deployed 2026-06-15)
+
+## v1.3.0 Deploy — 2026-06-15
+
+### Backup
+- Pre-deploy backup: `/home/u363235284/backups/takeaway-20260615-011542/`
+  - `takeaway-theme/` — theme v0.3.3 snapshot
+  - `takeaway-os/` — plugin v1.3.0 snapshot
+
+### Deployed via rsync
+- Theme `takeaway-theme v0.3.4`
+- Plugin `takeaway-os v1.3.0`
+
+### Smoke test results
+| Page | URL slug | HTTP |
+|------|----------|------|
+| Home | `/` | 200 |
+| Menu | `/menu/` | 200 |
+| Basket | `/basket/` | 200 |
+| Checkout | `/checkout/` | 302 (empty-cart redirect — expected) |
+| My Account | `/takeaway-my-account/` | 200 |
+
+### Guardrails
+- Worked only on `takeaway.thatdeveloper.co.uk` (alias: hostinger-shared)
+- Did not touch `~/public_html` or `~/domains/maliandme.co.uk`
+- No database changes made
+- home/siteurl unchanged: `https://takeaway.thatdeveloper.co.uk`
+
+### Pending verification (do on staging in browser)
+- TTOS sticky basket `.ttos-sticky-cart[data-count]` driven by plugin JS
+- Category nav `.is-active` class applied by TTOS (scroll-spy)
+- Cart table `<td data-title>` attributes present in WooCommerce HTML
+- `body.ttos-mode-a` PHP hook — CSS rule written but class not yet applied server-side
+
+---
 
 ## v1.2.5 Beta Hardening Pass
 
