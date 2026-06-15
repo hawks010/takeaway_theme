@@ -91,34 +91,151 @@
         });
     }
 
-    /* ── Account dropdown (logged-in state) ────────────────────────── */
-    var acctBtn      = document.getElementById('tt-acct-btn');
-    var acctDropdown = document.getElementById('tt-acct-dropdown');
-    var acctWrap     = document.getElementById('tt-acct-wrap');
+    /* ── Account dropdown — main nav pill ──────────────────────────── */
+    var acctMainBtn  = document.getElementById('tt-acct-main-btn');
+    var acctMainDrop = document.getElementById('tt-acct-main-drop');
+    var acctMain     = document.getElementById('tt-acct-main');
 
-    if (acctBtn && acctDropdown) {
+    if (acctMainBtn && acctMainDrop) {
         function openAcct() {
-            acctDropdown.classList.add('open');
-            acctBtn.setAttribute('aria-expanded', 'true');
+            acctMainDrop.classList.add('open');
+            acctMainBtn.setAttribute('aria-expanded', 'true');
+            // Focus first link in the dropdown.
+            var first = acctMainDrop.querySelector('a, button');
+            if (first) first.focus();
         }
         function closeAcct() {
-            acctDropdown.classList.remove('open');
-            acctBtn.setAttribute('aria-expanded', 'false');
+            acctMainDrop.classList.remove('open');
+            acctMainBtn.setAttribute('aria-expanded', 'false');
         }
 
-        acctBtn.addEventListener('click', function (e) {
+        acctMainBtn.addEventListener('click', function (e) {
             e.stopPropagation();
-            if (acctDropdown.classList.contains('open')) { closeAcct(); } else { openAcct(); }
+            if (acctMainDrop.classList.contains('open')) { closeAcct(); } else { openAcct(); }
         });
 
         document.addEventListener('click', function (e) {
-            if (acctDropdown.classList.contains('open') && acctWrap && !acctWrap.contains(e.target)) {
+            if (acctMainDrop.classList.contains('open') && acctMain && !acctMain.contains(e.target)) {
                 closeAcct();
             }
         });
 
+        // Trap focus inside dropdown while open; Escape closes.
+        acctMainDrop.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') { closeAcct(); acctMainBtn.focus(); return; }
+            if (e.key !== 'Tab') return;
+            var items = Array.prototype.slice.call(acctMainDrop.querySelectorAll('a, button'));
+            if (!items.length) return;
+            var first = items[0];
+            var last  = items[items.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        });
+    }
+
+    /* ── Contact mega panel ─────────────────────────────────────────── */
+    var contactPanel = document.getElementById('tt-contact-panel');
+    var cpanelClose  = document.getElementById('tt-cpanel-close');
+    // The Contact nav trigger is tagged with .tt-contact-trigger (server-side filter).
+    var contactTrigger = document.querySelector('.tt-main-nav .tt-contact-trigger > a');
+
+    if (contactPanel && contactTrigger) {
+        function openContactPanel() {
+            contactPanel.classList.add('open');
+            contactPanel.setAttribute('aria-hidden', 'false');
+            contactTrigger.setAttribute('aria-expanded', 'true');
+            contactTrigger.parentElement.classList.add('tt-panel-open');
+            // Move focus to the first input in the form.
+            var firstInput = contactPanel.querySelector('input, textarea, button');
+            if (firstInput) firstInput.focus();
+        }
+        function closeContactPanel() {
+            contactPanel.classList.remove('open');
+            contactPanel.setAttribute('aria-hidden', 'true');
+            contactTrigger.setAttribute('aria-expanded', 'false');
+            contactTrigger.parentElement.classList.remove('tt-panel-open');
+            contactTrigger.focus();
+        }
+
+        // Set initial ARIA.
+        contactTrigger.setAttribute('aria-expanded', 'false');
+        contactTrigger.setAttribute('aria-controls', 'tt-contact-panel');
+        contactTrigger.setAttribute('role', 'button');
+
+        contactTrigger.addEventListener('click', function (e) {
+            e.preventDefault();
+            if (contactPanel.classList.contains('open')) { closeContactPanel(); } else { openContactPanel(); }
+        });
+
+        if (cpanelClose) {
+            cpanelClose.addEventListener('click', closeContactPanel);
+        }
+
+        // Click outside panel (but not on trigger) closes it.
+        document.addEventListener('click', function (e) {
+            if (
+                contactPanel.classList.contains('open') &&
+                !contactPanel.contains(e.target) &&
+                !contactTrigger.contains(e.target)
+            ) {
+                closeContactPanel();
+            }
+        });
+
+        // Escape key closes the panel.
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && acctDropdown.classList.contains('open')) closeAcct();
+            if (e.key === 'Escape' && contactPanel.classList.contains('open')) {
+                closeContactPanel();
+            }
+        });
+    }
+
+    /* ── Contact form AJAX submit ───────────────────────────────────── */
+    var contactForm = document.getElementById('tt-contact-form');
+    if (contactForm) {
+        var cfMsg = document.getElementById('tt-cf-msg');
+
+        contactForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            // HTML5 validation.
+            if (!contactForm.checkValidity()) {
+                contactForm.reportValidity();
+                return;
+            }
+
+            var ajaxUrl = contactForm.dataset.ajax;
+            var nonce   = contactForm.dataset.nonce;
+            var data    = new FormData(contactForm);
+            data.append('action', 'tt_contact');
+            data.append('nonce', nonce);
+
+            contactForm.classList.add('is-loading');
+            if (cfMsg) { cfMsg.className = 'tt-cf-msg'; cfMsg.hidden = true; cfMsg.textContent = ''; }
+
+            fetch(ajaxUrl, { method: 'POST', body: data })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    contactForm.classList.remove('is-loading');
+                    if (!cfMsg) return;
+                    cfMsg.textContent = res.data && res.data.message ? res.data.message : (res.success ? 'Sent!' : 'Error.');
+                    cfMsg.className   = 'tt-cf-msg ' + (res.success ? 'is-success' : 'is-error');
+                    cfMsg.hidden      = false;
+                    if (res.success) contactForm.reset();
+                })
+                .catch(function () {
+                    contactForm.classList.remove('is-loading');
+                    if (cfMsg) {
+                        cfMsg.textContent = 'Something went wrong. Please try again.';
+                        cfMsg.className   = 'tt-cf-msg is-error';
+                        cfMsg.hidden      = false;
+                    }
+                });
         });
     }
 

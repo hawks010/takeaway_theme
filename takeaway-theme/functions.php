@@ -2,7 +2,7 @@
 
 defined('ABSPATH') || exit;
 
-define('TTHEME_VERSION', '0.3.5');
+define('TTHEME_VERSION', '0.3.6');
 define('TTHEME_DIR', get_template_directory());
 define('TTHEME_URL', get_template_directory_uri());
 
@@ -10,6 +10,7 @@ require_once TTHEME_DIR . '/inc/setup.php';
 require_once TTHEME_DIR . '/inc/enqueue.php';
 require_once TTHEME_DIR . '/inc/template-helpers.php';
 require_once TTHEME_DIR . '/inc/plugin-checklist.php';
+require_once TTHEME_DIR . '/inc/contact.php';
 
 // Live basket count in the header via WooCommerce cart fragments.
 add_filter('woocommerce_add_to_cart_fragments', function (array $fragments): array {
@@ -69,7 +70,7 @@ function ttheme_page_url(string $key, string $fallback = '/'): string {
 function ttheme_fallback_nav(string $location = 'primary'): void {
     $keys = $location === 'footer'
         ? array('menu' => 'Menu', 'delivery' => 'Delivery', 'allergens' => 'Allergens', 'account' => 'My Account')
-        : array('menu' => 'Menu', 'meal_deals' => 'Meal Deals', 'rewards' => 'Rewards', 'tracker' => 'Track Order');
+        : array('menu' => 'Menu', 'meal_deals' => 'Meal Deals', 'rewards' => 'Rewards', 'contact' => 'Contact');
     echo '<ul class="tt-fallback-nav">';
     foreach ($keys as $key => $label) {
         $url = ttheme_page_url($key, '/' . str_replace('_', '-', $key) . '/');

@@ -95,69 +95,106 @@
 }
 .tt-contact-link:hover { border-color: var(--tt-primary); color: var(--tt-primary); }
 
-/* Right: account + socials */
-.tt-account-links {
+/* Right: social icons (account moved to main nav) */
+.tt-utility-right {
     display: flex;
     align-items: center;
-    gap: 10px;
     flex-shrink: 0;
 }
-.tt-account-link {
+
+/* ── Account pill — main nav actions ──────────────────────── */
+.tt-acct-main { position: relative; }
+
+/* Logged-out: round icon button */
+.tt-acct-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    background: var(--tt-bg);
+    border: 1px solid var(--tt-border);
+    box-shadow: 0 4px 16px rgba(28,19,15,.06);
+    color: var(--tt-muted);
+    text-decoration: none;
+    flex-shrink: 0;
+    transition: border-color .15s, color .15s, transform .15s;
+}
+.tt-acct-icon:hover {
+    border-color: var(--tt-primary);
+    color: var(--tt-primary);
+    transform: translateY(-1px);
+}
+.tt-acct-icon:focus-visible {
+    outline: 2px solid var(--tt-primary);
+    outline-offset: 2px;
+}
+
+/* Logged-in: pill with avatar + greeting */
+.tt-acct-main-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    min-height: 44px;
-    padding: var(--tt-space-2) 10px;
+    box-sizing: border-box;
+    height: 48px;
+    padding: 0 14px 0 6px;
     border-radius: 999px;
-    text-decoration: none;
-    color: var(--tt-muted);
-    font-weight: 700;
-    font-size: var(--tt-text-xs);
-    transition: background .15s, color .15s;
-}
-.tt-account-link:hover { background: rgba(28, 19, 15, .06); color: var(--tt-text); }
-.tt-acct-label { white-space: nowrap; }
-
-/* Account button (logged-in dropdown trigger) */
-.tt-acct-wrap { position: relative; }
-.tt-acct-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    min-height: 44px;
-    padding: 0 10px 0 4px;
-    border-radius: 999px;
-    background: var(--tt-surface);
+    background: var(--tt-bg);
     border: 1px solid var(--tt-border);
+    box-shadow: 0 4px 16px rgba(28,19,15,.06);
     color: var(--tt-text);
     font-weight: 800;
-    font-size: var(--tt-text-xs);
+    font-size: var(--tt-text-sm);
+    white-space: nowrap;
     cursor: pointer;
-    transition: background .15s, border-color .15s;
+    flex-shrink: 0;
+    transition: border-color .15s, box-shadow .15s, background .15s, transform .15s;
 }
-.tt-acct-btn:hover,
-.tt-acct-btn[aria-expanded="true"] { background: var(--tt-surface-soft); border-color: color-mix(in srgb, var(--tt-primary) 40%, var(--tt-border)); }
-.tt-user-avatar {
-    width: 26px; height: 26px;
+.tt-acct-main-btn:hover {
+    border-color: color-mix(in srgb, var(--tt-primary) 50%, var(--tt-border));
+    background: var(--tt-surface);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(28,19,15,.10);
+}
+.tt-acct-main-btn[aria-expanded="true"] {
+    border-color: var(--tt-primary);
+    background: var(--tt-surface);
+}
+.tt-acct-main-btn[aria-expanded="true"] .tt-chevron { transform: rotate(180deg); }
+.tt-acct-main-btn:focus-visible {
+    outline: 2px solid var(--tt-primary);
+    outline-offset: 2px;
+}
+
+.tt-acct-main-avatar {
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     background: var(--tt-primary);
     color: #fff;
     font-weight: 900;
-    font-size: 12px;
+    font-size: 14px;
     display: grid;
     place-items: center;
     flex-shrink: 0;
+    letter-spacing: 0;
 }
-.tt-user-name { white-space: nowrap; max-width: 90px; overflow: hidden; text-overflow: ellipsis; }
+.tt-acct-main-hello {
+    line-height: 1;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 .tt-chevron { flex-shrink: 0; transition: transform .2s; color: var(--tt-muted); }
-.tt-acct-btn[aria-expanded="true"] .tt-chevron { transform: rotate(180deg); }
 
-/* Account dropdown */
-.tt-acct-dropdown {
+/* Account dropdown (main nav) */
+.tt-acct-main-drop {
     position: absolute;
     right: 0;
     top: calc(100% + 10px);
-    width: 230px;
+    width: 240px;
     background: var(--tt-surface);
     border: 1px solid var(--tt-border);
     border-radius: var(--tt-radius-lg);
@@ -165,11 +202,11 @@
     opacity: 0;
     transform: translateY(-8px) scale(.97);
     pointer-events: none;
-    transition: opacity .15s ease, transform .15s ease;
+    transition: opacity .18s ease, transform .18s ease;
     z-index: 110;
     overflow: hidden;
 }
-.tt-acct-dropdown.open {
+.tt-acct-main-drop.open {
     opacity: 1;
     transform: none;
     pointer-events: auto;
@@ -519,11 +556,147 @@
 
 html.tt-drawer-open, html.tt-drawer-open body { overflow: hidden; }
 
+/* ── Contact mega panel ───────────────────────────────────── */
+.tt-contact-panel {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    background: var(--tt-surface);
+    border-top: 1px solid var(--tt-border);
+    border-bottom: 3px solid var(--tt-primary);
+    box-shadow: 0 32px 80px rgba(28,19,15,.14);
+    z-index: 80;
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    transition: opacity .2s ease, transform .2s ease;
+}
+.tt-contact-panel.open {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+}
+.tt-cpanel-inner {
+    display: grid;
+    grid-template-columns: 1fr 1.8fr auto;
+    gap: 48px;
+    padding: 36px 0;
+    align-items: start;
+    position: relative;
+}
+.tt-cpanel-heading {
+    margin: 0 0 8px;
+    font-weight: 900;
+    font-size: var(--tt-text-xl);
+    letter-spacing: -.03em;
+    color: var(--tt-text);
+}
+.tt-cpanel-sub {
+    margin: 0 0 20px;
+    font-size: var(--tt-text-sm);
+    color: var(--tt-muted);
+    line-height: 1.5;
+}
+.tt-cpanel-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Contact form inside panel */
+.tt-cpanel-form { min-width: 0; }
+.tt-contact-form { display: grid; gap: 16px; }
+.tt-cf-hp { display: none !important; } /* honeypot — visually hidden */
+.tt-cf-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+.tt-cf-field { display: grid; gap: 6px; }
+.tt-cf-field--full { grid-column: 1 / -1; }
+.tt-cf-label {
+    font-weight: 700;
+    font-size: var(--tt-text-xs);
+    color: var(--tt-text);
+}
+.tt-cf-req { color: var(--tt-primary); }
+.tt-cf-input {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    height: var(--tt-input-h);
+    padding: 0 14px;
+    border: 1.5px solid var(--tt-border);
+    border-radius: var(--tt-radius-sm);
+    background: var(--tt-bg);
+    color: var(--tt-text);
+    font-size: var(--tt-text-sm);
+    font-family: inherit;
+    transition: border-color .15s, box-shadow .15s;
+    appearance: none;
+}
+.tt-cf-input:focus {
+    outline: none;
+    border-color: var(--tt-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--tt-primary) 15%, transparent);
+}
+.tt-cf-input::placeholder { color: var(--tt-muted); opacity: 1; }
+.tt-cf-input[aria-invalid="true"] { border-color: var(--tt-error); }
+.tt-cf-textarea { height: 96px; padding: 12px 14px; resize: vertical; }
+.tt-cf-footer { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.tt-cf-submit {
+    position: relative;
+    min-width: 152px;
+    justify-content: center;
+}
+.tt-cf-spinner {
+    display: none;
+    position: absolute;
+    animation: tt-spin .75s linear infinite;
+    transform-origin: center;
+}
+.tt-contact-form.is-loading .tt-cf-submit-text { opacity: 0; }
+.tt-contact-form.is-loading .tt-cf-spinner { display: block; }
+.tt-contact-form.is-loading .tt-cf-submit { pointer-events: none; opacity: .75; }
+.tt-cf-msg {
+    margin: 0;
+    font-size: var(--tt-text-sm);
+    font-weight: 700;
+    display: none;
+}
+.tt-cf-msg.is-success { color: var(--tt-success); display: block; }
+.tt-cf-msg.is-error   { color: var(--tt-error);   display: block; }
+@keyframes tt-spin { to { stroke-dashoffset: 0; transform: rotate(360deg); } }
+
+/* Close button (top-right of panel) */
+.tt-cpanel-close {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--tt-surface-soft);
+    border: 1px solid var(--tt-border);
+    color: var(--tt-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background .15s, color .15s;
+    align-self: center;
+}
+.tt-cpanel-close:hover { background: var(--tt-border); color: var(--tt-text); }
+.tt-cpanel-close:focus-visible { outline: 2px solid var(--tt-primary); outline-offset: 2px; }
+
+/* Contact nav link active state */
+.tt-main-nav .tt-contact-trigger > a[aria-expanded="true"],
+.tt-main-nav .tt-contact-trigger.tt-panel-open > a {
+    background: rgba(28, 19, 15, .06);
+    color: var(--tt-text);
+}
+
 /* ── Responsive breakpoints ───────────────────────────────── */
 
-/* Below 1180px: hide nav, show hamburger */
+/* Below 1180px: hide nav + contact panel, show hamburger */
 @media (max-width: 1180px) {
     .tt-main-nav { display: none; }
+    .tt-contact-panel { display: none; }
     .tt-siteheader-main { grid-template-columns: auto auto; justify-content: space-between; }
     .tt-drawer-toggle { display: inline-flex; }
 }
@@ -535,13 +708,17 @@ html.tt-drawer-open, html.tt-drawer-open body { overflow: hidden; }
     .tt-utility-top { grid-template-columns: auto auto; }
 }
 
-/* Below 760px: icon-only basket, shorten order btn */
+/* Below 760px: icon-only basket/account, shorten order btn */
 @media (max-width: 760px) {
     .tt-basket-label { display: none; }
     .tt-basket-btn { padding: 0 14px; }
     .tt-order-full { display: none; }
     .tt-order-short { display: inline; }
     .tt-btn.tt-siteheader-order { padding: 0 16px; }
+    /* Collapse account pill to avatar-only circle */
+    .tt-acct-main-hello,
+    .tt-acct-main-btn .tt-chevron { display: none; }
+    .tt-acct-main-btn { padding: 0; width: 48px; justify-content: center; }
 }
 
 /* Below 520px: hide socials, tighten spacing */
