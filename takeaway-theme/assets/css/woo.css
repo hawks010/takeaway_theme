@@ -465,3 +465,395 @@ mark.order-status.status-on-hold    { background: color-mix(in srgb, var(--tt-wa
     padding: 0;
     box-shadow: none;
 }
+
+/* === CART === */
+
+/* Mobile: stack cart table columns */
+@media (max-width: 620px) {
+    .woocommerce-cart table.cart,
+    .woocommerce-cart table.cart thead,
+    .woocommerce-cart table.cart tbody,
+    .woocommerce-cart table.cart tfoot,
+    .woocommerce-cart table.cart th,
+    .woocommerce-cart table.cart td,
+    .woocommerce-cart table.cart tr { display: block; width: 100%; }
+    .woocommerce-cart table.cart thead { display: none; }
+    .woocommerce-cart table.cart td {
+        padding: var(--tt-space-2) var(--tt-space-3);
+        border-bottom: 0;
+        text-align: left;
+    }
+    .woocommerce-cart table.cart td::before {
+        content: attr(data-title) ": ";
+        font-weight: 800;
+        font-size: var(--tt-text-xs);
+        color: var(--tt-muted);
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        display: inline;
+    }
+    .woocommerce-cart table.cart tr { border-bottom: 1px solid var(--tt-border); padding: var(--tt-space-3) 0; }
+    .woocommerce-cart table.cart td.product-thumbnail { display: none; }
+    .woocommerce-cart table.cart td.product-remove { border-bottom: 0; padding-bottom: 0; }
+    .woocommerce-cart table.cart td.product-remove::before { display: none; }
+    .woocommerce-cart table.cart td.actions { border-bottom: 0; }
+}
+
+/* Empty cart state */
+.woocommerce-cart .cart-empty {
+    text-align: center;
+    color: var(--tt-muted);
+    font-size: var(--tt-text-lg);
+    padding: var(--tt-space-7) 0 var(--tt-space-5);
+}
+.woocommerce-cart p.return-to-shop {
+    text-align: center;
+    margin-top: var(--tt-space-4);
+}
+.woocommerce-cart p.return-to-shop .button {
+    display: inline-block;
+    background: var(--tt-primary);
+    color: #fff;
+    font-weight: 800;
+    border-radius: var(--tt-radius-sm);
+    padding: 12px 28px;
+    text-decoration: none;
+    font-size: var(--tt-text-base);
+}
+.woocommerce-cart p.return-to-shop .button:hover {
+    background: color-mix(in srgb, var(--tt-primary) 85%, #000);
+    color: #fff;
+}
+
+/* Cart totals card */
+.cart-collaterals .cart_totals {
+    background: var(--tt-surface);
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-lg);
+    padding: var(--tt-space-5);
+}
+.cart-collaterals .cart_totals table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--tt-text-sm);
+}
+.cart-collaterals .cart_totals table th,
+.cart-collaterals .cart_totals table td {
+    padding: var(--tt-space-3) 0;
+    border-bottom: 1px solid var(--tt-border);
+    vertical-align: middle;
+}
+.cart-collaterals .cart_totals table tr.order-total th,
+.cart-collaterals .cart_totals table tr.order-total td {
+    font-size: var(--tt-text-lg);
+    font-weight: 900;
+    color: var(--tt-primary);
+    border-bottom: 0;
+}
+.wc-proceed-to-checkout { padding-top: var(--tt-space-4); }
+.wc-proceed-to-checkout a.checkout-button {
+    display: block;
+    background: var(--tt-primary);
+    color: #fff !important;
+    font-weight: 800;
+    font-size: var(--tt-text-lg);
+    text-align: center;
+    border-radius: var(--tt-radius-sm);
+    padding: 14px 20px;
+    text-decoration: none;
+    transition: background .13s;
+}
+.wc-proceed-to-checkout a.checkout-button:hover {
+    background: color-mix(in srgb, var(--tt-primary) 85%, #000);
+}
+
+/* === CHECKOUT === */
+
+/* Input focus rings */
+.woocommerce-checkout form .form-row input.input-text:focus,
+.woocommerce-checkout form .form-row textarea:focus,
+.woocommerce-checkout form .form-row select:focus {
+    outline: none;
+    border-color: var(--tt-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--tt-primary) 15%, transparent);
+}
+
+/* Order review summary: card wrapper */
+.woocommerce-checkout #order_review {
+    background: var(--tt-surface);
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-lg);
+    padding: var(--tt-space-5);
+}
+
+/* Collapse 2-column grid to single column between 620px–900px */
+@media (max-width: 900px) {
+    .woocommerce-checkout form.checkout.woocommerce-checkout {
+        display: block;
+    }
+    .woocommerce-checkout form.checkout #customer_details,
+    .woocommerce-checkout form.checkout #order_review_heading,
+    .woocommerce-checkout form.checkout #order_review {
+        float: none;
+        width: 100%;
+    }
+    .woocommerce-checkout form.checkout #order_review_heading { margin-top: var(--tt-space-5); }
+    .woocommerce-checkout form.checkout #order_review { position: static; top: auto; }
+}
+
+/* Place order button */
+#place_order {
+    width: 100%;
+    font-size: var(--tt-text-lg);
+    font-weight: 800;
+    padding: 15px 20px;
+    background: var(--tt-primary);
+    color: #fff;
+    border: 0;
+    border-radius: var(--tt-radius-sm);
+    cursor: pointer;
+    transition: background .13s;
+}
+#place_order:hover { background: color-mix(in srgb, var(--tt-primary) 85%, #000); }
+
+/* === ORDER RECEIVED / THANK YOU === */
+
+/* Customer details address block */
+.woocommerce-order .woocommerce-customer-details address {
+    background: var(--tt-surface);
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-md);
+    padding: var(--tt-space-4) var(--tt-space-5);
+    font-style: normal;
+    font-size: var(--tt-text-sm);
+    line-height: 1.7;
+    color: var(--tt-muted);
+    margin-bottom: var(--tt-space-5);
+}
+.woocommerce-order .woocommerce-column__title {
+    font-size: var(--tt-text-sm);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--tt-muted);
+    margin: 0 0 var(--tt-space-3);
+}
+
+/* Order overview stats: CSS grid, centred */
+.woocommerce-order .woocommerce-order-overview {
+    display: grid;
+    gap: var(--tt-space-3);
+    list-style: none;
+    margin: 0 0 var(--tt-space-6);
+    padding: 0 !important;
+}
+@media (min-width: 621px) {
+    .woocommerce-order .woocommerce-order-overview { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+}
+.woocommerce-order .woocommerce-order-overview li {
+    background: var(--tt-surface);
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-md);
+    padding: var(--tt-space-4);
+    text-align: center;
+    font-size: var(--tt-text-xs);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--tt-muted);
+    float: none !important;
+    border-right: inherit !important;
+}
+.woocommerce-order .woocommerce-order-overview li strong {
+    display: block;
+    font-size: var(--tt-text-lg);
+    font-weight: 900;
+    color: var(--tt-text);
+    letter-spacing: 0;
+    text-transform: none;
+    margin-top: var(--tt-space-1);
+}
+
+/* Thank-you heading */
+.woocommerce-order h2.woocommerce-column__title {
+    font-size: var(--tt-text-xl);
+    font-weight: 900;
+    letter-spacing: -.02em;
+}
+
+/* Order again / continue shopping button on thank-you page */
+.woocommerce-order .woocommerce-order-details + p .button,
+.woocommerce-order .order_again .button {
+    background: var(--tt-primary);
+    color: #fff;
+    font-weight: 800;
+    border-radius: var(--tt-radius-sm);
+    padding: 12px 24px;
+    text-decoration: none;
+    display: inline-block;
+}
+.woocommerce-order .woocommerce-order-details + p .button:hover,
+.woocommerce-order .order_again .button:hover {
+    background: color-mix(in srgb, var(--tt-primary) 85%, #000);
+    color: #fff;
+}
+
+/* === AUTH PAGES (login, register, lost password) === */
+
+/* Page-level centering for non-logged-in account pages */
+.woocommerce-account:not(.logged-in) .woocommerce {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--tt-space-7) var(--tt-space-4);
+}
+.woocommerce-account:not(.logged-in) .woocommerce form.login,
+.woocommerce-account:not(.logged-in) .woocommerce form.register,
+.woocommerce-account:not(.logged-in) .woocommerce form.lost_reset_password,
+.woocommerce-account:not(.logged-in) .woocommerce-ResetPassword {
+    width: 100%;
+    max-width: 480px;
+}
+
+/* Submit buttons: brand colour */
+.woocommerce form.login .woocommerce-form-login__submit,
+.woocommerce form.register .woocommerce-form-register__submit,
+.woocommerce form.lost_reset_password button[type="submit"],
+.woocommerce-ResetPassword button[type="submit"] {
+    background: var(--tt-primary);
+    color: #fff;
+    border: 0;
+    border-radius: var(--tt-radius-sm);
+    padding: 12px 20px;
+    font-weight: 800;
+    font-size: var(--tt-text-base);
+    width: 100%;
+    cursor: pointer;
+    min-height: 44px;
+    transition: background .13s;
+}
+.woocommerce form.login .woocommerce-form-login__submit:hover,
+.woocommerce form.register .woocommerce-form-register__submit:hover,
+.woocommerce form.lost_reset_password button[type="submit"]:hover,
+.woocommerce-ResetPassword button[type="submit"]:hover {
+    background: color-mix(in srgb, var(--tt-primary) 85%, #000);
+}
+
+/* Input fields: consistent border + primary focus ring */
+.woocommerce form.login input.input-text,
+.woocommerce form.register input.input-text,
+.woocommerce form.lost_reset_password input.input-text,
+.woocommerce-ResetPassword input.input-text {
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-sm);
+    background: var(--tt-bg);
+    color: var(--tt-text);
+    width: 100%;
+    padding: 12px 14px;
+    font: inherit;
+    min-height: 44px;
+    box-sizing: border-box;
+    transition: border-color .15s;
+}
+.woocommerce form.login input.input-text:focus,
+.woocommerce form.register input.input-text:focus,
+.woocommerce form.lost_reset_password input.input-text:focus,
+.woocommerce-ResetPassword input.input-text:focus {
+    outline: none;
+    border-color: var(--tt-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--tt-primary) 15%, transparent);
+}
+
+/* Register: already-have-an-account link */
+.woocommerce form.register .woocommerce-form__already-have-account,
+.woocommerce form.register p.woocommerce-LostPassword {
+    font-size: var(--tt-text-sm);
+    color: var(--tt-muted);
+    text-align: center;
+    margin-top: var(--tt-space-3);
+}
+.woocommerce form.register .woocommerce-form__already-have-account a,
+.woocommerce form.register p.woocommerce-LostPassword a {
+    color: var(--tt-primary);
+    text-decoration: none;
+    font-weight: 700;
+}
+
+/* Register: privacy policy checkbox text */
+.woocommerce form.register .woocommerce-privacy-policy-text {
+    font-size: var(--tt-text-xs);
+    color: var(--tt-muted);
+    line-height: 1.6;
+    margin: var(--tt-space-3) 0;
+}
+.woocommerce form.register .woocommerce-privacy-policy-text a {
+    color: var(--tt-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+/* Lost password: reset-success message */
+.woocommerce-ResetPassword .woocommerce-message,
+.woocommerce form.lost_reset_password + .woocommerce-message {
+    border-left-color: var(--tt-success);
+    text-align: center;
+    font-weight: 700;
+}
+
+/* === ORDER TRACKER === */
+
+/* Supplement to utility.css ttos-tracker-* styles.
+   Ensures the WooCommerce order lookup form (if embedded in a
+   .woocommerce container) is centred and brand-styled. */
+.woocommerce .ttos-tracker-form,
+.woocommerce .track_order {
+    max-width: 480px;
+    margin: 0 auto;
+}
+.woocommerce .track_order p { font-size: var(--tt-text-sm); color: var(--tt-muted); margin-bottom: var(--tt-space-4); }
+.woocommerce .track_order input[type="text"],
+.woocommerce .track_order input[type="email"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-sm);
+    background: var(--tt-bg);
+    color: var(--tt-text);
+    font: inherit;
+    min-height: 44px;
+    box-sizing: border-box;
+    margin-bottom: var(--tt-space-3);
+    transition: border-color .15s;
+}
+.woocommerce .track_order input[type="text"]:focus,
+.woocommerce .track_order input[type="email"]:focus {
+    outline: none;
+    border-color: var(--tt-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--tt-primary) 15%, transparent);
+}
+.woocommerce .track_order button[type="submit"],
+.woocommerce .track_order input[type="submit"] {
+    width: 100%;
+    background: var(--tt-primary);
+    color: #fff;
+    border: 0;
+    border-radius: var(--tt-radius-sm);
+    padding: 13px 20px;
+    font-weight: 800;
+    font-size: var(--tt-text-base);
+    cursor: pointer;
+    min-height: 44px;
+    transition: background .13s;
+}
+.woocommerce .track_order button[type="submit"]:hover,
+.woocommerce .track_order input[type="submit"]:hover {
+    background: color-mix(in srgb, var(--tt-primary) 85%, #000);
+}
+
+/* Error / not-found result state */
+.ttos-tracker-result.is-error,
+.woocommerce-order-tracking .woocommerce-message.is-error {
+    border-left-color: var(--tt-error);
+    color: var(--tt-error);
+    font-weight: 700;
+}
+.ttos-tracker-result:empty { display: none; }
