@@ -24,7 +24,7 @@
 .ttos-product-grid:empty:before{content:'No menu items are live yet. Add products in Takeaway OS → Menu Builder or create the starter menu in Launchpad.';display:block;grid-column:1/-1;background:#fff;border:1px solid rgba(26,20,16,.1);border-radius:22px;padding:24px;color:#6f655e;font-weight:800}
 
 /* v1.3.0 banner */
-.ttos-banner{background:var(--tt-surface,#fff);border-bottom:1px solid var(--tt-border,#e8dfd4);color:var(--tt-text,#1a1410)}
+.ttos-banner{position:fixed;top:0;left:0;right:0;z-index:200;background:var(--tt-surface,#fff);border-bottom:1px solid var(--tt-border,#e8dfd4);color:var(--tt-text,#1a1410)}
 .ttos-banner.is-info{background:var(--tt-text,#1a1410);color:var(--tt-bg,#f9f4ee)}
 .ttos-banner.is-warning{background:#7a4d00;color:#fff7e6}
 .ttos-banner.is-offer{background:var(--tt-primary,#ff4000);color:#fff}
@@ -36,7 +36,7 @@
 .ttos-banner-close:hover{opacity:1}
 
 /* v1.3.0 popup */
-.ttos-popup{position:fixed;inset:0;z-index:100000}
+.ttos-popup{position:fixed;inset:0;z-index:500}
 .ttos-popup[hidden]{display:none}
 .ttos-popup-backdrop{position:absolute;inset:0;background:rgba(10,8,6,.6);backdrop-filter:blur(3px)}
 .ttos-popup-panel{position:relative;width:min(440px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow:auto;margin:8vh auto 0;background:var(--tt-surface,#fff);color:var(--tt-text,#1a1410);border-radius:var(--tt-radius-lg,24px);box-shadow:0 30px 90px rgba(0,0,0,.35);overflow:hidden}

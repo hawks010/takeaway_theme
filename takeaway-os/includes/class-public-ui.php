@@ -81,6 +81,8 @@ final class TTOS_Public_UI {
         $dismissible = ($c['dismissible'] ?? '1') === '1';
         $hash = self::fingerprint($c, array('title', 'message', 'cta_text', 'cta_url', 'style', 'start', 'end'));
 
+        self::$banner_rendered = true;
+
         echo '<div class="ttos-banner is-' . esc_attr($style) . '" role="region" aria-label="' . esc_attr__('Site announcement', 'takeaway-os') . '" data-ttos-banner="' . esc_attr($hash) . '" data-remember="' . esc_attr(($c['remember_dismissal'] ?? '1') === '1' ? '1' : '0') . '" hidden>';
         echo '<div class="ttos-banner-inner">';
         echo '<p class="ttos-banner-text">';
@@ -91,9 +93,19 @@ final class TTOS_Public_UI {
             echo '<a class="ttos-banner-cta" href="' . esc_url($c['cta_url']) . '">' . esc_html($c['cta_text']) . '</a>';
         }
         if ($dismissible) {
-            echo '<button type="button" class="ttos-banner-close" data-ttos-banner-close aria-label="' . esc_attr__('Dismiss announcement', 'takeaway-os') . '">×</button>';
+            echo '<button type="button" class="ttos-banner-close" data-ttos-banner-close aria-label="' . esc_attr__('Close banner', 'takeaway-os') . '">×</button>';
         }
         echo '</div></div>';
+    }
+
+    /**
+     * Footer fallback for themes that do not call wp_body_open.
+     * Emits the banner at the start of wp_footer if it has not already been
+     * rendered via wp_body_open.
+     */
+    public static function render_banner_footer_fallback(): void {
+        if (self::$banner_rendered) return;
+        self::render_banner();
     }
 
     /* ------------------------------------------------------------------ *
@@ -126,9 +138,10 @@ final class TTOS_Public_UI {
             $image = wp_get_attachment_image($image_id, 'medium_large', false, array('class' => 'ttos-popup-img', 'alt' => $title !== '' ? $title : __('Offer', 'takeaway-os')));
         }
 
-        echo '<div class="ttos-popup is-' . esc_attr($type) . '" data-ttos-popup="' . esc_attr($hash) . '" data-delay="' . esc_attr((string) $delay) . '" data-frequency="' . esc_attr($frequency) . '" hidden>';
+        $aria_label = esc_attr($title !== '' ? $title : __('Announcement', 'takeaway-os'));
+        echo '<div id="ttos-popup" class="ttos-popup is-' . esc_attr($type) . '" role="dialog" aria-modal="true" aria-label="' . $aria_label . '" aria-hidden="true" data-ttos-popup="' . esc_attr($hash) . '" data-delay="' . esc_attr((string) $delay) . '" data-frequency="' . esc_attr($frequency) . '" hidden>';
         echo '<div class="ttos-popup-backdrop" data-ttos-popup-close tabindex="-1"></div>';
-        echo '<div class="ttos-popup-panel" role="dialog" aria-modal="true" aria-label="' . esc_attr($title !== '' ? $title : __('Announcement', 'takeaway-os')) . '">';
+        echo '<div class="ttos-popup-panel">';
         if (($c['dismissible'] ?? '1') === '1') {
             echo '<button type="button" class="ttos-popup-close" data-ttos-popup-close aria-label="' . esc_attr__('Close', 'takeaway-os') . '">×</button>';
         }
@@ -140,5 +153,47 @@ final class TTOS_Public_UI {
             echo '<a class="ttos-order-btn ttos-popup-cta" href="' . esc_url($c['cta_url']) . '">' . esc_html($c['cta_text']) . '</a>';
         }
         echo '</div></div></div>';
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Popup inline JS (priority 20, after markup at priority 5)
+     * ------------------------------------------------------------------ */
+
+    /**
+     * Emits a self-contained inline script that drives popup open/close,
+     * ESC dismiss, Tab focus trap, and localStorage persistence.
+     * Runs only when the popup was actually rendered this request.
+     */
+    public static function render_popup_inline_js(): void {
+        if (!did_action('wp_footer')) return;
+        // Only emit if popup markup was conditionally output (check for the
+        // popup element in this request by piggy-backing on the same guards).
+        if (is_admin()) return;
+        $c = self::config('popup');
+        if (($c['enabled'] ?? '0') !== '1') return;
+        if (!self::within_schedule($c)) return;
+        if (($c['allow_on_checkout'] ?? '0') !== '1' && function_exists('is_checkout') && (is_checkout() || is_cart())) return;
+        ?>
+<script>
+(function(){
+var popup = document.getElementById('ttos-popup');
+var closeBtn = document.querySelector('[data-ttos-popup-close]');
+if (!popup || !closeBtn) return;
+if (localStorage.getItem('ttos_popup_dismissed')) { popup.style.display='none'; return; }
+function openPopup(){ popup.classList.add('ttos-popup--open'); popup.setAttribute('aria-hidden','false'); popup.hidden=false; closeBtn.focus(); }
+function closePopup(){ popup.classList.remove('ttos-popup--open'); popup.setAttribute('aria-hidden','true'); popup.hidden=true; localStorage.setItem('ttos_popup_dismissed','1'); }
+closeBtn.addEventListener('click', closePopup);
+document.addEventListener('keydown', function(e){ if(e.key==='Escape' && popup.classList.contains('ttos-popup--open')) closePopup(); });
+popup.addEventListener('keydown', function(e){
+  if(e.key!=='Tab') return;
+  var focusable = popup.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
+  var first=focusable[0], last=focusable[focusable.length-1];
+  if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+  else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+});
+setTimeout(openPopup, 800);
+})();
+</script>
+        <?php
     }
 }

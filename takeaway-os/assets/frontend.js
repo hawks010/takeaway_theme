@@ -167,11 +167,15 @@
   function openPopup(){
     lastFocused = document.activeElement;
     popup.hidden = false;
+    popup.setAttribute('aria-hidden', 'false');
+    popup.classList.add('ttos-popup--open');
     var close = popup.querySelector('.ttos-popup-close') || focusables()[0];
     if (close) close.focus();
   }
   function closePopup(){
     popup.hidden = true;
+    popup.setAttribute('aria-hidden', 'true');
+    popup.classList.remove('ttos-popup--open');
     markSeen();
     if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
   }
