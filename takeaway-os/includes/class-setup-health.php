@@ -413,6 +413,20 @@ final class TTOS_Setup_Health {
             );
         }
 
+        // Section header for accessibility colour checks
+        $checks[] = array(
+            'id'          => 'a11y_brand_header',
+            'status'      => 'hint',
+            'label'       => 'Accessibility — Brand Colours',
+            'description' => 'WCAG 2.1 AA contrast ratios for the colours set in Branding. Fix any failures before handing over to a client.',
+            'message'     => 'WCAG 2.1 AA contrast ratios for the colours set in Branding. Fix any failures before handing over to a client.',
+            'hint'        => '',
+        );
+
+        foreach (self::a11y_brand_checks() as $check) {
+            $checks[] = $check;
+        }
+
         return $checks;
     }
 
@@ -1003,6 +1017,204 @@ final class TTOS_Setup_Health {
             'message' => implode('; ', $problems) . '.',
             'hint' => 'Load wp-admin once after update so Takeaway OS can sync role capabilities.',
         );
+    }
+
+    /**
+     * Calculates the WCAG 2.1 contrast ratio between two hex colours.
+     * Returns a value like 4.52 (rounded to 2 decimal places).
+     */
+    private static function contrast_ratio(string $hex1, string $hex2): float {
+        $lum = static function(string $hex): float {
+            $hex = ltrim($hex, '#');
+            if (strlen($hex) !== 6) return 0.0;
+            $r = hexdec(substr($hex, 0, 2)) / 255;
+            $g = hexdec(substr($hex, 2, 2)) / 255;
+            $b = hexdec(substr($hex, 4, 2)) / 255;
+            $lin = static function(float $c): float {
+                return $c <= 0.04045 ? $c / 12.92 : (($c + 0.055) / 1.055) ** 2.4;
+            };
+            return 0.2126 * $lin($r) + 0.7152 * $lin($g) + 0.0722 * $lin($b);
+        };
+        $l1 = $lum($hex1);
+        $l2 = $lum($hex2);
+        if ($l1 < $l2) [$l1, $l2] = [$l2, $l1];
+        return round(($l1 + 0.05) / ($l2 + 0.05), 2);
+    }
+
+    /**
+     * WCAG 2.1 AA contrast checks for the colours stored in Branding settings.
+     * AA body text requires 4.5:1; large text / UI components need 3:1.
+     */
+    private static function a11y_brand_checks(): array {
+        $checks = array();
+
+        if (!class_exists('TTOS_Settings') || !method_exists('TTOS_Settings', 'brand_tokens')) {
+            return $checks;
+        }
+
+        $t = TTOS_Settings::brand_tokens();
+
+        // CHECK 1 — brand_primary_on_white
+        $ratio = self::contrast_ratio($t['primary'], '#ffffff');
+        if ($ratio >= 4.5) {
+            $checks[] = array(
+                'id'      => 'brand_primary_on_white',
+                'status'  => 'pass',
+                'label'   => 'Brand colour passes text contrast on white — ' . $ratio . ':1',
+                'message' => 'The primary brand colour meets WCAG AA for normal text on a white background.',
+                'hint'    => '',
+            );
+        } elseif ($ratio >= 3.0) {
+            $checks[] = array(
+                'id'      => 'brand_primary_on_white',
+                'status'  => 'warn',
+                'label'   => 'Brand colour is marginal for small text — ' . $ratio . ':1 (need 4.5:1 for body copy, 3:1 for headings ≥18px/bold)',
+                'message' => 'The primary brand colour meets the large-text threshold (3:1) but falls short of AA for normal body text (4.5:1) on white.',
+                'hint'    => 'Darken the primary colour in Branding settings if it is used for body text or prices.',
+            );
+        } else {
+            $checks[] = array(
+                'id'          => 'brand_primary_on_white',
+                'status'      => 'fail',
+                'label'       => 'Brand colour fails WCAG AA on white — ' . $ratio . ':1',
+                'message'     => 'Small text and prices in your brand colour are illegible for users with low vision. Darken the primary colour in Branding settings. Target: ≥4.5:1.',
+                'hint'        => '',
+            );
+        }
+
+        // CHECK 2 — brand_primary_on_bg
+        $ratio = self::contrast_ratio($t['primary'], $t['bg']);
+        if ($ratio >= 4.5) {
+            $checks[] = array(
+                'id'      => 'brand_primary_on_bg',
+                'status'  => 'pass',
+                'label'   => 'Brand colour passes text contrast on site background — ' . $ratio . ':1',
+                'message' => 'The primary brand colour meets WCAG AA for normal text on the site background.',
+                'hint'    => '',
+            );
+        } elseif ($ratio >= 3.0) {
+            $checks[] = array(
+                'id'      => 'brand_primary_on_bg',
+                'status'  => 'warn',
+                'label'   => 'Brand colour is marginal for small text on site background — ' . $ratio . ':1 (need 4.5:1 for body copy, 3:1 for headings ≥18px/bold)',
+                'message' => 'The primary brand colour meets the large-text threshold (3:1) but falls short of AA for normal body text (4.5:1) on the site background.',
+                'hint'    => 'Darken the primary colour in Branding settings if it is used for body text or prices on the background.',
+            );
+        } else {
+            $checks[] = array(
+                'id'      => 'brand_primary_on_bg',
+                'status'  => 'fail',
+                'label'   => 'Brand colour fails WCAG AA on site background — ' . $ratio . ':1',
+                'message' => 'Small text and prices in your brand colour are illegible for users with low vision. Darken the primary colour in Branding settings. Target: ≥4.5:1.',
+                'hint'    => '',
+            );
+        }
+
+        // CHECK 3 — brand_cta_white_text (white text on primary-coloured buttons)
+        $ratio = self::contrast_ratio('#ffffff', $t['primary']);
+        if ($ratio >= 4.5) {
+            $checks[] = array(
+                'id'      => 'brand_cta_white_text',
+                'status'  => 'pass',
+                'label'   => 'White text on brand-colour buttons passes WCAG AA — ' . $ratio . ':1',
+                'message' => 'White button labels on the primary brand colour meet the AA contrast requirement.',
+                'hint'    => '',
+            );
+        } elseif ($ratio >= 3.0) {
+            $checks[] = array(
+                'id'      => 'brand_cta_white_text',
+                'status'  => 'warn',
+                'label'   => 'White text on brand buttons passes large-text threshold (' . $ratio . ':1) but fails for small text',
+                'message' => 'White text on primary-coloured buttons meets 3:1 for large text but not 4.5:1 for small labels. Use a darker brand colour or switch button text to dark.',
+                'hint'    => 'Darken the primary colour in Branding settings or use dark text on the button.',
+            );
+        } else {
+            $checks[] = array(
+                'id'      => 'brand_cta_white_text',
+                'status'  => 'fail',
+                'label'   => 'White text on brand-colour buttons fails contrast — ' . $ratio . ':1',
+                'message' => 'White button labels on the primary brand colour are illegible for many users. Darken the primary colour or use dark text on buttons.',
+                'hint'    => 'Darken the primary colour in Branding settings or switch to dark button text.',
+            );
+        }
+
+        // CHECK 4 — brand_success_color
+        $ratio = self::contrast_ratio($t['success'], '#ffffff');
+        if ($ratio >= 4.5) {
+            $checks[] = array(
+                'id'      => 'brand_success_color',
+                'status'  => 'pass',
+                'label'   => 'Success colour passes WCAG AA on white — ' . $ratio . ':1',
+                'message' => 'The success colour meets AA contrast for normal text on white.',
+                'hint'    => '',
+            );
+        } elseif ($ratio >= 3.0) {
+            $checks[] = array(
+                'id'      => 'brand_success_color',
+                'status'  => 'warn',
+                'label'   => 'Success colour is marginal on white — ' . $ratio . ':1 (need 4.5:1 for body copy, 3:1 for headings ≥18px/bold)',
+                'message' => 'The success colour meets the large-text threshold but not AA for small text on white.',
+                'hint'    => 'Consider darkening the success colour in Branding settings.',
+            );
+        } else {
+            $checks[] = array(
+                'id'      => 'brand_success_color',
+                'status'  => 'fail',
+                'label'   => 'Success colour fails WCAG AA on white — ' . $ratio . ':1',
+                'message' => 'Success/confirmation messages in this colour are hard to read. Darken the success colour in Branding settings.',
+                'hint'    => 'Darken the success colour in Branding settings. Target: ≥4.5:1.',
+            );
+        }
+
+        // CHECK 5 — brand_warning_color
+        $ratio = self::contrast_ratio($t['warning'], '#ffffff');
+        if ($ratio >= 4.5) {
+            $checks[] = array(
+                'id'      => 'brand_warning_color',
+                'status'  => 'pass',
+                'label'   => 'Warning colour passes WCAG AA on white — ' . $ratio . ':1',
+                'message' => 'The warning colour meets AA contrast for normal text on white.',
+                'hint'    => '',
+            );
+        } elseif ($ratio >= 3.0) {
+            $checks[] = array(
+                'id'      => 'brand_warning_color',
+                'status'  => 'warn',
+                'label'   => 'Warning colour is marginal on white — ' . $ratio . ':1 (need 4.5:1 for body copy, 3:1 for headings ≥18px/bold)',
+                'message' => 'The warning colour meets the large-text threshold but not AA for small text on white.',
+                'hint'    => 'Consider darkening the warning colour in Branding settings.',
+            );
+        } else {
+            $checks[] = array(
+                'id'      => 'brand_warning_color',
+                'status'  => 'fail',
+                'label'   => 'Warning colour fails WCAG AA on white — ' . $ratio . ':1',
+                'message' => 'Success/confirmation messages in this colour are hard to read. Darken the warning colour in Branding settings.',
+                'hint'    => 'Darken the warning colour in Branding settings. Target: ≥4.5:1.',
+            );
+        }
+
+        // CHECK 6 — brand_input_border (UI components need 3:1 per WCAG 1.4.11)
+        $ratio = self::contrast_ratio($t['border'], $t['bg']);
+        if ($ratio >= 3.0) {
+            $checks[] = array(
+                'id'      => 'brand_input_border',
+                'status'  => 'pass',
+                'label'   => 'Form input borders meet WCAG 1.4.11 against page background — ' . $ratio . ':1',
+                'message' => 'Input, select, and stepper boundaries have sufficient contrast against the background.',
+                'hint'    => '',
+            );
+        } else {
+            $checks[] = array(
+                'id'      => 'brand_input_border',
+                'status'  => 'fail',
+                'label'   => 'Form input borders are too faint against the page background — ' . $ratio . ':1',
+                'message' => 'Input, select, and stepper boundaries need 3:1 contrast. Darken the Border colour in Branding settings, or check the border-input token in your theme.',
+                'hint'    => 'Darken the Border colour in Branding settings. Target: ≥3:1 (WCAG 1.4.11 non-text contrast).',
+            );
+        }
+
+        return $checks;
     }
 
     private static function theme_active(): bool {
