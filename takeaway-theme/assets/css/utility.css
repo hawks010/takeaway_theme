@@ -1,5 +1,5 @@
 /*
- * Utility, policy and 404 pages (v0.3.0). Token-driven.
+ * Utility, policy and 404 pages (v0.4.0). Token-driven.
  */
 
 /* Shared front card (legacy class, new look) */
@@ -31,6 +31,22 @@
     font-weight: 800;
     margin: 0;
 }
+/* Tracker: error / not-found state */
+.ttos-tracker-result.is-error {
+    border-left: 4px solid var(--tt-error);
+    background: color-mix(in srgb, var(--tt-error) 6%, transparent);
+    border-radius: var(--tt-radius-sm);
+    padding: var(--tt-space-4);
+    margin-top: var(--tt-space-4);
+}
+.ttos-tracker-result.is-error h3 { color: var(--tt-error); }
+.ttos-tracker-empty {
+    margin-top: var(--tt-space-4);
+    color: var(--tt-muted);
+    font-size: var(--tt-text-sm);
+    text-align: center;
+    padding: var(--tt-space-5) 0;
+}
 
 /* --- Delivery checker --- */
 .ttos-delivery-checker { max-width: 560px; }
@@ -56,7 +72,7 @@
 .ttos-check-result a { font-weight: 800; color: var(--tt-primary); }
 .ttos-check-zone, .ttos-check-meta { color: var(--tt-muted); font-size: var(--tt-text-sm); margin: var(--tt-space-3) 0 0; }
 
-/* --- Policy pages --- */
+/* --- Policy pages (legacy ttos- classes) --- */
 .ttos-policy { line-height: 1.75; }
 .ttos-policy p { margin: 0 0 var(--tt-space-4); }
 .ttos-policy h2 { font-size: var(--tt-text-2xl); margin: 0 0 var(--tt-space-4); }
@@ -70,7 +86,7 @@
 .ttos-policy-grid { display: grid; gap: var(--tt-space-6); }
 @media (min-width: 901px) { .ttos-policy-grid { grid-template-columns: 1fr 1fr; } }
 
-/* --- Contact page --- */
+/* --- Contact page (legacy ttos- classes) --- */
 .ttos-contact-intro { color: var(--tt-muted); max-width: 640px; margin: 0 0 var(--tt-space-5); }
 .ttos-contact-cols { display: grid; gap: var(--tt-space-5); align-items: start; }
 .ttos-contact-address { font-style: normal; white-space: pre-line; line-height: 1.7; color: var(--tt-muted); margin: 0 0 var(--tt-space-3); }
@@ -88,10 +104,10 @@
 .ttos-contact-map-link { place-items: center; background: var(--tt-surface-soft); }
 @media (min-width: 901px) { .ttos-contact-cols { grid-template-columns: .9fr 1.1fr; } }
 
-/* --- Allergens page --- */
+/* --- Allergens page (legacy stub) --- */
 .ttos-allergens-call { margin-top: var(--tt-space-5); }
 
-/* --- 404 --- */
+/* --- 404 (legacy classes) --- */
 .tt-404-inner { text-align: center; display: grid; justify-items: center; gap: var(--tt-space-4); }
 .tt-404-inner h1 { font-size: var(--tt-text-display); line-height: 1; letter-spacing: -.03em; margin: 0; }
 .tt-404-sub { color: var(--tt-muted); max-width: 480px; margin: 0; }
@@ -103,3 +119,387 @@
 .tt-404-product-body { display: flex; justify-content: space-between; gap: var(--tt-space-3); padding: var(--tt-space-4); }
 .tt-404-product-price { color: var(--tt-primary); font-weight: 800; }
 @media (min-width: 621px) { .tt-404-products { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+
+/* ============================================================
+   === ALLERGENS PAGE ===
+   ============================================================ */
+
+/* Allergen grid — auto-fill cards, min 140px each */
+.page-allergens .allergen-grid,
+.page-allergens .entry-content .allergen-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: var(--tt-space-4);
+    margin: var(--tt-space-5) 0;
+}
+
+/* Individual allergen card */
+.allergen-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--tt-space-2);
+    background: var(--tt-surface);
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-lg);
+    padding: var(--tt-space-5) var(--tt-space-3);
+    text-align: center;
+    text-decoration: none;
+    color: var(--tt-text);
+    transition: box-shadow .18s ease, border-color .18s ease;
+}
+.allergen-item:hover {
+    box-shadow: var(--tt-shadow);
+    border-color: color-mix(in srgb, var(--tt-primary) 35%, var(--tt-border));
+}
+
+/* Icon inside the card (img, svg, or icon font) */
+.allergen-item img,
+.allergen-item svg,
+.allergen-item .allergen-icon {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    display: block;
+    flex-shrink: 0;
+}
+
+/* Allergen label */
+.allergen-item .allergen-label,
+.allergen-item span {
+    font-size: var(--tt-text-sm);
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+/* Allergen badge / tag used inline on menu items */
+.allergen-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: color-mix(in srgb, var(--tt-accent) 15%, transparent);
+    color: var(--tt-text);
+    border: 1px solid color-mix(in srgb, var(--tt-accent) 40%, transparent);
+    border-radius: 999px;
+    padding: 2px 10px 2px 6px;
+    font-size: var(--tt-text-xs);
+    font-weight: 700;
+}
+.allergen-badge img,
+.allergen-badge svg { width: 14px; height: 14px; object-fit: contain; }
+
+/* Allergen legend block */
+.allergen-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--tt-space-3);
+    margin: var(--tt-space-5) 0;
+}
+.allergen-legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--tt-space-2);
+    font-size: var(--tt-text-sm);
+    color: var(--tt-muted);
+}
+.allergen-legend-item img,
+.allergen-legend-item svg { width: 18px; height: 18px; object-fit: contain; }
+
+/* Fallback: unstyled table output from page builder / shortcode */
+.page-allergens .entry-content table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--tt-text-sm);
+    margin: var(--tt-space-5) 0;
+}
+.page-allergens .entry-content table th {
+    background: var(--tt-surface-soft);
+    color: var(--tt-muted);
+    font-weight: 700;
+    text-align: left;
+    padding: 10px var(--tt-space-3);
+    border: 1px solid var(--tt-border);
+    font-size: var(--tt-text-xs);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+.page-allergens .entry-content table td {
+    padding: 10px var(--tt-space-3);
+    border: 1px solid var(--tt-border);
+    vertical-align: middle;
+}
+.page-allergens .entry-content table tr:nth-child(even) td {
+    background: color-mix(in srgb, var(--tt-surface-soft) 50%, transparent);
+}
+
+
+/* ============================================================
+   === CONTACT PAGE ===
+   ============================================================ */
+
+/* Contact card — wraps address + hours or a contact detail block */
+.page-contact .contact-card {
+    background: var(--tt-surface);
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-lg);
+    box-shadow: var(--tt-shadow);
+    padding: var(--tt-space-5);
+}
+
+/* Contact rows inside a card — label / value pairs */
+.page-contact .contact-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--tt-space-3);
+    padding: var(--tt-space-3) 0;
+    border-bottom: 1px solid var(--tt-border);
+}
+.page-contact .contact-row:last-child { border-bottom: 0; }
+.page-contact .contact-row-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    color: var(--tt-primary);
+    margin-top: 2px;
+}
+.page-contact .contact-row-label {
+    font-size: var(--tt-text-xs);
+    font-weight: 700;
+    color: var(--tt-muted);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin: 0 0 2px;
+}
+.page-contact .contact-row-value {
+    font-size: var(--tt-text-base);
+    color: var(--tt-text);
+    margin: 0;
+    line-height: 1.5;
+}
+.page-contact .contact-row-value a {
+    color: var(--tt-primary);
+    font-weight: 700;
+    text-decoration: none;
+}
+.page-contact .contact-row-value a:hover { text-decoration: underline; }
+
+/* Map embed container */
+.page-contact .contact-map {
+    height: 300px;
+    border-radius: var(--tt-radius-lg);
+    overflow: hidden;
+    box-shadow: var(--tt-shadow);
+    margin: var(--tt-space-5) 0;
+}
+.page-contact .contact-map iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+}
+
+/* WP contact form inputs (CF7, WPForms, Gravity Forms, etc.) */
+.page-contact .wpcf7 input[type="text"],
+.page-contact .wpcf7 input[type="email"],
+.page-contact .wpcf7 input[type="tel"],
+.page-contact .wpcf7 input[type="url"],
+.page-contact .wpcf7 textarea,
+.page-contact .wpcf7 select,
+.page-contact .wpforms-field input,
+.page-contact .wpforms-field textarea,
+.page-contact .wpforms-field select,
+.page-contact .gfield input,
+.page-contact .gfield textarea,
+.page-contact .gfield select,
+.page-contact .entry-content input[type="text"],
+.page-contact .entry-content input[type="email"],
+.page-contact .entry-content input[type="tel"],
+.page-contact .entry-content textarea {
+    width: 100%;
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-md);
+    background: var(--tt-surface);
+    padding: 11px 14px;
+    font: inherit;
+    font-size: var(--tt-text-base);
+    color: var(--tt-text);
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+    box-sizing: border-box;
+}
+.page-contact .wpcf7 input[type="text"]:focus,
+.page-contact .wpcf7 input[type="email"]:focus,
+.page-contact .wpcf7 input[type="tel"]:focus,
+.page-contact .wpcf7 input[type="url"]:focus,
+.page-contact .wpcf7 textarea:focus,
+.page-contact .wpcf7 select:focus,
+.page-contact .wpforms-field input:focus,
+.page-contact .wpforms-field textarea:focus,
+.page-contact .wpforms-field select:focus,
+.page-contact .gfield input:focus,
+.page-contact .gfield textarea:focus,
+.page-contact .gfield select:focus,
+.page-contact .entry-content input[type="text"]:focus,
+.page-contact .entry-content input[type="email"]:focus,
+.page-contact .entry-content input[type="tel"]:focus,
+.page-contact .entry-content textarea:focus {
+    border-color: var(--tt-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--tt-primary) 18%, transparent);
+}
+
+/* Contact form submit / send button */
+.page-contact .wpcf7 input[type="submit"],
+.page-contact .wpforms-submit,
+.page-contact .gform_button,
+.page-contact .entry-content input[type="submit"],
+.page-contact .entry-content button[type="submit"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tt-primary);
+    color: var(--tt-surface);
+    border: none;
+    border-radius: 999px;
+    padding: 13px 28px;
+    font: inherit;
+    font-size: var(--tt-text-base);
+    font-weight: 800;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity .15s ease, transform .1s ease;
+    min-height: 48px;
+}
+.page-contact .wpcf7 input[type="submit"]:hover,
+.page-contact .wpforms-submit:hover,
+.page-contact .gform_button:hover,
+.page-contact .entry-content input[type="submit"]:hover,
+.page-contact .entry-content button[type="submit"]:hover {
+    opacity: .88;
+    transform: translateY(-1px);
+}
+
+
+/* ============================================================
+   === REWARDS / LOYALTY PAGE ===
+   ============================================================ */
+
+/* No rewards page detected — placeholder */
+
+
+/* ============================================================
+   === POLICY / PROSE PAGES ===
+   ============================================================ */
+
+/* Targets both the core privacy-policy slug and a custom policy page template */
+.page-privacy-policy .entry-content,
+.page-template-policy .entry-content,
+.page-terms-conditions .entry-content,
+.page-refund-policy .entry-content,
+.page-cookie-policy .entry-content {
+    max-width: 720px;
+    line-height: 1.8;
+    font-size: 15px;
+}
+
+/* Headings */
+.page-privacy-policy .entry-content h1,
+.page-privacy-policy .entry-content h2,
+.page-privacy-policy .entry-content h3,
+.page-template-policy .entry-content h1,
+.page-template-policy .entry-content h2,
+.page-template-policy .entry-content h3,
+.page-terms-conditions .entry-content h1,
+.page-terms-conditions .entry-content h2,
+.page-terms-conditions .entry-content h3,
+.page-refund-policy .entry-content h1,
+.page-refund-policy .entry-content h2,
+.page-refund-policy .entry-content h3,
+.page-cookie-policy .entry-content h1,
+.page-cookie-policy .entry-content h2,
+.page-cookie-policy .entry-content h3 {
+    font-weight: 900;
+    letter-spacing: -.025em;
+}
+
+/* "Last updated" badge pill */
+.policy-last-updated {
+    display: inline-block;
+    background: color-mix(in srgb, var(--tt-muted) 12%, transparent);
+    color: var(--tt-muted);
+    border: 1px solid color-mix(in srgb, var(--tt-muted) 22%, transparent);
+    border-radius: 999px;
+    padding: 4px 14px;
+    font-size: var(--tt-text-xs);
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-bottom: var(--tt-space-4);
+}
+
+
+/* ============================================================
+   === 404 PAGE ===
+   ============================================================ */
+
+/* Centred not-found wrapper */
+.error404 .not-found,
+.error404 .page-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: var(--tt-space-9) var(--tt-space-5);
+}
+
+/* Big error code numeral */
+.error-code {
+    font-size: 100px;
+    font-weight: 900;
+    color: var(--tt-primary);
+    line-height: 1;
+    margin: 0 0 var(--tt-space-3);
+    letter-spacing: -.04em;
+}
+
+/* Page heading */
+.error404 .not-found h1,
+.error404 .page-content h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    margin: 0 0 var(--tt-space-3);
+}
+
+/* Subtext / description */
+.error404 .not-found p,
+.error404 .page-content p {
+    color: var(--tt-muted);
+    margin: 0 0 var(--tt-space-5);
+    line-height: 1.6;
+}
+
+/* "Back to menu" pill CTA */
+.back-to-menu {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tt-primary);
+    color: var(--tt-surface);
+    border-radius: 999px;
+    padding: 13px 28px;
+    font-size: var(--tt-text-base);
+    font-weight: 800;
+    text-decoration: none;
+    transition: opacity .15s ease, transform .1s ease;
+    min-height: 48px;
+}
+.back-to-menu:hover {
+    opacity: .88;
+    transform: translateY(-1px);
+    color: var(--tt-surface);
+    text-decoration: none;
+}
