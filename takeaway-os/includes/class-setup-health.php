@@ -322,9 +322,12 @@ final class TTOS_Setup_Health {
 
         $checks[] = self::duplicate_page_check('home', 'page_on_front', 'Home');
         $checks[] = self::duplicate_page_check('account', 'woocommerce_myaccount_page_id', 'My Account');
+        $checks[] = self::duplicate_page_check('menu', 'woocommerce_shop_page_id', 'Menu');
+        $checks[] = self::duplicate_page_check('cart', 'woocommerce_cart_page_id', 'Cart');
+        $checks[] = self::duplicate_page_check('checkout', 'woocommerce_checkout_page_id', 'Checkout');
 
         $blogname = strtolower(trim((string) get_option('blogname')));
-        $placeholder = in_array($blogname, array('', 'blueprint', 'takeaaway', 'wordpress'), true);
+        $placeholder = in_array($blogname, array('', 'blueprint', 'takeaaway', 'wordpress', 'my wordpress blog', 'just another wordpress site', 'test'), true);
         $checks[] = self::make_check('site_identity', 'Site identity is not a placeholder', !$placeholder, 'The site title looks like a real business identity.', 'The WordPress site title still looks like a placeholder ("' . esc_html(get_option('blogname')) . '"). Set the business name in Takeaway OS → Business Settings.');
 
         $policy_keys = array('policy_privacy', 'policy_cookies', 'policy_terms', 'policy_refunds', 'policy_delivery', 'policy_accessibility', 'policy_hygiene', 'policy_business', 'contact');
@@ -334,6 +337,81 @@ final class TTOS_Setup_Health {
             if (($status['state'] ?? 'missing') !== 'ready') $missing[] = $key;
         }
         $checks[] = self::make_check('policy_pages', 'Policy and contact pages generated', !$missing, 'All policy/contact pages exist with their Takeaway content markers.', count($missing) . ' policy/contact pages are missing. Run "Create / repair public pages" below.');
+
+        // --- New checks added v1.3.0+ ---
+
+        // elementor_hijack: per-template published check (distinct from builder_hijack which only checks whether conditions are non-empty)
+        $elementor_conditions = get_option('elementor_pro_theme_builder_conditions', array());
+        $hijack_template_id = 0;
+        if (is_array($elementor_conditions)) {
+            foreach ($elementor_conditions as $location => $templates) {
+                if (!is_array($templates)) continue;
+                foreach ($templates as $template_id => $conds) {
+                    if (!empty($conds['include']['general'])) {
+                        $post = get_post(absint($template_id));
+                        if ($post && $post->post_status === 'publish') {
+                            $hijack_template_id = (int) $template_id;
+                            break 2;
+                        }
+                    }
+                }
+            }
+        }
+        $checks[] = array(
+            'id'      => 'elementor_hijack',
+            'label'   => 'Elementor template overriding site header/footer',
+            'status'  => $hijack_template_id === 0 ? 'pass' : 'fail',
+            'message' => $hijack_template_id === 0
+                ? 'No published Elementor Pro theme-builder template has a site-wide condition.'
+                : 'An Elementor Pro theme builder template (ID ' . $hijack_template_id . ') has site-wide conditions and is published. This prevents the Takeaway theme header/footer from rendering.',
+            'hint'    => $hijack_template_id === 0 ? '' : 'Use the "Disable conflicting page-builder templates" repair action above to set the template to draft.',
+        );
+
+        // blogname_typo: catches the "Takeaaway" double-a variant (separate from the site_identity placeholder check)
+        $raw_blogname = (string) get_bloginfo('name');
+        $has_typo = strpos($raw_blogname, 'Takeaaway') !== false;
+        $checks[] = self::make_check(
+            'blogname_typo',
+            'Site name contains a typo ("Takeaaway")',
+            !$has_typo,
+            'Site name does not contain the "Takeaaway" double-a typo.',
+            'The site name "' . esc_html($raw_blogname) . '" has a double-a typo. It will appear in browser tabs, emails, and receipts. Fix it in Settings → General.'
+        );
+
+        // duplicate_wc_pages: slug-based duplicate published page check for WooCommerce core slugs
+        $wc_slugs  = array('cart', 'checkout', 'my-account', 'shop');
+        $slug_dupes = array();
+        foreach ($wc_slugs as $slug) {
+            $slug_pages = get_posts(array(
+                'post_type'   => 'page',
+                'post_status' => 'publish',
+                'name'        => $slug,
+                'numberposts' => -1,
+                'fields'      => 'ids',
+            ));
+            if (count($slug_pages) > 1) {
+                $slug_dupes[] = $slug . ' (' . count($slug_pages) . ' pages)';
+            }
+        }
+        $checks[] = self::make_check(
+            'duplicate_wc_pages',
+            'Duplicate WooCommerce pages detected',
+            empty($slug_dupes),
+            'No duplicate published pages share a WooCommerce core slug (cart, checkout, my-account, shop).',
+            'Multiple published pages share a WooCommerce slug: ' . implode(', ', $slug_dupes) . '. WooCommerce may use the wrong one. Review and draft the duplicates manually.'
+        );
+
+        // duplicate_starter_products: flags an unusually high product count that suggests demo products were imported twice
+        if (post_type_exists('product') && get_option('ttos_starter_products_created')) {
+            $product_count = (int) (wp_count_posts('product')->publish ?? 0);
+            $checks[] = self::make_check(
+                'duplicate_starter_products',
+                'Duplicate starter/demo products detected',
+                $product_count < 50,
+                'Published product count (' . $product_count . ') is within the expected starter range.',
+                'There are ' . $product_count . ' published products — more than the starter data would normally create. Demo products may have been imported more than once. Review WooCommerce → Products.'
+            );
+        }
 
         return $checks;
     }
