@@ -149,7 +149,7 @@ final class TTOS_Setup_Health {
         self::shell_start('Setup Health', 'Repair the public site, check assignments, and confirm what is still missing before preview or staging handoff.');
         self::summary_panel($summary);
         self::actions_panel();
-        self::checks_panel();
+        self::checks_panel($summary['checks']);
         self::shell_end();
     }
 
@@ -386,7 +386,7 @@ final class TTOS_Setup_Health {
                 'post_type'   => 'page',
                 'post_status' => 'publish',
                 'name'        => $slug,
-                'numberposts' => -1,
+                'numberposts' => 10,
                 'fields'      => 'ids',
             ));
             if (count($slug_pages) > 1) {
@@ -539,9 +539,9 @@ final class TTOS_Setup_Health {
         echo '</div></section>';
     }
 
-    private static function checks_panel(): void {
+    private static function checks_panel(array $checks): void {
         echo '<section class="ttos-card"><div class="ttos-card-head"><div><h2>Health checks</h2><p class="ttos-muted">Pass/warn/fail cards for the current install state.</p></div></div><div class="ttos-setup-health-grid">';
-        foreach (self::checks() as $check) {
+        foreach ($checks as $check) {
             $class = $check['status'] === 'pass' ? 'ttos-good' : ($check['status'] === 'warn' ? 'ttos-warn' : 'ttos-bad');
             echo '<article class="ttos-setup-health-card ' . esc_attr('is-' . $check['status']) . '"><div class="ttos-card-head"><h3>' . esc_html($check['label']) . '</h3><span class="' . esc_attr($class) . '">' . esc_html(strtoupper($check['status'])) . '</span></div><p>' . esc_html($check['message']) . '</p>';
             if (!empty($check['hint'])) {

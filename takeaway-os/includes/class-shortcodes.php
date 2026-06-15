@@ -87,7 +87,7 @@ final class TTOS_Shortcodes {
             if ($show_allergens) {
                 $terms = get_terms(array('taxonomy' => 'ttos_allergen', 'hide_empty' => false));
                 if (!is_wp_error($terms) && $terms) {
-                    echo '<details class="ttos-filter-allergens"><summary>' . esc_html__('Hide allergens', 'takeaway-os') . '</summary><div class="ttos-filter-allergens-list">';
+                    echo '<details class="ttos-filter-allergens"><summary>' . esc_html__('Hide allergens', 'takeaway-os') . '</summary><div class="ttos-filter-allergens-list" role="group" aria-label="' . esc_attr__('Filter by allergens', 'takeaway-os') . '">';
                     foreach ($terms as $term) {
                         echo '<label><input type="checkbox" class="ttos-filter-allergen" value="' . esc_attr($term->slug) . '"> ' . esc_html($term->name) . '</label>';
                     }

@@ -11,11 +11,11 @@ $phone = tt_phone();
 $account_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('myaccount') : '';
 $delivery_url = ttheme_page_url('delivery', '/delivery-checker/');
 ?>
-<div class="tt-drawer" id="tt-mobile-drawer" hidden>
+<div class="tt-drawer" id="tt-mobile-drawer" hidden role="dialog" aria-modal="true" aria-labelledby="tt-drawer-title">
     <div class="tt-drawer-overlay" data-drawer-close tabindex="-1"></div>
-    <div class="tt-drawer-panel" role="dialog" aria-modal="true" aria-label="<?php esc_attr_e('Site menu', 'takeaway-theme'); ?>">
+    <div class="tt-drawer-panel">
         <div class="tt-drawer-head">
-            <span class="tt-drawer-title"><?php echo esc_html(tt_business_name()); ?></span>
+            <span class="tt-drawer-title" id="tt-drawer-title"><?php echo esc_html(tt_business_name()); ?></span>
             <button type="button" class="tt-drawer-close" data-drawer-close aria-label="<?php esc_attr_e('Close menu', 'takeaway-theme'); ?>">×</button>
         </div>
         <nav class="tt-drawer-nav" aria-label="<?php esc_attr_e('Mobile', 'takeaway-theme'); ?>">

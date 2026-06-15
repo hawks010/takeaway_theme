@@ -124,12 +124,19 @@
 
     /* ── Fulfilment toggle (menu pagehead) ──────────────────────────── */
     document.querySelectorAll('.tt-fulfilment-toggle').forEach(function (tog) {
+        tog.setAttribute('role', 'radiogroup');
         var pills = tog.querySelectorAll('.tt-fulfilment-pill[data-fulfilment]');
         var scope = tog.parentElement;
 
+        pills.forEach(function (p) {
+            p.setAttribute('role', 'radio');
+            p.setAttribute('aria-checked', p.getAttribute('aria-pressed') === 'true' ? 'true' : 'false');
+            p.removeAttribute('aria-pressed');
+        });
+
         function activateMode(mode) {
             pills.forEach(function (p) {
-                p.setAttribute('aria-pressed', p.dataset.fulfilment === mode ? 'true' : 'false');
+                p.setAttribute('aria-checked', p.dataset.fulfilment === mode ? 'true' : 'false');
             });
             scope.querySelectorAll('.tt-hero-zone[data-zone], .tt-pagehead-zone[data-zone]').forEach(function (z) {
                 z.hidden = z.dataset.zone !== mode;
@@ -197,4 +204,30 @@
             }
         }
     });
+})();
+
+/* ── WooCommerce checkout/cart form: aria-invalid + aria-describedby ─ */
+(function () {
+    var errCounter = 0;
+    function linkErrors(form) {
+        form.querySelectorAll('.form-row').forEach(function (row) {
+            var field = row.querySelector('input, select, textarea');
+            if (!field) return;
+            if (row.classList.contains('woocommerce-invalid')) {
+                field.setAttribute('aria-invalid', 'true');
+                var msg = row.querySelector('.woocommerce-error, [role="alert"]');
+                if (msg) {
+                    if (!msg.id) { msg.id = 'wce-' + (++errCounter); }
+                    field.setAttribute('aria-describedby', msg.id);
+                }
+            } else {
+                field.removeAttribute('aria-invalid');
+            }
+        });
+    }
+    var form = document.querySelector('.woocommerce-checkout');
+    if (form && window.MutationObserver) {
+        new MutationObserver(function () { linkErrors(form); })
+            .observe(form, { subtree: true, attributeFilter: ['class'], childList: true });
+    }
 })();

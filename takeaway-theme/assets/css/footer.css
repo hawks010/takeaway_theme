@@ -3,7 +3,7 @@
  */
 
 .tt-sitefooter { padding: var(--tt-space-8) 0 var(--tt-space-5); }
-.tt-sitefooter-dark { background: #14100d; color: #f1eae2; }
+.tt-sitefooter-dark { background: var(--tt-dark); color: var(--tt-cream2); }
 .tt-sitefooter-light { background: var(--tt-surface-soft); color: var(--tt-text); }
 
 .tt-sitefooter-grid { display: grid; gap: var(--tt-space-6); }
@@ -13,7 +13,7 @@
 .tt-sitefooter-name { font-weight: 900; font-size: var(--tt-text-xl); margin: 0 0 var(--tt-space-2); }
 .tt-sitefooter-text { margin: 0 0 var(--tt-space-4); }
 .tt-sitefooter-text p { margin: 0; }
-.tt-sitefooter-dark .tt-sitefooter-text, .tt-sitefooter-dark .tt-sitefooter-address { color: #b6aba1; }
+.tt-sitefooter-dark .tt-sitefooter-text, .tt-sitefooter-dark .tt-sitefooter-address { color: color-mix(in srgb, var(--tt-cream2) 72%, var(--tt-dark)); }
 .tt-sitefooter-light .tt-sitefooter-text, .tt-sitefooter-light .tt-sitefooter-address { color: var(--tt-muted); }
 
 .tt-sitefooter-heading { font-size: var(--tt-text-sm); font-weight: 800; text-transform: uppercase; letter-spacing: .1em; margin: 0 0 var(--tt-space-3); opacity: .75; }

@@ -89,7 +89,7 @@ if ($show('show_accessibility_link')) {
 
             <?php if ($show('show_contact') && ($address || $phone || $email)) : ?>
             <div class="tt-sitefooter-col">
-                <h2 class="tt-sitefooter-heading"><?php esc_html_e('Find us', 'takeaway-theme'); ?></h2>
+                <h3 class="tt-sitefooter-heading"><?php esc_html_e('Find us', 'takeaway-theme'); ?></h3>
                 <?php if ($address) : ?><p class="tt-sitefooter-address"><?php echo esc_html(implode(', ', $address)); ?></p><?php endif; ?>
                 <?php if ($phone) : ?><p><a href="tel:<?php echo esc_attr(preg_replace('/[^0-9+]/', '', $phone)); ?>"><?php echo esc_html($phone); ?></a></p><?php endif; ?>
                 <?php if ($email) : ?><p><a href="mailto:<?php echo esc_attr($email); ?>"><?php echo esc_html($email); ?></a></p><?php endif; ?>
@@ -98,7 +98,7 @@ if ($show('show_accessibility_link')) {
 
             <?php if ($show('show_opening_times') && $hours) : ?>
             <div class="tt-sitefooter-col">
-                <h2 class="tt-sitefooter-heading"><?php esc_html_e('Opening times', 'takeaway-theme'); ?></h2>
+                <h3 class="tt-sitefooter-heading"><?php esc_html_e('Opening times', 'takeaway-theme'); ?></h3>
                 <ul class="tt-sitefooter-hours">
                     <?php foreach ($hours as $row) : ?>
                         <li><span><?php echo esc_html($row['label']); ?></span><strong><?php echo esc_html($row['value']); ?></strong></li>
@@ -108,7 +108,7 @@ if ($show('show_accessibility_link')) {
             <?php endif; ?>
 
             <div class="tt-sitefooter-col">
-                <h2 class="tt-sitefooter-heading"><?php esc_html_e('Quick links', 'takeaway-theme'); ?></h2>
+                <h3 class="tt-sitefooter-heading"><?php esc_html_e('Quick links', 'takeaway-theme'); ?></h3>
                 <ul class="tt-sitefooter-links">
                     <?php foreach ($quick_links as $label => $url) : if (!$url) continue; ?>
                         <li><a href="<?php echo esc_url($url); ?>"><?php echo esc_html($label); ?></a></li>

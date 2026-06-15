@@ -137,7 +137,7 @@ final class TTOS_Public_UI {
         }
 
         $aria_label = esc_attr($title !== '' ? $title : __('Announcement', 'takeaway-os'));
-        echo '<div id="ttos-popup" class="ttos-popup is-' . esc_attr($type) . '" role="dialog" aria-modal="true" aria-label="' . $aria_label . '" aria-hidden="true" data-ttos-popup="' . esc_attr($hash) . '" data-delay="' . esc_attr((string) $delay) . '" data-frequency="' . esc_attr($frequency) . '" hidden>';
+        echo '<div id="ttos-popup" class="ttos-popup is-' . esc_attr($type) . '" role="dialog" aria-modal="true" aria-label="' . $aria_label . '" data-ttos-popup="' . esc_attr($hash) . '" data-delay="' . esc_attr((string) $delay) . '" data-frequency="' . esc_attr($frequency) . '" hidden>';
         echo '<div class="ttos-popup-backdrop" data-ttos-popup-close tabindex="-1"></div>';
         echo '<div class="ttos-popup-panel">';
         if (($c['dismissible'] ?? '1') === '1') {

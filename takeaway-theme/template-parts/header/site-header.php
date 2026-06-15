@@ -79,30 +79,30 @@ $logout_url       = function_exists('wc_logout_url') ? wc_logout_url(home_url('/
                                 <span class="tt-user-name"><?php echo esc_html($user_first); ?></span>
                                 <svg class="tt-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                             </button>
-                            <div class="tt-acct-dropdown" id="tt-acct-dropdown" role="menu" aria-label="<?php esc_attr_e('My account', 'takeaway-theme'); ?>">
+                            <div class="tt-acct-dropdown" id="tt-acct-dropdown" aria-label="<?php esc_attr_e('My account', 'takeaway-theme'); ?>">
                                 <div class="tt-dropdown-user">
                                     <strong><?php echo esc_html($current_user->display_name); ?></strong>
                                     <span><?php echo esc_html($current_user->user_email); ?></span>
                                 </div>
                                 <nav class="tt-dropdown-nav">
-                                    <a href="<?php echo esc_url($orders_url); ?>" role="menuitem">
+                                    <a href="<?php echo esc_url($orders_url); ?>">
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
                                         <?php esc_html_e('My Orders', 'takeaway-theme'); ?>
                                     </a>
-                                    <a href="<?php echo esc_url($address_url); ?>" role="menuitem">
+                                    <a href="<?php echo esc_url($address_url); ?>">
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                                         <?php esc_html_e('Addresses', 'takeaway-theme'); ?>
                                     </a>
-                                    <a href="<?php echo esc_url($payment_url); ?>" role="menuitem">
+                                    <a href="<?php echo esc_url($payment_url); ?>">
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                                         <?php esc_html_e('Payment Methods', 'takeaway-theme'); ?>
                                     </a>
-                                    <a href="<?php echo esc_url($acct_edit_url); ?>" role="menuitem">
+                                    <a href="<?php echo esc_url($acct_edit_url); ?>">
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
                                         <?php esc_html_e('Account Details', 'takeaway-theme'); ?>
                                     </a>
                                 </nav>
-                                <a href="<?php echo esc_url($logout_url); ?>" class="tt-dropdown-logout" role="menuitem">
+                                <a href="<?php echo esc_url($logout_url); ?>" class="tt-dropdown-logout">
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                                     <?php esc_html_e('Sign out', 'takeaway-theme'); ?>
                                 </a>
@@ -176,7 +176,7 @@ $logout_url       = function_exists('wc_logout_url') ? wc_logout_url(home_url('/
                     <?php tt_cart_count_badge(); ?>
                 </button>
                 <div class="tt-cart-preview" id="tt-cart-preview"
-                     role="dialog" aria-label="<?php esc_attr_e('Basket preview', 'takeaway-theme'); ?>">
+                     role="region" aria-label="<?php esc_attr_e('Basket preview', 'takeaway-theme'); ?>">
                     <p class="tt-cart-hint"><?php esc_html_e('Choose your method below and we\'ll get your order started.', 'takeaway-theme'); ?></p>
                     <div class="tt-cart-btns">
                         <a class="tt-btn ghost" href="<?php echo esc_url($cart_url); ?>"><?php esc_html_e('View basket', 'takeaway-theme'); ?></a>

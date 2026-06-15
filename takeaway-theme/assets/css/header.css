@@ -16,7 +16,7 @@
     border-radius: 0 0 var(--tt-radius-sm) 0;
     font-weight: 800;
 }
-.tt-skip-link:focus { left: 0; }
+.tt-skip-link:focus-visible { left: 0; }
 
 /* ── Outer shell ──────────────────────────────────────────── */
 .tt-siteheader {
@@ -150,7 +150,7 @@
     width: 230px;
     background: var(--tt-surface);
     border: 1px solid var(--tt-border);
-    border-radius: 18px;
+    border-radius: var(--tt-radius-lg);
     box-shadow: 0 16px 48px rgba(28,19,15,.13);
     opacity: 0;
     transform: translateY(-8px) scale(.97);
@@ -195,9 +195,9 @@
     align-items: center;
     gap: 10px;
     padding: 9px 10px;
-    border-radius: 10px;
+    border-radius: var(--tt-radius-sm);
     text-decoration: none;
-    font-weight: 750;
+    font-weight: 700;
     font-size: var(--tt-text-xs);
     color: var(--tt-text);
     transition: background .13s;
@@ -214,7 +214,7 @@
     border-top: 1px solid var(--tt-border);
     border-radius: 0;
     color: var(--tt-error);
-    font-weight: 750;
+    font-weight: 700;
     font-size: var(--tt-text-xs);
     text-decoration: none;
     transition: background .13s;
@@ -289,7 +289,7 @@
 }
 .tt-siteheader-logo { max-height: 44px; width: auto; display: block; }
 .tt-siteheader-name {
-    font-weight: 1000;
+    font-weight: 900;
     font-size: clamp(1.05rem, 1.2vw, 1.25rem);
     letter-spacing: -.04em;
     white-space: nowrap;
@@ -298,7 +298,7 @@
     width: 40px;
     height: 40px;
     flex-shrink: 0;
-    border-radius: 14px;
+    border-radius: var(--tt-radius-md);
     display: grid;
     place-items: center;
     background: var(--tt-primary);
@@ -330,7 +330,7 @@
     padding: 0 12px;
     border-radius: 999px;
     text-decoration: none;
-    font-weight: 850;
+    font-weight: 800;
     font-size: var(--tt-text-sm);
     color: var(--tt-muted);
     white-space: nowrap;
@@ -363,7 +363,7 @@
     border: 1px solid var(--tt-border);
     box-shadow: 0 12px 24px rgba(28, 19, 15, .06);
     color: var(--tt-text);
-    font-weight: 950;
+    font-weight: 900;
     font-size: var(--tt-text-sm);
     letter-spacing: -.02em;
     cursor: pointer;
@@ -383,7 +383,7 @@
     background: var(--tt-primary);
     color: #fff;
     font-size: 12px;
-    font-weight: 1000;
+    font-weight: 900;
 }
 .tt-cart-count[data-count="0"] { display: none; }
 
@@ -394,7 +394,7 @@
     top: calc(100% + 12px);
     width: min(380px, calc(100vw - 32px));
     padding: 16px;
-    border-radius: 20px;
+    border-radius: var(--tt-radius-lg);
     background: var(--tt-surface);
     border: 1px solid var(--tt-border);
     box-shadow: 0 24px 60px rgba(28, 19, 15, .14);
@@ -414,7 +414,7 @@
 .tt-cart-hint {
     margin: 0 0 14px;
     padding: 12px 16px;
-    border-radius: 14px;
+    border-radius: var(--tt-radius-md);
     background: var(--tt-surface-soft);
     color: var(--tt-muted);
     font-size: var(--tt-text-sm);
@@ -428,7 +428,7 @@
 }
 .tt-cart-btns .tt-btn {
     min-height: 42px;
-    border-radius: 13px;
+    border-radius: var(--tt-radius-sm);
     font-size: var(--tt-text-sm);
     padding: 0 12px;
     justify-content: center;
@@ -440,7 +440,7 @@
     height: 48px;
     border-radius: var(--tt-radius-md);
     padding: 0 22px;
-    font-weight: 950;
+    font-weight: 900;
     font-size: var(--tt-text-sm);
     white-space: nowrap;
 }
