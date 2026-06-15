@@ -29,7 +29,7 @@ final class TTOS_Settings {
                 'logo_id'       => 0,
                 'favicon_id'    => 0,
                 'hero_image_id' => 0,
-                'primary'       => '#ff4000',
+                'primary'       => '#c53000',
                 'accent'        => '#ffac00',
                 'bg'            => '#f9f4ee',
                 'surface'       => '#ffffff',
@@ -37,8 +37,8 @@ final class TTOS_Settings {
                 'text'          => '#1a1410',
                 'muted'         => '#6f655e',
                 'border'        => '#e8dfd4',
-                'success'       => '#18a844',
-                'warning'       => '#c47d0e',
+                'success'       => '#157a35',
+                'warning'       => '#8a5200',
                 'error'         => '#b33a3a',
                 'radius_sm'     => '10',
                 'radius_md'     => '16',
@@ -224,7 +224,9 @@ final class TTOS_Settings {
             . ';--tt-secondary:' . $t['secondary']
             . ';--tt-dark:' . $t['dark']
             . ';--tt-cream:' . $t['cream']
-            . ';--tt-cream2:' . $t['surface_soft'];
+            . ';--tt-cream2:' . $t['surface_soft']
+            . ';--tt-radius-full:999px'
+            . ';--tt-border-input:' . self::darker_border($t['border'], $t['bg']);
 
         $dark = self::dark_palette();
         $dark_vars = '--tt-bg:' . $dark['bg']
@@ -266,5 +268,22 @@ final class TTOS_Settings {
             return $favicon_id;
         }
         return $value;
+    }
+
+    private static function darker_border(string $border, string $bg): string {
+        // Returns a form-input-safe border color: if the stored border is too light
+        // for 3:1 UI-component contrast against the bg, fall back to a fixed darker value.
+        // Simple heuristic: if border luminance > 0.4 relative to bg, use a hardcoded safe value.
+        // Full WCAG math is in the Setup Health a11y checks; here we just ensure the token exists.
+        $safe = '#9e8e82'; // ~3:1 on cream bg, ~3.2:1 on white
+        // Use the stored border if it's clearly darker than the bg (crude check via hex brightness).
+        $b = ltrim($border, '#');
+        $g = ltrim($bg, '#');
+        if (strlen($b) === 6 && strlen($g) === 6) {
+            $b_lum = (hexdec(substr($b,0,2)) * 299 + hexdec(substr($b,2,2)) * 587 + hexdec(substr($b,4,2)) * 114) / 1000;
+            $g_lum = (hexdec(substr($g,0,2)) * 299 + hexdec(substr($g,2,2)) * 587 + hexdec(substr($g,4,2)) * 114) / 1000;
+            if ($b_lum < ($g_lum - 60)) return $border; // border is sufficiently darker than bg
+        }
+        return $safe;
     }
 }

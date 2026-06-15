@@ -14,7 +14,7 @@
  */
 :root {
     /* Brand colour tokens */
-    --tt-primary: #ff4000;
+    --tt-primary: #c53000;
     --tt-accent: #ffac00;
     --tt-bg: #f9f4ee;
     --tt-surface: #ffffff;
@@ -22,14 +22,16 @@
     --tt-text: #1a1410;
     --tt-muted: #6f655e;
     --tt-border: #e8dfd4;
-    --tt-success: #18a844;
-    --tt-warning: #c47d0e;
+    --tt-success: #157a35;
+    --tt-warning: #8a5200;
     --tt-error: #b33a3a;
 
     /* Shape and depth */
     --tt-radius-sm: 10px;
     --tt-radius-md: 16px;
     --tt-radius-lg: 24px;
+    --tt-radius-full: 999px;
+    --tt-border-input: #9e8e82;
     --tt-shadow: 0 16px 44px rgba(26, 20, 16, .08);
 
     /* Legacy aliases (v0.2.x CSS still reads these) */
