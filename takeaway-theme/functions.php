@@ -2,7 +2,7 @@
 
 defined('ABSPATH') || exit;
 
-define('TTHEME_VERSION', '0.3.4');
+define('TTHEME_VERSION', '0.3.5');
 define('TTHEME_DIR', get_template_directory());
 define('TTHEME_URL', get_template_directory_uri());
 
