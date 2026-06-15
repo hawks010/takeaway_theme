@@ -21,8 +21,6 @@ final class TTOS_Public_UI {
         // Priority 5: the popup markup must be in the DOM before footer
         // scripts print at priority 20, or frontend.js finds nothing.
         add_action('wp_footer', array(__CLASS__, 'render_popup'), 5);
-        // Inline popup JS: runs after the popup markup (priority 5) is output.
-        add_action('wp_footer', array(__CLASS__, 'render_popup_inline_js'), 20);
     }
 
     /** Tracks whether the banner was already emitted via wp_body_open. */
@@ -155,45 +153,4 @@ final class TTOS_Public_UI {
         echo '</div></div></div>';
     }
 
-    /* ------------------------------------------------------------------ *
-     * Popup inline JS (priority 20, after markup at priority 5)
-     * ------------------------------------------------------------------ */
-
-    /**
-     * Emits a self-contained inline script that drives popup open/close,
-     * ESC dismiss, Tab focus trap, and localStorage persistence.
-     * Runs only when the popup was actually rendered this request.
-     */
-    public static function render_popup_inline_js(): void {
-        if (!did_action('wp_footer')) return;
-        // Only emit if popup markup was conditionally output (check for the
-        // popup element in this request by piggy-backing on the same guards).
-        if (is_admin()) return;
-        $c = self::config('popup');
-        if (($c['enabled'] ?? '0') !== '1') return;
-        if (!self::within_schedule($c)) return;
-        if (($c['allow_on_checkout'] ?? '0') !== '1' && function_exists('is_checkout') && (is_checkout() || is_cart())) return;
-        ?>
-<script>
-(function(){
-var popup = document.getElementById('ttos-popup');
-var closeBtn = document.querySelector('[data-ttos-popup-close]');
-if (!popup || !closeBtn) return;
-if (localStorage.getItem('ttos_popup_dismissed')) { popup.style.display='none'; return; }
-function openPopup(){ popup.classList.add('ttos-popup--open'); popup.setAttribute('aria-hidden','false'); popup.hidden=false; closeBtn.focus(); }
-function closePopup(){ popup.classList.remove('ttos-popup--open'); popup.setAttribute('aria-hidden','true'); popup.hidden=true; localStorage.setItem('ttos_popup_dismissed','1'); }
-closeBtn.addEventListener('click', closePopup);
-document.addEventListener('keydown', function(e){ if(e.key==='Escape' && popup.classList.contains('ttos-popup--open')) closePopup(); });
-popup.addEventListener('keydown', function(e){
-  if(e.key!=='Tab') return;
-  var focusable = popup.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
-  var first=focusable[0], last=focusable[focusable.length-1];
-  if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
-  else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
-});
-setTimeout(openPopup, 800);
-})();
-</script>
-        <?php
-    }
 }

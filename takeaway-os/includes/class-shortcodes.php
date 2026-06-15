@@ -16,6 +16,11 @@ final class TTOS_Shortcodes {
     }
 
     public static function assets(): void {
+        // frontend.js and frontend.css must load on every public page because
+        // the banner and popup are injected via wp_body_open / wp_footer hooks
+        // (TTOS_Public_UI), which fire regardless of page content or shortcodes.
+        // Making this conditional on shortcode presence would break banner/popup
+        // on pages that contain neither shortcode.
         wp_enqueue_style('ttos-frontend', TTOS_URL . 'assets/frontend.css', array(), TTOS_VERSION);
         wp_enqueue_script('ttos-frontend', TTOS_URL . 'assets/frontend.js', array(), TTOS_VERSION, true);
     }
@@ -214,9 +219,10 @@ final class TTOS_Shortcodes {
         $modal_id = 'ttos-config-modal-' . $product_id . '-' . wp_rand(100, 999);
 
         if ($groups) {
+            $title_id = esc_attr($modal_id) . '-title';
             echo '<button type="button" class="ttos-order-btn ttos-open-config" data-modal="#' . esc_attr($modal_id) . '">Configure item</button>';
-            echo '<div class="ttos-modal" id="' . esc_attr($modal_id) . '" aria-hidden="true"><div class="ttos-modal-backdrop" data-close-modal></div><div class="ttos-modal-panel" role="dialog" aria-modal="true" aria-label="Configure ' . esc_attr(get_the_title($product_id)) . '"><button type="button" class="ttos-modal-close" data-close-modal>×</button>';
-            echo '<h3>' . esc_html(get_the_title($product_id)) . '</h3><p class="ttos-muted">Choose options, add notes, then add to basket.</p>';
+            echo '<div class="ttos-modal" id="' . esc_attr($modal_id) . '" role="dialog" aria-modal="true" aria-labelledby="' . esc_attr($title_id) . '" aria-hidden="true"><div class="ttos-modal-backdrop" data-close-modal></div><div class="ttos-modal-panel"><button type="button" class="ttos-modal-close" data-close-modal>×</button>';
+            echo '<h3 id="' . esc_attr($title_id) . '">' . esc_html(get_the_title($product_id)) . '</h3><p class="ttos-muted">Choose options, add notes, then add to basket.</p>';
         }
 
         $base_price = (float) get_post_meta($product_id, '_price', true);
