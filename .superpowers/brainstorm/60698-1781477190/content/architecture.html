@@ -1,0 +1,164 @@
+<h2>Reservation + CRM — Full Architecture</h2>
+<p class="subtitle">Two custom post types, one admin, one public form. Everything connects cleanly.</p>
+
+<style>
+.arch-wrap { display: grid; gap: 20px; margin: 20px 0; }
+.arch-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.arch-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.box { border-radius: 14px; padding: 18px 20px; }
+.box-blue  { background: #eff6ff; border: 1px solid #bfdbfe; }
+.box-green { background: #f0fdf4; border: 1px solid #bbf7d0; }
+.box-amber { background: #fffbeb; border: 1px solid #fde68a; }
+.box-slate { background: #f8fafc; border: 1px solid #e2e8f0; }
+.box-purple{ background: #faf5ff; border: 1px solid #e9d5ff; }
+.box h3 { margin: 0 0 10px; font-size: 14px; font-weight: 900; }
+.box-blue h3  { color: #1d4ed8; }
+.box-green h3 { color: #15803d; }
+.box-amber h3 { color: #b45309; }
+.box-slate h3 { color: #475569; }
+.box-purple h3{ color: #7c3aed; }
+.field-list { list-style: none; margin: 0; padding: 0; font-size: 12px; line-height: 2; }
+.field-list li { display: flex; gap: 8px; align-items: baseline; }
+.field-name { font-family: monospace; font-size: 11px; color: #64748b; flex-shrink: 0; }
+.field-desc { color: #374151; }
+.status-flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+.status { font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+.s-pending   { background: #fef3c7; color: #92400e; }
+.s-confirmed { background: #d1fae5; color: #065f46; }
+.s-seated    { background: #dbeafe; color: #1e40af; }
+.s-done      { background: #f1f5f9; color: #475569; }
+.s-cancel    { background: #fee2e2; color: #991b1b; }
+.s-noshow    { background: #fce7f3; color: #9d174d; }
+.arr { color: #9ca3af; font-size: 14px; }
+.connector { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #64748b; margin: 6px 0; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot-blue { background: #3b82f6; }
+.dot-green { background: #22c55e; }
+.dot-purple { background: #a855f7; }
+.toggle-note { background: #fef9c3; border: 1px solid #fde68a; border-radius: 10px; padding: 12px 16px; font-size: 12px; color: #713f12; margin-top: 4px; }
+</style>
+
+<div class="arch-wrap">
+
+  <!-- Row 1: The two CPTs -->
+  <div class="arch-row">
+    <div class="box box-blue">
+      <h3>ttos_reservation (post type)</h3>
+      <ul class="field-list">
+        <li><span class="field-name">date / time</span><span class="field-desc">When the booking is for</span></li>
+        <li><span class="field-name">covers</span><span class="field-desc">Party size</span></li>
+        <li><span class="field-name">status</span><span class="field-desc">pending → confirmed → seated → done</span></li>
+        <li><span class="field-name">customer_id</span><span class="field-desc">→ links to ttos_customer record</span></li>
+        <li><span class="field-name">wc_user_id</span><span class="field-desc">→ links to WC account (if logged in)</span></li>
+        <li><span class="field-name">wc_order_id</span><span class="field-desc">→ deposit order (if deposit taken)</span></li>
+        <li><span class="field-name">table</span><span class="field-desc">Table name / number (optional)</span></li>
+        <li><span class="field-name">source</span><span class="field-desc">online | staff</span></li>
+        <li><span class="field-name">notes</span><span class="field-desc">Customer's special requests</span></li>
+        <li><span class="field-name">deposit_required</span><span class="field-desc">bool + amount</span></li>
+      </ul>
+    </div>
+    <div class="box box-green">
+      <h3>ttos_customer (post type — CRM record)</h3>
+      <ul class="field-list">
+        <li><span class="field-name">name / email / phone</span><span class="field-desc">Contact details</span></li>
+        <li><span class="field-name">wc_user_id</span><span class="field-desc">→ linked WC account (matched by email)</span></li>
+        <li><span class="field-name">is_vip</span><span class="field-desc">VIP flag — shown in admin booking list</span></li>
+        <li><span class="field-name">allergens</span><span class="field-desc">Dietary/allergy notes</span></li>
+        <li><span class="field-name">staff_notes</span><span class="field-desc">Private notes (regulars, preferences)</span></li>
+        <li><span class="field-name">booking_count</span><span class="field-desc">Total bookings (denormalised)</span></li>
+        <li><span class="field-name">last_booking</span><span class="field-desc">Date of most recent reservation</span></li>
+      </ul>
+      <div class="toggle-note" style="margin-top:10px;">Created automatically on first booking. Two bookings with the same email → same customer record.</div>
+    </div>
+  </div>
+
+  <!-- Row 2: Status flow -->
+  <div class="box box-amber">
+    <h3>Reservation status lifecycle</h3>
+    <div class="status-flow">
+      <span class="status s-pending">Pending</span>
+      <span class="arr">→</span>
+      <span class="status s-confirmed">Confirmed</span>
+      <span class="arr">→</span>
+      <span class="status s-seated">Seated</span>
+      <span class="arr">→</span>
+      <span class="status s-done">Completed</span>
+    </div>
+    <div class="status-flow">
+      <span class="status s-pending">Pending</span>
+      <span class="arr">→</span>
+      <span class="status s-cancel">Cancelled</span>
+      &nbsp;&nbsp;
+      <span class="status s-confirmed">Confirmed</span>
+      <span class="arr">→</span>
+      <span class="status s-cancel">Cancelled</span>
+      &nbsp;&nbsp;
+      <span class="status s-confirmed">Confirmed</span>
+      <span class="arr">→</span>
+      <span class="status s-noshow">No-show</span>
+    </div>
+    <div style="font-size:12px;color:#64748b;margin-top:8px;line-height:1.8;">
+      <strong>Auto-confirm rule:</strong> ≤ N covers (configurable in CRM, default 6) → straight to Confirmed on submission.<br>
+      <strong>Deposit flow:</strong> if deposit required → stays Pending until WooCommerce payment clears → then Confirmed.<br>
+      <strong>Seated:</strong> staff marks arrival — this is the point where a kitchen order can optionally be tagged to this reservation.
+    </div>
+  </div>
+
+  <!-- Row 3: Three surfaces -->
+  <div class="arch-row-3">
+    <div class="box box-slate">
+      <h3>Public booking form</h3>
+      <ul class="field-list">
+        <li><span class="field-desc">Date + time picker</span></li>
+        <li><span class="field-desc">Party size</span></li>
+        <li><span class="field-desc">Name / email / phone</span></li>
+        <li><span class="field-desc">Special requests (optional)</span></li>
+        <li><span class="field-desc">Capacity check (if enabled)</span></li>
+        <li><span class="field-desc">Deposit step if required</span></li>
+        <li><span class="field-desc">Shortcode: [ttos_booking_form]</span></li>
+      </ul>
+    </div>
+    <div class="box box-slate">
+      <h3>Staff admin panel</h3>
+      <ul class="field-list">
+        <li><span class="field-desc">Today's bookings — sorted by time</span></li>
+        <li><span class="field-desc">Filter by date / status</span></li>
+        <li><span class="field-desc">Quick actions: confirm / cancel / seat / no-show</span></li>
+        <li><span class="field-desc">Manual entry form</span></li>
+        <li><span class="field-desc">Customer profile panel (side-by-side)</span></li>
+        <li><span class="field-desc">Email log (what was sent)</span></li>
+      </ul>
+    </div>
+    <div class="box box-slate">
+      <h3>Emails sent automatically</h3>
+      <ul class="field-list">
+        <li><span class="field-desc">→ Customer: booking received</span></li>
+        <li><span class="field-desc">→ Customer: booking confirmed</span></li>
+        <li><span class="field-desc">→ Customer: reminder (24h before)</span></li>
+        <li><span class="field-desc">→ Customer: cancellation</span></li>
+        <li><span class="field-desc">→ Staff: new booking alert</span></li>
+        <li><span class="field-desc">→ Staff: cancellation alert</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Row 4: WC + My Account -->
+  <div class="box box-purple">
+    <h3>WooCommerce connections</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px;">
+      <div>
+        <div class="connector"><span class="dot dot-purple"></span><strong>Deposit payments</strong></div>
+        <div style="font-size:12px;color:#64748b;">Deposit required → WC order created → payment clears → reservation auto-confirms. Order tagged with reservation ID.</div>
+      </div>
+      <div>
+        <div class="connector"><span class="dot dot-purple"></span><strong>My Account tab</strong></div>
+        <div style="font-size:12px;color:#64748b;">Logged-in customers see "My Bookings" in My Account. Guest bookings auto-link to a WC account if same email exists.</div>
+      </div>
+      <div>
+        <div class="connector"><span class="dot dot-purple"></span><strong>Kitchen ticket tag</strong></div>
+        <div style="font-size:12px;color:#64748b;">When a reservation is Seated, staff can create a WC order tagged with "Table X — Smith x6". Shows on kitchen screen.</div>
+      </div>
+    </div>
+  </div>
+
+</div>

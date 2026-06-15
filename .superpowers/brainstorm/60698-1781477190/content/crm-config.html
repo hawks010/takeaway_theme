@@ -1,0 +1,238 @@
+<h2>CRM — Reservations configuration tab</h2>
+<p class="subtitle">Everything a new client needs to configure. Sensible defaults mean it works out of the box with zero changes.</p>
+
+<style>
+.crm-mock { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; max-width: 860px; margin: 20px auto; font-size: 13px; }
+.crm-top { background: #1e293b; color: #94a3b8; padding: 10px 20px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.crm-top strong { color: #fff; }
+.crm-section { border-bottom: 1px solid #e2e8f0; padding: 20px 24px; }
+.crm-section:last-child { border-bottom: 0; }
+.crm-section-title { font-weight: 900; font-size: 14px; color: #0f172a; margin: 0 0 4px; }
+.crm-section-desc { font-size: 12px; color: #94a3b8; margin: 0 0 16px; }
+.crm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+.crm-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px 24px; }
+.crm-field { display: grid; gap: 4px; }
+.crm-label { font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: .07em; }
+.crm-input { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; color: #334155; font-size: 13px; font-family: inherit; width: 100%; box-sizing: border-box; }
+.crm-input.placeholder { color: #94a3b8; }
+.crm-select { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; color: #334155; font-size: 13px; font-family: inherit; width: 100%; }
+.crm-check-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+.crm-check { width: 16px; height: 16px; border: 2px solid #cbd5e1; border-radius: 4px; background: #fff; flex-shrink: 0; display: grid; place-items: center; }
+.crm-check.on { background: #6366f1; border-color: #6366f1; color: #fff; font-size: 10px; }
+.crm-check-label { font-size: 13px; color: #334155; }
+.crm-check-hint { font-size: 11px; color: #94a3b8; margin-left: auto; }
+.crm-checks { display: grid; gap: 2px; }
+.badge { display: inline-block; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
+.badge-default { background: #e0f2fe; color: #0369a1; }
+.badge-new { background: #dcfce7; color: #15803d; }
+.crm-textarea { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; color: #334155; font-size: 12px; font-family: monospace; width: 100%; box-sizing: border-box; line-height: 1.6; resize: vertical; }
+.hint-block { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 14px; font-size: 11px; color: #1d4ed8; margin-top: 8px; line-height: 1.6; }
+</style>
+
+<div class="crm-mock">
+  <div class="crm-top"><strong>Takeaway OS</strong> › Content &amp; Settings › <strong>Reservations</strong></div>
+
+  <!-- Master switch -->
+  <div class="crm-section">
+    <div class="crm-section-title">Master switch</div>
+    <div class="crm-section-desc">Turns the entire reservation system on or off globally. Can also be toggled quickly from the header.</div>
+    <div class="crm-checks">
+      <div class="crm-check-row">
+        <div class="crm-check on">✓</div>
+        <span class="crm-check-label">Enable reservations</span>
+        <span class="crm-check-hint">Shows "Book a table" tab on homepage, activates booking form shortcode</span>
+      </div>
+      <div class="crm-check-row">
+        <div class="crm-check on">✓</div>
+        <span class="crm-check-label">Show in My Account (logged-in customers see "My Bookings" tab)</span>
+        <span class="crm-check-hint"></span>
+      </div>
+      <div class="crm-check-row">
+        <div class="crm-check"></div>
+        <span class="crm-check-label">Allow guest bookings (unchecked = must be logged in to book)</span>
+        <span class="crm-check-hint">Most businesses leave this on</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Terminology -->
+  <div class="crm-section">
+    <div class="crm-section-title">Terminology <span class="badge badge-new">New</span></div>
+    <div class="crm-section-desc">Change what the system calls a booking — works for restaurants, pubs, private dining rooms, and more.</div>
+    <div class="crm-grid">
+      <div class="crm-field">
+        <div class="crm-label">Booking noun (singular)</div>
+        <input class="crm-input" value="Reservation" />
+      </div>
+      <div class="crm-field">
+        <div class="crm-label">Booking noun (plural)</div>
+        <input class="crm-input" value="Reservations" />
+      </div>
+      <div class="crm-field">
+        <div class="crm-label">What to call a cover/guest</div>
+        <input class="crm-input" value="Guest" />
+      </div>
+      <div class="crm-field">
+        <div class="crm-label">CTA button text on homepage tab</div>
+        <input class="crm-input" value="Book a table" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Availability -->
+  <div class="crm-section">
+    <div class="crm-section-title">Availability</div>
+    <div class="crm-section-desc">When customers can book and how the form handles time slots.</div>
+    <div class="crm-grid-3">
+      <div class="crm-field">
+        <div class="crm-label">Time slot interval</div>
+        <select class="crm-select"><option selected>30 minutes</option><option>15 minutes</option><option>1 hour</option></select>
+      </div>
+      <div class="crm-field">
+        <div class="crm-label">Earliest bookable slot (from now)</div>
+        <select class="crm-select"><option>Same day</option><option selected>2 hours ahead</option><option>24 hours ahead</option><option>48 hours ahead</option></select>
+      </div>
+      <div class="crm-field">
+        <div class="crm-label">How far ahead can customers book?</div>
+        <select class="crm-select"><option>2 weeks</option><option selected>3 months</option><option>6 months</option><option>1 year</option></select>
+      </div>
+    </div>
+    <div class="crm-checks" style="margin-top:14px;">
+      <div class="crm-check-row">
+        <div class="crm-check on">✓</div>
+        <span class="crm-check-label">Use opening hours from Contact &amp; Map settings to limit available slots <span class="badge badge-default">Recommended</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Party size & confirmation -->
+  <div class="crm-section">
+    <div class="crm-section-title">Party size &amp; confirmation</div>
+    <div class="crm-section-desc">Small parties confirm automatically. Larger parties wait for staff review.</div>
+    <div class="crm-grid">
+      <div class="crm-field">
+        <div class="crm-label">Min party size</div>
+        <input class="crm-input" value="1" />
+      </div>
+      <div class="crm-field">
+        <div class="crm-label">Max party size (0 = unlimited)</div>
+        <input class="crm-input" value="20" />
+      </div>
+      <div class="crm-field">
+        <div class="crm-label">Auto-confirm parties up to <span class="badge badge-default">Default: 6</span></div>
+        <input class="crm-input" value="6" />
+      </div>
+      <div class="crm-field">
+        <div class="crm-label">Parties larger than this → require manual confirmation</div>
+        <input class="crm-input" value="7" readonly style="background:#f8fafc;color:#94a3b8;" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Capacity -->
+  <div class="crm-section">
+    <div class="crm-section-title">Capacity</div>
+    <div class="crm-section-desc">Optional. Leave at 0 to accept all bookings. Set a number to block new bookings once the limit is reached for a time slot.</div>
+    <div class="crm-grid">
+      <div class="crm-field">
+        <div class="crm-label">Max covers per time slot (0 = no limit)</div>
+        <input class="crm-input placeholder" value="0" />
+      </div>
+      <div class="crm-field">
+        <div class="crm-label">Show availability on the booking form</div>
+        <select class="crm-select"><option selected>Hide (just block full slots silently)</option><option>Show remaining covers</option><option>Show "almost full" when 80% booked</option></select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deposits -->
+  <div class="crm-section">
+    <div class="crm-section-title">Deposits</div>
+    <div class="crm-section-desc">Optional. Requires WooCommerce. Leave disabled to skip payment entirely.</div>
+    <div class="crm-checks">
+      <div class="crm-check-row">
+        <div class="crm-check"></div>
+        <span class="crm-check-label">Require deposit for large parties</span>
+      </div>
+    </div>
+    <div class="crm-grid" style="margin-top:12px;opacity:.4;pointer-events:none;">
+      <div class="crm-field">
+        <div class="crm-label">Require deposit for parties of X or more</div>
+        <input class="crm-input" value="8" />
+      </div>
+      <div class="crm-field">
+        <div class="crm-label">Deposit type</div>
+        <select class="crm-select"><option selected>Fixed amount per booking</option><option>Fixed amount per person</option><option>Percentage of estimated bill</option></select>
+      </div>
+      <div class="crm-field">
+        <div class="crm-label">Deposit amount (£)</div>
+        <input class="crm-input" value="20" />
+      </div>
+      <div class="crm-field">
+        <div class="crm-label">Deposit refundable on cancellation?</div>
+        <select class="crm-select"><option>Yes, always</option><option selected>Yes, if cancelled 24h+ before</option><option>No</option></select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Booking form fields -->
+  <div class="crm-section">
+    <div class="crm-section-title">Booking form fields</div>
+    <div class="crm-section-desc">Choose which fields appear on the public form. Name, email, date, time, and party size are always shown.</div>
+    <div class="crm-checks">
+      <div class="crm-check-row"><div class="crm-check on">✓</div><span class="crm-check-label">Phone number</span><span class="crm-check-hint">Required</span></div>
+      <div class="crm-check-row"><div class="crm-check on">✓</div><span class="crm-check-label">Special requests / notes</span><span class="crm-check-hint">Optional</span></div>
+      <div class="crm-check-row"><div class="crm-check"></div><span class="crm-check-label">Dietary / allergy field</span><span class="crm-check-hint">Optional</span></div>
+      <div class="crm-check-row"><div class="crm-check"></div><span class="crm-check-label">Occasion (birthday, anniversary…)</span><span class="crm-check-hint">Optional</span></div>
+      <div class="crm-check-row"><div class="crm-check on">✓</div><span class="crm-check-label">Marketing opt-in checkbox</span><span class="crm-check-hint">Unchecked by default (GDPR)</span></div>
+    </div>
+  </div>
+
+  <!-- Emails -->
+  <div class="crm-section">
+    <div class="crm-section-title">Email notifications</div>
+    <div class="crm-section-desc">Sent automatically. From name and address can be changed per client. Template body is plain text with shortcodes like {customer_name}, {date}, {time}, {covers}, {cancel_link}.</div>
+    <div class="crm-grid">
+      <div class="crm-field">
+        <div class="crm-label">From name</div>
+        <input class="crm-input placeholder" value="The Restaurant" />
+      </div>
+      <div class="crm-field">
+        <div class="crm-label">Reply-to email</div>
+        <input class="crm-input placeholder" value="hello@restaurant.co.uk" />
+      </div>
+      <div class="crm-field">
+        <div class="crm-label">Staff notification email(s)</div>
+        <input class="crm-input placeholder" value="manager@restaurant.co.uk" />
+      </div>
+      <div class="crm-field">
+        <div class="crm-label">Reminder timing</div>
+        <select class="crm-select"><option selected>24 hours before</option><option>48 hours before</option><option>Both 48h and 24h</option><option>Disabled</option></select>
+      </div>
+    </div>
+    <div class="crm-checks" style="margin-top:12px;">
+      <div class="crm-check-row"><div class="crm-check on">✓</div><span class="crm-check-label">Send confirmation email to customer</span></div>
+      <div class="crm-check-row"><div class="crm-check on">✓</div><span class="crm-check-label">Send reminder email to customer</span></div>
+      <div class="crm-check-row"><div class="crm-check on">✓</div><span class="crm-check-label">Notify staff on new booking</span></div>
+      <div class="crm-check-row"><div class="crm-check"></div><span class="crm-check-label">Notify staff on cancellation</span></div>
+    </div>
+  </div>
+
+  <!-- CRM -->
+  <div class="crm-section">
+    <div class="crm-section-title">Customer records (CRM)</div>
+    <div class="crm-section-desc">Controls whether the system builds a customer profile database. Can be disabled for very simple use cases.</div>
+    <div class="crm-checks">
+      <div class="crm-check-row"><div class="crm-check on">✓</div><span class="crm-check-label">Enable customer records — build a profile per unique email address</span></div>
+      <div class="crm-check-row"><div class="crm-check on">✓</div><span class="crm-check-label">Link to WooCommerce accounts (match by email)</span></div>
+      <div class="crm-check-row"><div class="crm-check on">✓</div><span class="crm-check-label">Show allergen / dietary field in customer record</span></div>
+      <div class="crm-check-row"><div class="crm-check on">✓</div><span class="crm-check-label">Show VIP flag in customer record</span></div>
+      <div class="crm-check-row"><div class="crm-check on">✓</div><span class="crm-check-label">Show VIP badge in today's bookings list (staff alert)</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 18px;font-size:13px;color:#15803d;max-width:860px;margin:0 auto;">
+  <strong>Out-of-the-box defaults:</strong> A new client install works with zero CRM config. The master switch is OFF by default — turn it ON, set the business name / email, and you're live. Every other option is pre-filled with a sensible restaurant default.
+</div>

@@ -42,11 +42,11 @@
     background: var(--tt-surface);
     color: var(--tt-text);
     border-radius: 999px;
-    padding: 8px 14px;
+    padding: 10px 16px;
     font-weight: 700;
-    font-size: var(--tt-text-sm);
+    font-size: var(--tt-text-base);
     cursor: pointer;
-    min-height: 38px;
+    min-height: 44px;
 }
 .ttos-filter-diet[aria-pressed="true"] { background: var(--tt-text); border-color: var(--tt-text); color: var(--tt-bg); }
 .ttos-filter-allergens summary { cursor: pointer; font-weight: 700; color: var(--tt-muted); }

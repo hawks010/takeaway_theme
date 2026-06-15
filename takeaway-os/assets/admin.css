@@ -128,3 +128,14 @@
 .ttos-notice{font-weight:700}
 .ttos-subtabs a{transition:background .15s ease,border-color .15s ease}
 @media(max-width:900px){.ttos-nav{overflow-x:auto;flex-wrap:nowrap;padding-bottom:6px}.ttos-nav a{white-space:nowrap}}
+
+/* v1.3.1 Mode A admin bar suppression */
+body.ttos-mode-a #wpadminbar{display:none!important;}
+body.ttos-mode-a{padding-top:0!important;}
+html.ttos-mode-a{margin-top:0!important;}
+
+/* v1.3.1 shared utility classes */
+.ttos-section-header{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--ttos-muted);margin-bottom:12px;}
+.ttos-btn{background:var(--ttos-fire);color:#fff;border:none;border-radius:10px;padding:9px 20px;font-size:13px;font-weight:800;cursor:pointer;}
+.ttos-btn:hover{opacity:0.88;}
+.ttos-btn--ghost{background:transparent;border:1px solid var(--ttos-line);color:var(--ttos-dark);}

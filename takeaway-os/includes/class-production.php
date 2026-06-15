@@ -288,6 +288,7 @@ final class TTOS_Production {
     }
 
     public static function apply_starter_menu(): void {
+        if (get_option('ttos_starter_products_created')) return;
         if (!TTOS_WooCommerce::active()) return;
         $items = array(
             array('Mixed Doner Kebab','Kebabs','9.50','Lamb doner with salad and sauce.','gluten','Popular, Halal','kebab'),
@@ -306,6 +307,7 @@ final class TTOS_Production {
                 'allergens'=>$row[4], 'badges'=>$row[5], 'option_groups'=>self::preset_groups($row[6]), 'sort_order'=>(string) ($i + 1),
             ));
         }
+        update_option('ttos_starter_products_created', true);
     }
 
     private static function import_menu_csv(): void {

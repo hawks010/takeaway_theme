@@ -2,7 +2,7 @@
 
 defined('ABSPATH') || exit;
 
-define('TTHEME_VERSION', '0.3.0');
+define('TTHEME_VERSION', '0.3.4');
 define('TTHEME_DIR', get_template_directory());
 define('TTHEME_URL', get_template_directory_uri());
 
@@ -69,14 +69,23 @@ function ttheme_page_url(string $key, string $fallback = '/'): string {
 function ttheme_fallback_nav(string $location = 'primary'): void {
     $keys = $location === 'footer'
         ? array('menu' => 'Menu', 'delivery' => 'Delivery', 'allergens' => 'Allergens', 'account' => 'My Account')
-        : array('home' => 'Home', 'menu' => 'Menu', 'meal_deals' => 'Meal Deals', 'rewards' => 'Rewards', 'tracker' => 'Track Order');
+        : array('menu' => 'Menu', 'meal_deals' => 'Meal Deals', 'rewards' => 'Rewards', 'tracker' => 'Track Order');
     echo '<ul class="tt-fallback-nav">';
     foreach ($keys as $key => $label) {
-        $url = $key === 'home' ? home_url('/') : ttheme_page_url($key, '/' . str_replace('_', '-', $key) . '/');
+        $url = ttheme_page_url($key, '/' . str_replace('_', '-', $key) . '/');
         echo '<li><a href="' . esc_url($url) . '">' . esc_html($label) . '</a></li>';
     }
     echo '</ul>';
 }
+
+// Remove the home-page item from the primary registered nav (logo already links home).
+add_filter('wp_nav_menu_objects', function (array $items, $args): array {
+    if (!isset($args->theme_location) || $args->theme_location !== 'primary') return $items;
+    $home = trailingslashit(home_url('/'));
+    return array_values(array_filter($items, function ($item) use ($home) {
+        return trailingslashit((string) $item->url) !== $home;
+    }));
+}, 10, 2);
 
 add_filter('body_class', 'ttheme_body_classes');
 function ttheme_body_classes(array $classes): array {

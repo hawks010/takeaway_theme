@@ -11,11 +11,22 @@ defined('ABSPATH') || exit;
 final class TTOS_Public_UI {
 
     public static function hooks(): void {
+        // Primary: emit banner inside <body> before page content.
         add_action('wp_body_open', array(__CLASS__, 'render_banner'), 5);
+        // Fallback: if the active theme does not call wp_body_open the banner
+        // would silently never appear. A second hook at wp_footer priority 8
+        // (after body open has had its chance) guarantees rendering. A flag
+        // prevents double output.
+        add_action('wp_footer', array(__CLASS__, 'render_banner_footer_fallback'), 8);
         // Priority 5: the popup markup must be in the DOM before footer
         // scripts print at priority 20, or frontend.js finds nothing.
         add_action('wp_footer', array(__CLASS__, 'render_popup'), 5);
+        // Inline popup JS: runs after the popup markup (priority 5) is output.
+        add_action('wp_footer', array(__CLASS__, 'render_popup_inline_js'), 20);
     }
+
+    /** Tracks whether the banner was already emitted via wp_body_open. */
+    private static bool $banner_rendered = false;
 
     /* ------------------------------------------------------------------ */
 

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>My Account — Customer Frontend</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;background:#f9f4ee;color:#1c1c1e;font-size:14px;}
+
+/* Site header — simplified version of the theme header */
+.site-header{background:rgba(249,244,238,.92);backdrop-filter:blur(20px);border-bottom:1px solid rgba(28,19,15,.08);padding:0 32px;height:66px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
+.site-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.site-logo-mark{width:36px;height:36px;border-radius:10px;background:#ff4000;display:grid;place-items:center;color:#fff;font-weight:900;font-size:15px;}
+.site-logo-name{font-weight:900;font-size:17px;letter-spacing:-.04em;color:#1c1c1e;}
+.site-nav{display:flex;align-items:center;gap:4px;}
+.site-nav a{padding:8px 14px;border-radius:999px;text-decoration:none;font-weight:750;font-size:13px;color:#8a7e78;transition:background .13s;}
+.site-nav a:hover{background:rgba(28,19,15,.06);color:#1c1c1e;}
+.site-acct{display:flex;align-items:center;gap:8px;}
+.site-acct-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#ff4000,#ff9500);display:grid;place-items:center;color:#fff;font-weight:900;font-size:14px;}
+.site-acct-name{font-size:13px;font-weight:700;color:#1c1c1e;}
+
+/* Page layout */
+.page-wrap{max-width:1000px;margin:0 auto;padding:40px 24px 80px;}
+
+/* Greeting banner */
+.greeting{background:linear-gradient(135deg,#1c1c1e 0%,#2c2c2e 100%);border-radius:20px;padding:28px 32px;margin-bottom:32px;display:flex;align-items:center;justify-content:space-between;gap:20px;}
+.greeting-left{}
+.greeting-hey{font-size:12px;font-weight:700;color:#ff6a3d;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;}
+.greeting-name{font-size:26px;font-weight:900;color:#fff;letter-spacing:-.04em;line-height:1.1;margin-bottom:4px;}
+.greeting-sub{font-size:13px;color:#8e8e93;}
+.greeting-stats{display:flex;gap:24px;}
+.g-stat{text-align:center;}
+.g-stat-val{font-size:22px;font-weight:900;color:#fff;letter-spacing:-.04em;}
+.g-stat-lbl{font-size:11px;color:#636366;font-weight:600;margin-top:2px;}
+
+/* Tab nav */
+.account-tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap;}
+.acct-tab{padding:9px 18px;border-radius:999px;font-size:13px;font-weight:700;border:1px solid rgba(28,19,15,.1);background:#fff;color:#8a7e78;cursor:pointer;transition:all .13s;text-decoration:none;display:inline-flex;align-items:center;gap:6px;}
+.acct-tab:hover{border-color:rgba(28,19,15,.2);color:#1c1c1e;}
+.acct-tab.active{background:#1c1c1e;border-color:#1c1c1e;color:#fff;}
+.acct-tab svg{opacity:.7;}
+.acct-tab.active svg{opacity:1;}
+
+/* Content panels */
+.panel{display:none;}
+.panel.active{display:block;}
+
+/* Upcoming reservation highlight */
+.upcoming-res{background:#fff;border-radius:16px;border:1px solid rgba(28,19,15,.06);padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;gap:20px;box-shadow:0 2px 12px rgba(28,19,15,.04);}
+.upcoming-date{background:linear-gradient(135deg,#ff4000,#ff7000);border-radius:12px;width:52px;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;color:#fff;}
+.upcoming-date-day{font-size:20px;font-weight:900;line-height:1;}
+.upcoming-date-mon{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;opacity:.85;}
+.upcoming-info{flex:1;}
+.upcoming-title{font-weight:800;font-size:15px;margin-bottom:3px;}
+.upcoming-detail{font-size:12px;color:#8a7e78;display:flex;gap:10px;flex-wrap:wrap;}
+.upcoming-detail span::before{content:'·';margin-right:10px;color:#d1c9c4;}
+.upcoming-detail span:first-child::before{display:none;}
+.upcoming-actions{display:flex;gap:8px;flex-shrink:0;}
+.upcoming-btn{padding:8px 14px;border-radius:10px;font-size:12px;font-weight:750;border:none;cursor:pointer;}
+.btn-outline{background:transparent;border:1px solid rgba(28,19,15,.12);color:#1c1c1e;}
+.btn-outline:hover{background:rgba(28,19,15,.04);}
+.btn-danger{background:rgba(255,59,48,.08);color:#ff3b30;border:none;}
+
+/* Section title */
+.section-title{font-size:16px;font-weight:900;letter-spacing:-.03em;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.section-title-link{font-size:12px;font-weight:700;color:#ff4000;text-decoration:none;}
+
+/* Booking history list */
+.booking-list{display:grid;gap:10px;margin-bottom:28px;}
+.booking-item{background:#fff;border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:16px;border:1px solid rgba(28,19,15,.06);box-shadow:0 1px 4px rgba(28,19,15,.03);}
+.booking-item.past{opacity:.6;}
+.b-date-badge{width:44px;height:44px;border-radius:10px;background:#f5f0eb;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;}
+.b-date-badge.upcoming{background:rgba(255,64,0,.1);}
+.b-date-day{font-size:17px;font-weight:900;color:#1c1c1e;line-height:1;}
+.b-date-badge.upcoming .b-date-day{color:#ff4000;}
+.b-date-mon{font-size:9px;font-weight:700;text-transform:uppercase;color:#8a7e78;}
+.b-info{flex:1;}
+.b-name{font-weight:750;font-size:14px;margin-bottom:2px;}
+.b-meta{font-size:12px;color:#8a7e78;}
+.b-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:750;padding:3px 10px;border-radius:999px;}
+.b-status::before{content:'';width:6px;height:6px;border-radius:50%;}
+.bs-upcoming{background:#d1fae5;color:#065f46;}
+.bs-upcoming::before{background:#34c759;}
+.bs-pending{background:#fef3c7;color:#92400e;}
+.bs-pending::before{background:#ff9500;}
+.bs-past{background:#f1f5f9;color:#64748b;}
+.bs-past::before{background:#cbd5e1;}
+
+/* Order list */
+.order-list{display:grid;gap:10px;margin-bottom:28px;}
+.order-item{background:#fff;border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:16px;border:1px solid rgba(28,19,15,.06);box-shadow:0 1px 4px rgba(28,19,15,.03);text-decoration:none;color:inherit;transition:box-shadow .13s;}
+.order-item:hover{box-shadow:0 4px 20px rgba(28,19,15,.08);}
+.order-num{font-size:13px;font-weight:900;color:#ff4000;}
+.order-detail{flex:1;}
+.order-items-text{font-size:13px;font-weight:650;margin-bottom:2px;}
+.order-meta{font-size:12px;color:#8a7e78;}
+.order-total{font-size:15px;font-weight:900;letter-spacing:-.03em;}
+.order-status{font-size:11px;font-weight:750;padding:3px 10px;border-radius:999px;background:#d1fae5;color:#065f46;}
+.order-chevron{color:#d1c9c4;}
+
+/* Address cards */
+.address-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+.address-card{background:#fff;border-radius:14px;padding:20px;border:1px solid rgba(28,19,15,.06);}
+.address-card-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#8a7e78;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+.address-edit{font-size:12px;font-weight:700;color:#ff4000;text-decoration:none;text-transform:none;letter-spacing:0;}
+.address-lines{font-size:13px;color:#1c1c1e;line-height:2;}
+.address-empty{color:#d1c9c4;font-style:italic;font-size:13px;}
+
+/* Account form */
+.acct-form{background:#fff;border-radius:16px;padding:24px;border:1px solid rgba(28,19,15,.06);margin-bottom:16px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.form-row.single{grid-template-columns:1fr;}
+.form-field{display:grid;gap:5px;}
+.form-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#8a7e78;}
+.form-input{background:#f9f4ee;border:1px solid rgba(28,19,15,.1);border-radius:10px;padding:11px 14px;font-size:14px;color:#1c1c1e;font-family:inherit;transition:border-color .13s,box-shadow .13s;}
+.form-input:focus{outline:none;border-color:#ff4000;box-shadow:0 0 0 3px rgba(255,64,0,.12);}
+.form-section-title{font-size:14px;font-weight:800;letter-spacing:-.02em;margin:20px 0 14px;padding-top:20px;border-top:1px solid rgba(28,19,15,.06);}
+.form-hint{font-size:12px;color:#8a7e78;margin-top:-8px;margin-bottom:8px;}
+.save-btn{background:#ff4000;color:#fff;border:none;border-radius:12px;padding:12px 24px;font-size:14px;font-weight:800;cursor:pointer;transition:background .13s;}
+.save-btn:hover{background:#e03800;}
+</style>
+</head>
+<body>
+
+<!-- Site header — no WP branding -->
+<header class="site-header">
+  <a class="site-logo" href="/">
+    <div class="site-logo-mark">T</div>
+    <div class="site-logo-name">The Bistro</div>
+  </a>
+  <nav class="site-nav">
+    <a href="#">Menu</a>
+    <a href="#">Book a table</a>
+    <a href="#">About</a>
+    <a href="#">Contact</a>
+  </nav>
+  <div class="site-acct">
+    <div class="site-acct-avatar">S</div>
+    <span class="site-acct-name">Sarah</span>
+  </div>
+</header>
+
+<div class="page-wrap">
+
+  <!-- Greeting -->
+  <div class="greeting">
+    <div class="greeting-left">
+      <div class="greeting-hey">Welcome back</div>
+      <div class="greeting-name">Sarah Thompson</div>
+      <div class="greeting-sub">Member since March 2024 &nbsp;·&nbsp; VIP guest ⭐</div>
+    </div>
+    <div class="greeting-stats">
+      <div class="g-stat"><div class="g-stat-val">6</div><div class="g-stat-lbl">Bookings</div></div>
+      <div class="g-stat"><div class="g-stat-val">14</div><div class="g-stat-lbl">Orders</div></div>
+      <div class="g-stat"><div class="g-stat-val">£340</div><div class="g-stat-lbl">Spent</div></div>
+    </div>
+  </div>
+
+  <!-- Tab navigation -->
+  <div class="account-tabs">
+    <a class="acct-tab active" href="#" onclick="switchTab('bookings',this);return false;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+      My Bookings
+    </a>
+    <a class="acct-tab" href="#" onclick="switchTab('orders',this);return false;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      Orders
+    </a>
+    <a class="acct-tab" href="#" onclick="switchTab('addresses',this);return false;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Addresses
+    </a>
+    <a class="acct-tab" href="#" onclick="switchTab('account',this);return false;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      Account details
+    </a>
+    <a class="acct-tab" href="#" style="margin-left:auto;color:#ff3b30;border-color:rgba(255,59,48,.15);">
+      Sign out
+    </a>
+  </div>
+
+  <!-- BOOKINGS panel -->
+  <div class="panel active" id="panel-bookings">
+
+    <!-- Upcoming highlight -->
+    <div class="upcoming-res">
+      <div class="upcoming-date">
+        <div class="upcoming-date-day">22</div>
+        <div class="upcoming-date-mon">Jun</div>
+      </div>
+      <div class="upcoming-info">
+        <div class="upcoming-title">Next reservation — Sunday 22 June, 7:30 pm</div>
+        <div class="upcoming-detail">
+          <span>4 guests</span>
+          <span>The Bistro · Main dining room</span>
+          <span>Confirmed ✓</span>
+        </div>
+      </div>
+      <div class="upcoming-actions">
+        <button class="upcoming-btn btn-outline">View details</button>
+        <button class="upcoming-btn btn-danger">Cancel</button>
+      </div>
+    </div>
+
+    <div class="section-title">
+      All bookings
+      <a class="section-title-link" href="#">+ New booking</a>
+    </div>
+
+    <div class="booking-list">
+      <div class="booking-item">
+        <div class="b-date-badge upcoming"><div class="b-date-day">22</div><div class="b-date-mon">Jun</div></div>
+        <div class="b-info"><div class="b-name">Sunday dinner</div><div class="b-meta">4 guests · 7:30 pm · Anniversary</div></div>
+        <div class="b-status bs-upcoming">Confirmed</div>
+      </div>
+      <div class="booking-item">
+        <div class="b-date-badge upcoming"><div class="b-date-day">30</div><div class="b-date-mon">Jun</div></div>
+        <div class="b-info"><div class="b-name">Monday lunch</div><div class="b-meta">2 guests · 12:30 pm</div></div>
+        <div class="b-status bs-pending">Pending</div>
+      </div>
+      <div class="booking-item past">
+        <div class="b-date-badge"><div class="b-date-day">1</div><div class="b-date-mon">May</div></div>
+        <div class="b-info"><div class="b-name">Dinner for two</div><div class="b-meta">2 guests · 8:00 pm</div></div>
+        <div class="b-status bs-past">Completed</div>
+      </div>
+      <div class="booking-item past">
+        <div class="b-date-badge"><div class="b-date-day">14</div><div class="b-date-mon">Mar</div></div>
+        <div class="b-info"><div class="b-name">Birthday dinner</div><div class="b-meta">6 guests · 7:00 pm</div></div>
+        <div class="b-status bs-past">Completed</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ORDERS panel -->
+  <div class="panel" id="panel-orders">
+    <div class="section-title">Order history</div>
+    <div class="order-list">
+      <a class="order-item" href="#">
+        <div><div class="order-num">#1042</div><div style="font-size:10px;color:#8a7e78;">12 Jun 2026</div></div>
+        <div class="order-detail"><div class="order-items-text">Margherita, Garlic bread, Tiramisu</div><div class="order-meta">Delivery · 3 items</div></div>
+        <div class="order-total">£28.50</div>
+        <div class="order-status">Delivered</div>
+        <svg class="order-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+      <a class="order-item" href="#">
+        <div><div class="order-num">#1038</div><div style="font-size:10px;color:#8a7e78;">4 Jun 2026</div></div>
+        <div class="order-detail"><div class="order-items-text">Pasta Carbonara, Bruschetta</div><div class="order-meta">Collection · 2 items</div></div>
+        <div class="order-total">£19.00</div>
+        <div class="order-status">Collected</div>
+        <svg class="order-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+      <a class="order-item" href="#">
+        <div><div class="order-num">#1021</div><div style="font-size:10px;color:#8a7e78;">18 May 2026</div></div>
+        <div class="order-detail"><div class="order-items-text">Family feast, Cheesecake ×2</div><div class="order-meta">Delivery · 4 items</div></div>
+        <div class="order-total">£54.00</div>
+        <div class="order-status">Delivered</div>
+        <svg class="order-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- ADDRESSES panel -->
+  <div class="panel" id="panel-addresses">
+    <div class="section-title">Saved addresses</div>
+    <div class="address-grid">
+      <div class="address-card">
+        <div class="address-card-title">Delivery address <a class="address-edit" href="#">Edit</a></div>
+        <div class="address-lines">Sarah Thompson<br>14 Maple Grove<br>Clifton<br>Bristol<br>BS8 2AB</div>
+      </div>
+      <div class="address-card">
+        <div class="address-card-title">Billing address <a class="address-edit" href="#">Edit</a></div>
+        <div class="address-lines address-empty">Same as delivery address</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACCOUNT panel -->
+  <div class="panel" id="panel-account">
+    <div class="section-title">Account details</div>
+    <div class="acct-form">
+      <div class="form-row">
+        <div class="form-field"><label class="form-label">First name</label><input class="form-input" value="Sarah"/></div>
+        <div class="form-field"><label class="form-label">Last name</label><input class="form-input" value="Thompson"/></div>
+      </div>
+      <div class="form-row single">
+        <div class="form-field"><label class="form-label">Email address</label><input class="form-input" value="sarah.thompson@email.com" type="email"/></div>
+      </div>
+      <div class="form-row single">
+        <div class="form-field"><label class="form-label">Phone number</label><input class="form-input" value="+44 7712 345678" type="tel"/></div>
+      </div>
+
+      <div class="form-section-title">Change password</div>
+      <div class="form-hint">Leave blank to keep your current password.</div>
+      <div class="form-row">
+        <div class="form-field"><label class="form-label">New password</label><input class="form-input" type="password" placeholder="New password"/></div>
+        <div class="form-field"><label class="form-label">Confirm password</label><input class="form-input" type="password" placeholder="Confirm new password"/></div>
+      </div>
+
+      <button class="save-btn">Save changes</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function switchTab(id, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.acct-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>

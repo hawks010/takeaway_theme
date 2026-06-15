@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Two rendering modes</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;background:#1a1a2e;color:#1c1c1e;font-size:13px;padding:32px 24px;}
+h1{color:#fff;font-size:22px;font-weight:900;letter-spacing:-.04em;margin-bottom:6px;}
+.sub{color:#8e8e93;font-size:13px;margin-bottom:28px;}
+
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;}
+.mode-wrap{display:flex;flex-direction:column;gap:12px;}
+.mode-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#8e8e93;}
+.mode-title{font-size:16px;font-weight:900;color:#fff;margin-bottom:4px;}
+.mode-desc{font-size:12px;color:#636366;line-height:1.6;margin-bottom:12px;}
+.chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
+.chip{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;}
+.chip-a{background:rgba(255,64,0,.15);color:#ff6a3d;}
+.chip-b{background:rgba(0,122,255,.15);color:#4da6ff;}
+
+/* ── Mode A: Full screen ── */
+.screen-a{border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.08);}
+.a-shell{display:grid;grid-template-columns:180px 1fr;height:360px;}
+.a-sidebar{background:#1c1c1e;display:flex;flex-direction:column;padding:14px 0;}
+.a-logo{padding:0 14px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:10px;}
+.a-logo-mark{width:26px;height:26px;border-radius:7px;background:#ff4000;display:grid;place-items:center;font-weight:900;font-size:11px;color:#fff;flex-shrink:0;}
+.a-logo-name{font-weight:800;font-size:12px;color:#fff;}
+.a-logo-name small{display:block;font-size:9px;color:#636366;font-weight:500;}
+.a-nav-section{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#636366;padding:6px 10px 3px;}
+.a-link{display:flex;align-items:center;gap:7px;padding:7px 10px;margin:1px 6px;border-radius:8px;font-size:11px;font-weight:600;color:#8e8e93;}
+.a-link.active{background:rgba(255,64,0,.18);color:#ff6a3d;font-weight:700;}
+.a-badge{margin-left:auto;background:#ff4000;color:#fff;font-size:9px;font-weight:900;padding:1px 5px;border-radius:999px;}
+.a-main{background:#f2f2f7;display:flex;flex-direction:column;}
+.a-topbar{background:rgba(242,242,247,.92);border-bottom:1px solid rgba(0,0,0,.08);padding:0 16px;height:42px;display:flex;align-items:center;justify-content:space-between;}
+.a-topbar-title{font-weight:800;font-size:13px;}
+.a-topbar-date{font-size:10px;color:#8e8e93;}
+.a-btn{padding:5px 10px;border-radius:7px;font-size:11px;font-weight:700;border:none;cursor:pointer;background:#ff4000;color:#fff;}
+.a-content{padding:14px;flex:1;display:flex;flex-direction:column;gap:10px;}
+.a-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.a-kpi{background:#fff;border-radius:10px;padding:10px 12px;}
+.a-kpi-val{font-size:20px;font-weight:900;letter-spacing:-.04em;}
+.a-kpi-lbl{font-size:9px;color:#8e8e93;font-weight:600;}
+.a-kpi-val.green{color:#34c759;} .a-kpi-val.orange{color:#ff9500;} .a-kpi-val.blue{color:#007aff;}
+.a-bookings{display:grid;gap:6px;}
+.a-booking{background:#fff;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;border-left:3px solid #34c759;}
+.a-booking.pending{border-left-color:#ff9500;}
+.a-booking-time{font-size:14px;font-weight:900;letter-spacing:-.03em;min-width:38px;}
+.a-booking-name{font-weight:700;font-size:12px;}
+.a-booking-sub{font-size:10px;color:#8e8e93;}
+.a-pill{font-size:9px;font-weight:800;padding:2px 7px;border-radius:999px;margin-left:auto;}
+.a-pill.confirmed{background:#d1fae5;color:#065f46;}
+.a-pill.pending{background:#fef3c7;color:#92400e;}
+.a-action{margin-left:6px;padding:4px 8px;border-radius:6px;font-size:10px;font-weight:700;border:none;cursor:pointer;}
+.a-action.confirm{background:#d1fae5;color:#065f46;}
+.a-action.seat{background:#ede9fe;color:#4c1d95;}
+
+/* ── Mode B: Embedded in WP admin ── */
+.screen-b{border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.08);}
+.wp-shell{display:flex;flex-direction:column;height:360px;}
+.wp-adminbar{background:#23282d;height:28px;display:flex;align-items:center;padding:0 10px;gap:14px;flex-shrink:0;}
+.wp-adminbar-logo{width:20px;height:20px;border-radius:4px;background:#fff;display:grid;place-items:center;font-size:9px;font-weight:900;color:#23282d;}
+.wp-adminbar-item{font-size:10px;color:#aaa;font-weight:500;}
+.wp-adminbar-site{color:#fff;font-weight:700;}
+.wp-body{display:grid;grid-template-columns:140px 1fr;flex:1;min-height:0;}
+.wp-sidebar{background:#2c3338;overflow-y:auto;}
+.wp-sidebar-item{display:flex;align-items:center;gap:7px;padding:8px 10px;font-size:10px;color:#a7aaad;font-weight:500;}
+.wp-sidebar-item.active{background:rgba(255,255,255,.05);color:#fff;}
+.wp-sidebar-item.ttos-active{background:#ff4000;color:#fff;font-weight:700;}
+.wp-sidebar-sep{height:1px;background:rgba(255,255,255,.06);margin:4px 0;}
+.wp-content-area{background:#f0f0f1;overflow-y:auto;display:flex;flex-direction:column;}
+.wp-content-head{background:#fff;border-bottom:1px solid #dcdcde;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.wp-page-title{font-size:18px;font-weight:800;color:#1e1e1e;letter-spacing:-.03em;}
+.wp-content-inner{padding:14px;flex:1;}
+
+/* Plugin content inside WP */
+.plugin-tabs{display:flex;gap:2px;background:rgba(0,0,0,.06);border-radius:10px;padding:3px;margin-bottom:12px;}
+.plugin-tab{padding:5px 12px;border-radius:8px;font-size:11px;font-weight:700;color:#636366;cursor:pointer;border:none;background:transparent;}
+.plugin-tab.active{background:#fff;color:#1c1c1e;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.plugin-section{background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid rgba(0,0,0,.06);}
+.plugin-section-title{font-weight:800;font-size:12px;margin-bottom:10px;color:#1c1c1e;}
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f5f5f7;}
+.setting-row:last-child{border-bottom:0;padding-bottom:0;}
+.setting-name{font-size:12px;font-weight:600;color:#1c1c1e;}
+.setting-desc{font-size:10px;color:#8e8e93;margin-top:1px;}
+.toggle{width:36px;height:20px;border-radius:999px;background:#34c759;position:relative;flex-shrink:0;}
+.toggle::after{content:'';width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;right:2px;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.toggle.off{background:#d1d1d6;}
+.toggle.off::after{right:auto;left:2px;}
+.setting-input{background:#f5f5f7;border:1px solid #e5e5ea;border-radius:7px;padding:4px 8px;font-size:11px;color:#1c1c1e;width:80px;}
+.plugin-save{background:#ff4000;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;margin-top:10px;}
+
+.tag-list{display:flex;flex-direction:column;gap:8px;margin-top:6px;}
+.tag-item{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.5;}
+.tag-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+.tag-dot-a{background:#ff6a3d;}
+.tag-dot-b{background:#4da6ff;}
+.tag-text{color:#d1d1d6;}
+.tag-text strong{color:#fff;}
+</style>
+</head>
+<body>
+
+<h1>Two rendering modes — same design system</h1>
+<p class="sub">Full-screen for operational work. Embedded for admin config. One component library connecting both.</p>
+
+<div class="compare">
+
+  <!-- Mode A -->
+  <div class="mode-wrap">
+    <div>
+      <div class="mode-label">Mode A</div>
+      <div class="mode-title">Full-screen overlay</div>
+      <div class="mode-desc">WP admin chrome is hidden. Staff see a purpose-built app. No WP distraction during service.</div>
+      <div class="chip-row">
+        <span class="chip chip-a">Reservations</span>
+        <span class="chip chip-a">Kitchen tickets</span>
+        <span class="chip chip-a">Setup wizard</span>
+      </div>
+    </div>
+    <div class="screen-a">
+      <div class="a-shell">
+        <div class="a-sidebar">
+          <div class="a-logo">
+            <div class="a-logo-mark">T</div>
+            <div class="a-logo-name">The Bistro<small>Operations</small></div>
+          </div>
+          <div class="a-nav-section">Tonight</div>
+          <div class="a-link active">📅 Reservations <span class="a-badge">3</span></div>
+          <div class="a-link">🎫 Kitchen tickets</div>
+          <div class="a-nav-section" style="margin-top:8px;">Reports</div>
+          <div class="a-link">📊 Analytics</div>
+          <div class="a-link">👥 Customers</div>
+        </div>
+        <div class="a-main">
+          <div class="a-topbar">
+            <div><div class="a-topbar-title">Tonight's Reservations</div><div class="a-topbar-date">Sun 15 Jun · Open now</div></div>
+            <button class="a-btn">+ Add booking</button>
+          </div>
+          <div class="a-content">
+            <div class="a-kpi-row">
+              <div class="a-kpi"><div class="a-kpi-val green">8</div><div class="a-kpi-lbl">Confirmed</div></div>
+              <div class="a-kpi"><div class="a-kpi-val orange">3</div><div class="a-kpi-lbl">Pending</div></div>
+              <div class="a-kpi"><div class="a-kpi-val blue">42</div><div class="a-kpi-lbl">Covers</div></div>
+              <div class="a-kpi"><div class="a-kpi-val" style="color:#5856d6;">14</div><div class="a-kpi-lbl">Seated</div></div>
+            </div>
+            <div class="a-bookings">
+              <div class="a-booking">
+                <div class="a-booking-time">6:00</div>
+                <div><div class="a-booking-name">Thompson family ⭐</div><div class="a-booking-sub">6 guests · Table 4</div></div>
+                <div class="a-pill confirmed">Seated</div>
+              </div>
+              <div class="a-booking">
+                <div class="a-booking-time">6:30</div>
+                <div><div class="a-booking-name">Patel</div><div class="a-booking-sub">4 guests</div></div>
+                <div class="a-pill confirmed">Confirmed</div>
+                <button class="a-action seat">Seat</button>
+              </div>
+              <div class="a-booking pending">
+                <div class="a-booking-time">7:00</div>
+                <div><div class="a-booking-name">Wilson × 9</div><div class="a-booking-sub">Large party · Nut allergy</div></div>
+                <div class="a-pill pending">Pending</div>
+                <button class="a-action confirm">✓</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tag-list">
+      <div class="tag-item"><div class="tag-dot tag-dot-a"></div><div class="tag-text"><strong>WP chrome hidden</strong> — adminbar + sidebar suppressed via CSS when ttos-fullscreen body class is set</div></div>
+      <div class="tag-item"><div class="tag-dot tag-dot-a"></div><div class="tag-text"><strong>Own navigation</strong> — plugin renders its own sidebar, not WordPress's</div></div>
+      <div class="tag-item"><div class="tag-dot tag-dot-a"></div><div class="tag-text"><strong>Any capability level</strong> — works for shop staff who don't need WP access at all</div></div>
+    </div>
+  </div>
+
+  <!-- Mode B -->
+  <div class="mode-wrap">
+    <div>
+      <div class="mode-label">Mode B</div>
+      <div class="mode-title">Embedded in WP admin</div>
+      <div class="mode-desc">WP chrome stays visible. Admin can jump to other WP tools. Plugin settings feel native but look polished.</div>
+      <div class="chip-row">
+        <span class="chip chip-b">CRM settings</span>
+        <span class="chip chip-b">Plugin config</span>
+        <span class="chip chip-b">Feature flags</span>
+      </div>
+    </div>
+    <div class="screen-b">
+      <div class="wp-shell">
+        <div class="wp-adminbar">
+          <div class="wp-adminbar-logo">W</div>
+          <span class="wp-adminbar-item wp-adminbar-site">The Bistro</span>
+          <span class="wp-adminbar-item">+ New</span>
+          <span class="wp-adminbar-item" style="margin-left:auto;">Howdy, Admin</span>
+        </div>
+        <div class="wp-body">
+          <div class="wp-sidebar">
+            <div class="wp-sidebar-item">🏠 Dashboard</div>
+            <div class="wp-sidebar-item">📝 Posts</div>
+            <div class="wp-sidebar-item">📄 Pages</div>
+            <div class="wp-sidebar-sep"></div>
+            <div class="wp-sidebar-item">🛒 WooCommerce</div>
+            <div class="wp-sidebar-item">📦 Products</div>
+            <div class="wp-sidebar-sep"></div>
+            <div class="wp-sidebar-item ttos-active">🍽 Takeaway OS</div>
+            <div class="wp-sidebar-item active" style="padding-left:20px;background:rgba(255,64,0,.08);color:#ff6a3d;">↳ Reservations</div>
+            <div class="wp-sidebar-item" style="padding-left:20px;">↳ Customers</div>
+            <div class="wp-sidebar-item" style="padding-left:20px;">↳ Settings</div>
+            <div class="wp-sidebar-sep"></div>
+            <div class="wp-sidebar-item">🔧 Appearance</div>
+            <div class="wp-sidebar-item">🔌 Plugins</div>
+          </div>
+          <div class="wp-content-area">
+            <div class="wp-content-head">
+              <div class="wp-page-title">Reservations — Settings</div>
+            </div>
+            <div class="wp-content-inner">
+              <div class="plugin-tabs">
+                <button class="plugin-tab">General</button>
+                <button class="plugin-tab active">Reservations</button>
+                <button class="plugin-tab">Customers</button>
+                <button class="plugin-tab">Emails</button>
+                <button class="plugin-tab">Features</button>
+              </div>
+              <div class="plugin-section">
+                <div class="plugin-section-title">Master switch</div>
+                <div class="setting-row">
+                  <div><div class="setting-name">Enable reservations</div><div class="setting-desc">Shows booking tab on homepage</div></div>
+                  <div class="toggle"></div>
+                </div>
+                <div class="setting-row">
+                  <div><div class="setting-name">Guest bookings</div><div class="setting-desc">Allow bookings without an account</div></div>
+                  <div class="toggle off"></div>
+                </div>
+              </div>
+              <div class="plugin-section">
+                <div class="plugin-section-title">Party size &amp; confirmation</div>
+                <div class="setting-row">
+                  <div><div class="setting-name">Auto-confirm up to</div><div class="setting-desc">Larger parties need manual review</div></div>
+                  <input class="setting-input" value="6 guests"/>
+                </div>
+                <div class="setting-row">
+                  <div><div class="setting-name">Max party size</div><div class="setting-desc">0 = unlimited</div></div>
+                  <input class="setting-input" value="20"/>
+                </div>
+              </div>
+              <button class="plugin-save">Save settings</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tag-list">
+      <div class="tag-item"><div class="tag-dot tag-dot-b"></div><div class="tag-text"><strong>WP chrome stays</strong> — admin can still navigate to posts, plugins, users without losing context</div></div>
+      <div class="tag-item"><div class="tag-dot tag-dot-b"></div><div class="tag-text"><strong>Plugin owns the content area</strong> — custom tabs, toggle switches, cards — no default WP form styling</div></div>
+      <div class="tag-item"><div class="tag-dot tag-dot-b"></div><div class="tag-text"><strong>Same components</strong> — same cards, same toggle style, same buttons as Mode A — one CSS file</div></div>
+    </div>
+  </div>
+
+</div>
+
+<div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px 20px;margin-top:28px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;">
+  <div>
+    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#636366;margin-bottom:8px;">One design system</div>
+    <div style="font-size:12px;color:#a1a1aa;line-height:1.8;">Same tokens, same components, same CSS file (<code style="background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px;font-size:11px;">ttos-admin.css</code>) used in both modes. Dark sidebar, orange accent, SF Pro stack.</div>
+  </div>
+  <div>
+    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#636366;margin-bottom:8px;">Separate concerns</div>
+    <div style="font-size:12px;color:#a1a1aa;line-height:1.8;">Mode A is for <strong style="color:#ff6a3d;">operating the restaurant</strong> — staff may not be WP users at all. Mode B is for <strong style="color:#4da6ff;">administering the plugin</strong> — admin role only.</div>
+  </div>
+  <div>
+    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#636366;margin-bottom:8px;">Capability gating</div>
+    <div style="font-size:12px;color:#a1a1aa;line-height:1.8;">Mode A screens are accessible to a custom <code style="background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px;font-size:11px;">ttos_staff</code> role — no WP admin access needed. Mode B requires <code style="background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px;font-size:11px;">manage_options</code>.</div>
+  </div>
+</div>
+
+</body>
+</html>

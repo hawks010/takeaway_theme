@@ -1,9 +1,13 @@
 <?php
-/** Homepage hero. Image from Site Content (fallback Branding); no image -> branded gradient visual. */
+/**
+ * Homepage hero v0.3.3.
+ * Method switcher card (delivery / collection / book table) replaces the
+ * old fulfilment-pill + postcode-zone approach.
+ */
 
 defined('ABSPATH') || exit;
 
-$eyebrow  = (string) tt_content('homepage', 'hero_eyebrow', '');
+$eyebrow = (string) tt_content('homepage', 'hero_eyebrow', '');
 if ($eyebrow === '') {
     $cuisine = (string) ttheme_business('cuisine', '');
     $eyebrow = $cuisine !== '' ? $cuisine . ' · ' . __('Order direct', 'takeaway-theme') : __('Order direct', 'takeaway-theme');
@@ -11,56 +15,120 @@ if ($eyebrow === '') {
 $title    = (string) tt_content('homepage', 'hero_title', tt_business_name());
 $subtitle = (string) tt_content('homepage', 'hero_subtitle', __('Fresh food for collection and delivery, straight from our kitchen — no marketplace middleman.', 'takeaway-theme'));
 
-$primary_text = (string) tt_content('homepage', 'primary_cta_text', __('Order now', 'takeaway-theme'));
-$primary_url  = tt_cta_url((string) tt_content('homepage', 'primary_cta_target', ''));
-$secondary_text = (string) tt_content('homepage', 'secondary_cta_text', __('View menu', 'takeaway-theme'));
-$secondary_url  = tt_cta_url((string) tt_content('homepage', 'secondary_cta_target', ''));
-
 $image_id = absint(tt_content('homepage', 'hero_image_id', 0));
 if (!$image_id) $image_id = absint(ttheme_brand('hero_image_id', 0));
-$bg_id = absint(tt_content('homepage', 'hero_bg_image_id', 0));
+$bg_id  = absint(tt_content('homepage', 'hero_bg_image_id', 0));
 $bg_url = $bg_id ? wp_get_attachment_image_url($bg_id, 'full') : '';
-
-$show_toggle   = (string) tt_content('homepage', 'show_fulfilment_toggle', '1') === '1';
-$show_postcode = (string) tt_content('homepage', 'show_postcode_checker', '1') === '1';
-$show_status   = (string) tt_content('homepage', 'show_open_status', '1') === '1';
-$delivery_url  = ttheme_page_url('delivery', '/delivery-checker/');
 
 $delivery_on   = (string) tt_content('delivery_collection', 'delivery_enabled', '1') === '1';
 $collection_on = (string) tt_content('delivery_collection', 'collection_enabled', '1') === '1';
+
+// Ordering state (open / closed / preorder / unknown)
+$ordering_status = tt_open_status();
+$ordering_state  = $ordering_status['state'];
+$ordering_label  = $ordering_status['label'];
+
+// Business address for collection tab
+$biz_info    = class_exists('TTOS_Site_Content') ? TTOS_Site_Content::get('business_info') : array();
+$biz_address = implode(', ', array_filter(array(
+    (string) ($biz_info['address_1'] ?? ''),
+    (string) ($biz_info['address_2'] ?? ''),
+    (string) ($biz_info['town']      ?? ''),
+    (string) ($biz_info['postcode']  ?? ''),
+)));
+
+// Table booking tab: needs both the CRM toggle AND contact_map booking_enabled
+$booking_tab_on   = (string) tt_content('delivery_collection', 'table_booking_enabled', '0') === '1';
+$booking_conf     = class_exists('TTOS_Site_Content') ? TTOS_Site_Content::get('contact_map') : array();
+$booking_enabled  = ($booking_conf['booking_enabled'] ?? '0') === '1';
+$show_booking_tab = $booking_tab_on && $booking_enabled;
+
+// Build method tabs
+$tabs = array();
+if ($delivery_on) {
+    $hints = array_filter(array(
+        (string) tt_content('delivery_collection', 'delivery_estimate_text', ''),
+        (string) tt_content('delivery_collection', 'min_order_text', ''),
+        (string) tt_content('delivery_collection', 'free_delivery_text', ''),
+    ));
+    $tabs[] = array(
+        'method'   => 'delivery',
+        'label'    => __('Delivery', 'takeaway-theme'),
+        'title'    => __('Delivered to your door', 'takeaway-theme'),
+        'text'     => !empty($hints) ? implode(' · ', $hints) : __('Enter your postcode to check we cover your area, then browse the menu.', 'takeaway-theme'),
+        'cta_href' => ttheme_page_url('delivery', '/delivery-checker/'),
+        'cta_text' => __('Check my area', 'takeaway-theme'),
+    );
+}
+if ($collection_on) {
+    $collect_hints = array_filter(array(
+        $biz_address !== '' ? $biz_address : __('Visit us in store to collect.', 'takeaway-theme'),
+        (string) tt_content('delivery_collection', 'collection_estimate_text', ''),
+    ));
+    $tabs[] = array(
+        'method'   => 'collection',
+        'label'    => __('Collection', 'takeaway-theme'),
+        'title'    => __('Pick up in store', 'takeaway-theme'),
+        'text'     => implode(' · ', $collect_hints),
+        'cta_href' => tt_menu_url(),
+        'cta_text' => __('Start collection order', 'takeaway-theme'),
+    );
+}
+if ($show_booking_tab) {
+    $book_note = (string) ($booking_conf['booking_note'] ?? '');
+    $tabs[] = array(
+        'method'   => 'book_table',
+        'label'    => __('Book table', 'takeaway-theme'),
+        'title'    => __('Reserve a table', 'takeaway-theme'),
+        'text'     => $book_note !== '' ? $book_note : __("Join us for a sit-down meal. We’d love to see you.", 'takeaway-theme'),
+        'cta_href' => tt_cta_url((string) ($booking_conf['booking_target'] ?? '')),
+        'cta_text' => (string) ($booking_conf['booking_cta_text'] ?? '') ?: __('Book a table', 'takeaway-theme'),
+    );
+}
+
+$first_tab = !empty($tabs) ? $tabs[0] : null;
 ?>
 <section class="tt-home-hero<?php echo $bg_url ? ' has-bg' : ''; ?>"<?php echo $bg_url ? ' style="--tt-hero-bg:url(' . esc_url($bg_url) . ')"' : ''; ?>>
     <div class="tt-wrap tt-home-hero-grid">
         <div class="tt-home-hero-copy">
-            <?php if ($show_status) { echo tt_open_status_pill(); } // phpcs:ignore WordPress.Security.EscapeOutput ?>
             <p class="tt-eyebrow"><?php echo esc_html($eyebrow); ?></p>
             <h1><?php echo esc_html($title); ?></h1>
             <p class="tt-home-hero-sub"><?php echo esc_html($subtitle); ?></p>
 
-            <?php if ($show_toggle && ($delivery_on || $collection_on)) : ?>
-                <div class="tt-fulfilment-toggle" role="group" aria-label="<?php esc_attr_e('Order type', 'takeaway-theme'); ?>">
-                    <?php if ($collection_on) : ?><a class="tt-fulfilment-pill" href="<?php echo esc_url(add_query_arg('fulfilment', 'collection', tt_menu_url())); ?>"><?php esc_html_e('Pickup', 'takeaway-theme'); ?></a><?php endif; ?>
-                    <?php if ($delivery_on) : ?><a class="tt-fulfilment-pill" href="<?php echo esc_url(add_query_arg('fulfilment', 'delivery', tt_menu_url())); ?>"><?php esc_html_e('Delivery', 'takeaway-theme'); ?></a><?php endif; ?>
+            <?php if (!empty($tabs)) : ?>
+            <div class="tt-start-card">
+
+                <div class="tt-method-switch" role="tablist"
+                     aria-label="<?php esc_attr_e('Order method', 'takeaway-theme'); ?>">
+                    <?php foreach ($tabs as $i => $tab) : ?>
+                        <button class="tt-method<?php echo $i === 0 ? ' active' : ''; ?>"
+                                type="button"
+                                role="tab"
+                                aria-selected="<?php echo $i === 0 ? 'true' : 'false'; ?>"
+                                data-method="<?php echo esc_attr($tab['method']); ?>"
+                                data-title="<?php echo esc_attr($tab['title']); ?>"
+                                data-text="<?php echo esc_attr($tab['text']); ?>"
+                                data-cta-href="<?php echo esc_attr($tab['cta_href']); ?>"
+                                data-cta-text="<?php echo esc_attr($tab['cta_text']); ?>">
+                            <?php echo esc_html($tab['label']); ?>
+                        </button>
+                    <?php endforeach; ?>
                 </div>
-            <?php endif; ?>
 
-            <div class="tt-home-hero-actions">
-                <a class="tt-btn" href="<?php echo esc_url($primary_url); ?>"><?php echo esc_html($primary_text !== '' ? $primary_text : __('Order now', 'takeaway-theme')); ?></a>
-                <?php if ($secondary_text !== '') : ?>
-                    <a class="tt-btn ghost" href="<?php echo esc_url($secondary_url); ?>"><?php echo esc_html($secondary_text); ?></a>
-                <?php endif; ?>
-            </div>
-
-            <?php if ($show_postcode && $delivery_on) : ?>
-                <form class="tt-postcode-check" method="get" action="<?php echo esc_url($delivery_url); ?>">
-                    <label for="tt-hero-postcode"><?php esc_html_e('Check we deliver to you', 'takeaway-theme'); ?></label>
-                    <div class="tt-postcode-check-row">
-                        <input type="text" id="tt-hero-postcode" name="postcode" maxlength="9" autocomplete="postal-code" placeholder="<?php esc_attr_e('Your postcode', 'takeaway-theme'); ?>">
-                        <button type="submit" class="tt-btn"><?php esc_html_e('Check', 'takeaway-theme'); ?></button>
+                <div class="tt-start-panel" role="tabpanel">
+                    <p class="tt-method-title"><?php echo $first_tab ? esc_html($first_tab['title']) : ''; ?></p>
+                    <p class="tt-method-text"><?php echo $first_tab ? esc_html($first_tab['text']) : ''; ?></p>
+                    <div class="tt-panel-actions">
+                        <a class="tt-btn tt-method-cta"
+                           href="<?php echo $first_tab ? esc_url($first_tab['cta_href']) : '#'; ?>">
+                            <?php echo $first_tab ? esc_html($first_tab['cta_text']) : ''; ?>
+                        </a>
                     </div>
-                </form>
+                </div>
+
+            </div><!-- /.tt-start-card -->
             <?php endif; ?>
-        </div>
+        </div><!-- /.tt-home-hero-copy -->
 
         <div class="tt-home-hero-visual">
             <?php
@@ -68,10 +136,9 @@ $collection_on = (string) tt_content('delivery_collection', 'collection_enabled'
             if ($hero_img !== '') {
                 echo '<div class="tt-home-hero-imgwrap">' . $hero_img . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput
             } else {
-                // Branded abstract visual — token-driven, never a broken external image.
                 echo '<div class="tt-home-hero-placeholder" aria-hidden="true"><span class="tt-blob tt-blob-1"></span><span class="tt-blob tt-blob-2"></span><span class="tt-blob tt-blob-3"></span></div>';
             }
             ?>
-        </div>
-    </div>
+        </div><!-- /.tt-home-hero-visual -->
+    </div><!-- /.tt-home-hero-grid -->
 </section>

@@ -1,0 +1,77 @@
+<h2>What are we actually building?</h2>
+<p class="subtitle">Three connected systems — pick which ones belong in this project</p>
+
+<style>
+.scope-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 24px 0; }
+.scope-zone { border-radius: 14px; padding: 20px; }
+.zone-a { background: #f0f9ff; border: 2px solid #0ea5e9; }
+.zone-b { background: #fdf4ff; border: 2px solid #a855f7; }
+.zone-c { background: #fff7ed; border: 2px solid #f97316; }
+.zone-label { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 8px; }
+.zone-a .zone-label { color: #0284c7; }
+.zone-b .zone-label { color: #9333ea; }
+.zone-c .zone-label { color: #ea580c; }
+.scope-zone h3 { margin: 0 0 10px; font-size: 17px; line-height: 1.2; }
+.scope-zone ul { margin: 0; padding: 0 0 0 16px; font-size: 13px; line-height: 1.8; color: #555; }
+.arrow-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 0 24px; font-size: 13px; color: #888; }
+.arrow { font-size: 22px; color: #ccc; }
+.phase-tag { display: inline-block; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 999px; vertical-align: middle; margin-left: 6px; }
+.phase-now { background: #dcfce7; color: #16a34a; }
+.phase-next { background: #fef9c3; color: #ca8a04; }
+.phase-later { background: #fee2e2; color: #dc2626; }
+.note { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #64748b; margin-top: 8px; line-height: 1.6; }
+.note strong { color: #334155; }
+</style>
+
+<div class="scope-grid">
+  <div class="scope-zone zone-a">
+    <div class="zone-label">Zone 1 — Reservations</div>
+    <h3>Booking engine</h3>
+    <ul>
+      <li>Online booking form</li>
+      <li>Auto-confirm / pending flow</li>
+      <li>Optional deposit (via WooCommerce)</li>
+      <li>Confirmation &amp; reminder emails</li>
+      <li>Staff admin: upcoming list, confirm / cancel / modify</li>
+      <li>CRM toggle (on/off per business)</li>
+    </ul>
+  </div>
+
+  <div class="scope-zone zone-b">
+    <div class="zone-label">Zone 2 — Live table service</div>
+    <h3>Table management</h3>
+    <ul>
+      <li>Floor plan: tables with numbers/names</li>
+      <li>Seat a party: link reservation → table</li>
+      <li>Staff take orders per table</li>
+      <li>Orders sent to kitchen as tickets <em>tagged by table</em></li>
+      <li>Bill calculation &amp; payment per table</li>
+      <li>Table status: free / occupied / reserved / cleaning</li>
+    </ul>
+  </div>
+
+  <div class="scope-zone zone-c">
+    <div class="zone-label">Zone 3 — CRM</div>
+    <h3>Customer records</h3>
+    <ul>
+      <li>Customer profile: name, phone, email, preferences</li>
+      <li>Booking history per customer</li>
+      <li>Order history per customer</li>
+      <li>Notes (allergies, VIP, regulars)</li>
+      <li>Linked to WooCommerce account</li>
+      <li>Marketing segments</li>
+    </ul>
+  </div>
+</div>
+
+<div class="note">
+  <strong>The honest truth about scope:</strong> Zone 1 (reservations) is a focused, buildable system — weeks of work.
+  Zone 2 (live table service) is essentially a lightweight POS — months of work, and a very different product.
+  Zone 3 (CRM) plugs on top of either.
+  Most restaurants start with Zone 1, then decide if they actually need Zone 2 (many don't — they use a notepad for table orders).
+</div>
+
+<div class="note" style="margin-top: 12px; background: #f0f9ff; border-color: #bae6fd;">
+  <strong>What you described:</strong> "a business using the website to log all table orders and assign against a table with a user's name" = Zone 2 (table management).
+  The question is whether Zone 2 is worth building custom, or whether the <strong>real value</strong> is Zone 1 (reservations online → confirmed → customer shows up) and the kitchen ticket link is just a simple "tag this order with table/name".
+</div>

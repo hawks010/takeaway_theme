@@ -35,13 +35,14 @@
 /* --- Delivery checker --- */
 .ttos-delivery-checker { max-width: 560px; }
 .ttos-delivery-check label { display: block; font-weight: 700; font-size: var(--tt-text-sm); margin-bottom: var(--tt-space-2); }
-.ttos-delivery-check-row { display: flex; gap: var(--tt-space-2); }
+.ttos-delivery-check-row { display: flex; gap: var(--tt-space-2); align-items: stretch; }
 .ttos-delivery-check-row input {
     flex: 1; min-width: 0;
     border: 1px solid var(--tt-border); border-radius: var(--tt-radius-sm);
-    background: var(--tt-surface); padding: 12px 14px; font: inherit; min-height: 44px;
+    background: var(--tt-surface); padding: 10px 14px; font: inherit; height: 44px;
     text-transform: uppercase;
 }
+.ttos-delivery-check-row .ttos-order-btn { height: 44px; padding: 0 18px; }
 .ttos-check-result {
     margin: var(--tt-space-4) 0 0;
     border-radius: var(--tt-radius-sm);
@@ -56,12 +57,18 @@
 .ttos-check-zone, .ttos-check-meta { color: var(--tt-muted); font-size: var(--tt-text-sm); margin: var(--tt-space-3) 0 0; }
 
 /* --- Policy pages --- */
-.ttos-policy { max-width: 720px; line-height: 1.75; }
+.ttos-policy { line-height: 1.75; }
 .ttos-policy p { margin: 0 0 var(--tt-space-4); }
-.ttos-policy h3 { margin: var(--tt-space-6) 0 var(--tt-space-3); }
-.ttos-policy-details { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; max-width: 520px; }
+.ttos-policy h2 { font-size: var(--tt-text-2xl); margin: 0 0 var(--tt-space-4); }
+.ttos-policy h3 { margin: var(--tt-space-6) 0 var(--tt-space-3); font-size: var(--tt-text-xl); }
+.ttos-policy h4 { margin: var(--tt-space-5) 0 var(--tt-space-2); }
+.ttos-policy ul, .ttos-policy ol { margin: 0 0 var(--tt-space-4); padding-left: var(--tt-space-6); }
+.ttos-policy li { margin: 0 0 var(--tt-space-2); }
+.ttos-policy-details { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; max-width: 640px; }
 .ttos-policy-details li { display: flex; justify-content: space-between; gap: var(--tt-space-4); padding: 10px 0; border-bottom: 1px solid var(--tt-border); }
 .ttos-policy-details span { color: var(--tt-muted); font-weight: 700; }
+.ttos-policy-grid { display: grid; gap: var(--tt-space-6); }
+@media (min-width: 901px) { .ttos-policy-grid { grid-template-columns: 1fr 1fr; } }
 
 /* --- Contact page --- */
 .ttos-contact-intro { color: var(--tt-muted); max-width: 640px; margin: 0 0 var(--tt-space-5); }

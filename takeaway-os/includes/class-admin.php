@@ -13,6 +13,7 @@ final class TTOS_Admin {
         add_action('wp_ajax_ttos_order_board', array(__CLASS__, 'ajax_order_board'));
         add_action('wp_ajax_ttos_order_action', array(__CLASS__, 'ajax_order_action'));
         add_action('in_admin_header', array(__CLASS__, 'suppress_foreign_notices'), 1000);
+        add_action('admin_head', array(__CLASS__, 'suppress_foreign_notices_css'));
     }
 
     /**
@@ -27,6 +28,20 @@ final class TTOS_Admin {
         if (!$screen || strpos((string) $screen->id, 'takeaway-os') === false) return;
         remove_all_actions('admin_notices');
         remove_all_actions('all_admin_notices');
+    }
+
+    /**
+     * CSS-layer notice suppression — belt-and-braces guard for notices that
+     * register after in_admin_header fires. Scoped to Takeaway OS screens only.
+     */
+    public static function suppress_foreign_notices_css(): void {
+        if (!function_exists('get_current_screen')) return;
+        $screen = get_current_screen();
+        if (!$screen) return;
+        $id   = (string) $screen->id;
+        $base = (string) $screen->base;
+        if (strpos($id, 'ttos') === false && strpos($id, 'takeaway') === false && strpos($base, 'takeaway') === false) return;
+        echo '<style>.notice:not(.ttos-notice),.update-nag,.updated:not(.ttos-updated),.notice-warning:not(.ttos-notice),.notice-error:not(.ttos-notice){display:none!important;}</style>';
     }
 
     public static function menu(): void {

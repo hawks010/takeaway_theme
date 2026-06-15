@@ -62,5 +62,5 @@
 
     /* Layout rhythm */
     --tt-section-pad: clamp(48px, 8vw, 88px);
-    --tt-container: 1120px;
+    --tt-container: 1800px;
 }

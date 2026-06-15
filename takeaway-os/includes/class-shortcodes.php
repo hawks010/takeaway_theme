@@ -419,6 +419,33 @@ final class TTOS_Shortcodes {
         if (!is_array($policy)) return '';
         $content = trim((string) ($policy['content'] ?? ''));
 
+        // Substitute CRM tokens with live business data so policy pages update
+        // automatically when business details are filled in via Site Content.
+        if (class_exists('TTOS_Site_Content')) {
+            $business = TTOS_Site_Content::get('business_info');
+            $biz_address = implode(', ', array_filter(array(
+                (string) ($business['address_1'] ?? ''),
+                (string) ($business['address_2'] ?? ''),
+                (string) ($business['town'] ?? ''),
+                (string) ($business['county'] ?? ''),
+                (string) ($business['postcode'] ?? ''),
+            )));
+            $tokens = array(
+                '{business_name}' => (string) ($business['business_name'] ?? get_bloginfo('name')),
+                '{phone}'         => (string) ($business['phone'] ?? ''),
+                '{email}'         => (string) ($business['email'] ?? ''),
+                '{address}'       => $biz_address ?: get_bloginfo('name'),
+                '{website}'       => esc_url(home_url('/')),
+            );
+            $content = str_replace(array_keys($tokens), array_values($tokens), $content);
+        }
+
+        // Convert lightweight markdown headings so policy text can use ## / ### syntax.
+        $content = preg_replace('/^## (.+)$/m',  '<h3>$1</h3>', $content);
+        $content = preg_replace('/^### (.+)$/m', '<h4>$1</h4>', $content);
+        // Bold: **text**
+        $content = preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', $content);
+
         $out = '<div class="ttos-policy">';
         if (current_user_can('ttos_manage_settings')) {
             $out .= '<div class="ttos-admin-note">' . esc_html__('Starter content only. Review before production. Edit in Takeaway OS → Site Content → Policies. (Only staff see this note.)', 'takeaway-os') . '</div>';

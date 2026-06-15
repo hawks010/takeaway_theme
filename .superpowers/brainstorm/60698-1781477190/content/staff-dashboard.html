@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Reservations — Staff Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; background: #f2f2f7; color: #1c1c1e; font-size: 14px; }
+
+  /* Shell */
+  .shell { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar { background: #1c1c1e; display: flex; flex-direction: column; padding: 20px 0; }
+  .sidebar-logo { padding: 8px 20px 24px; display: flex; align-items: center; gap: 10px; }
+  .sidebar-logo-mark { width: 32px; height: 32px; border-radius: 8px; background: #ff4000; display: grid; place-items: center; font-weight: 900; font-size: 14px; color: #fff; flex-shrink: 0; }
+  .sidebar-logo-name { font-weight: 800; font-size: 14px; color: #fff; line-height: 1.2; }
+  .sidebar-logo-name small { display: block; font-weight: 500; font-size: 11px; color: #8e8e93; }
+  .sidebar-section { padding: 8px 12px 4px; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #636366; }
+  .sidebar-link { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 1px 8px; border-radius: 10px; text-decoration: none; font-size: 13px; font-weight: 500; color: #8e8e93; transition: background .12s; cursor: pointer; }
+  .sidebar-link:hover { background: rgba(255,255,255,.06); color: #fff; }
+  .sidebar-link.active { background: rgba(255,64,0,.18); color: #ff6a3d; font-weight: 700; }
+  .sidebar-link svg { flex-shrink: 0; opacity: .8; }
+  .sidebar-link.active svg { opacity: 1; }
+  .sidebar-badge { margin-left: auto; background: #ff4000; color: #fff; font-size: 10px; font-weight: 900; padding: 1px 6px; border-radius: 999px; }
+  .sidebar-footer { margin-top: auto; padding: 16px 12px 0; border-top: 1px solid rgba(255,255,255,.07); }
+  .staff-pill { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 10px; }
+  .staff-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #ff4000, #ff9500); display: grid; place-items: center; color: #fff; font-weight: 900; font-size: 13px; flex-shrink: 0; }
+  .staff-name { font-size: 13px; font-weight: 600; color: #fff; }
+  .staff-role { font-size: 11px; color: #636366; }
+
+  /* Main */
+  .main { display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* Topbar */
+  .topbar { background: rgba(242,242,247,.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0,0,0,.08); padding: 0 28px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .topbar-left { display: flex; flex-direction: column; }
+  .topbar-title { font-weight: 800; font-size: 17px; letter-spacing: -.03em; }
+  .topbar-date { font-size: 12px; color: #8e8e93; font-weight: 500; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .topbar-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 700; border: none; cursor: pointer; transition: all .13s; }
+  .btn-ghost { background: #fff; border: 1px solid rgba(0,0,0,.1); color: #1c1c1e; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  .btn-primary { background: #ff4000; color: #fff; }
+  .btn-ghost:hover { background: #f5f5f7; }
+  .btn-primary:hover { background: #e03800; }
+
+  /* Content */
+  .content { padding: 24px 28px; flex: 1; }
+
+  /* KPI row */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .kpi-card { background: #fff; border-radius: 16px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04); }
+  .kpi-label { font-size: 12px; font-weight: 600; color: #8e8e93; margin-bottom: 6px; }
+  .kpi-value { font-size: 28px; font-weight: 900; letter-spacing: -.04em; line-height: 1; }
+  .kpi-sub { font-size: 12px; color: #8e8e93; margin-top: 4px; }
+  .kpi-confirmed .kpi-value { color: #34c759; }
+  .kpi-pending .kpi-value { color: #ff9500; }
+  .kpi-covers .kpi-value { color: #007aff; }
+  .kpi-seated .kpi-value { color: #5856d6; }
+
+  /* Filters */
+  .filters { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .filter-pill { padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 650; border: 1px solid rgba(0,0,0,.1); background: #fff; color: #8e8e93; cursor: pointer; transition: all .13s; }
+  .filter-pill.active { background: #1c1c1e; color: #fff; border-color: #1c1c1e; }
+  .filter-search { margin-left: auto; display: flex; align-items: center; gap: 7px; background: #fff; border: 1px solid rgba(0,0,0,.1); border-radius: 10px; padding: 7px 12px; }
+  .filter-search input { border: none; outline: none; font-size: 13px; color: #1c1c1e; background: transparent; width: 160px; }
+  .filter-search input::placeholder { color: #8e8e93; }
+
+  /* Booking list */
+  .bookings { display: grid; gap: 10px; }
+  .time-group-label { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .09em; color: #8e8e93; padding: 4px 0 6px; margin-top: 6px; }
+  .booking-card { background: #fff; border-radius: 16px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 4px 12px rgba(0,0,0,.04); display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; border-left: 4px solid transparent; transition: box-shadow .15s; }
+  .booking-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.1); }
+  .booking-card.is-confirmed { border-left-color: #34c759; }
+  .booking-card.is-pending { border-left-color: #ff9500; }
+  .booking-card.is-seated { border-left-color: #5856d6; }
+  .booking-card.is-noshow { border-left-color: #ff3b30; opacity: .6; }
+  .booking-card.is-done { opacity: .5; border-left-color: #d1d1d6; }
+  .bc-left { display: flex; align-items: center; gap: 14px; }
+  .bc-time { font-size: 22px; font-weight: 900; letter-spacing: -.04em; color: #1c1c1e; min-width: 58px; }
+  .bc-info { }
+  .bc-name-row { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+  .bc-name { font-weight: 750; font-size: 15px; }
+  .bc-covers { font-size: 13px; color: #8e8e93; }
+  .bc-meta { font-size: 12px; color: #8e8e93; display: flex; gap: 10px; align-items: center; }
+  .bc-note { font-size: 12px; color: #636366; background: #f2f2f7; border-radius: 6px; padding: 2px 8px; }
+  .vip-badge { background: linear-gradient(135deg, #ff9500, #ff6b00); color: #fff; font-size: 10px; font-weight: 900; padding: 2px 7px; border-radius: 999px; letter-spacing: .05em; }
+  .status-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 750; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .status-pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+  .s-confirmed { background: #d1fae5; color: #065f46; }
+  .s-confirmed::before { background: #34c759; }
+  .s-pending { background: #fef3c7; color: #92400e; }
+  .s-pending::before { background: #ff9500; }
+  .s-seated { background: #ede9fe; color: #4c1d95; }
+  .s-seated::before { background: #5856d6; }
+  .s-noshow { background: #fee2e2; color: #991b1b; }
+  .s-noshow::before { background: #ff3b30; }
+  .s-done { background: #f1f5f9; color: #64748b; }
+  .s-done::before { background: #d1d1d6; }
+  .bc-actions { display: flex; align-items: center; gap: 8px; }
+  .action-btn { padding: 7px 13px; border-radius: 9px; font-size: 12px; font-weight: 700; border: none; cursor: pointer; transition: all .12s; }
+  .action-confirm { background: #d1fae5; color: #065f46; }
+  .action-confirm:hover { background: #a7f3d0; }
+  .action-seat { background: #ede9fe; color: #4c1d95; }
+  .action-seat:hover { background: #ddd6fe; }
+  .action-more { background: #f2f2f7; color: #8e8e93; padding: 7px 9px; }
+  .action-more:hover { background: #e5e5ea; }
+
+  /* Right panel split */
+  .content-split { display: grid; grid-template-columns: 1fr 320px; gap: 20px; }
+  .pending-panel { }
+  .panel-card { background: #fff; border-radius: 16px; padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04); margin-bottom: 14px; }
+  .panel-title { font-weight: 800; font-size: 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+  .panel-badge { background: #ff9500; color: #fff; font-size: 10px; font-weight: 900; padding: 2px 7px; border-radius: 999px; }
+  .mini-booking { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f2f2f7; }
+  .mini-booking:last-child { border-bottom: 0; padding-bottom: 0; }
+  .mini-avatar { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #f2f2f7, #e5e5ea); display: grid; place-items: center; font-weight: 900; font-size: 14px; color: #636366; flex-shrink: 0; }
+  .mini-info { flex: 1; min-width: 0; }
+  .mini-name { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mini-sub { font-size: 11px; color: #8e8e93; }
+  .mini-actions { display: flex; gap: 5px; flex-shrink: 0; }
+  .mini-btn { padding: 5px 9px; border-radius: 7px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; }
+  .mini-yes { background: #d1fae5; color: #065f46; }
+  .mini-no { background: #fee2e2; color: #991b1b; }
+  .empty-state { text-align: center; padding: 20px; color: #8e8e93; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-mark">T</div>
+      <div class="sidebar-logo-name">The Bistro<small>Admin</small></div>
+    </div>
+
+    <div class="sidebar-section">Today</div>
+    <a class="sidebar-link active">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Reservations <span class="sidebar-badge">3</span>
+    </a>
+    <a class="sidebar-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Tonight's timeline
+    </a>
+
+    <div class="sidebar-section" style="margin-top:12px;">Manage</div>
+    <a class="sidebar-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Customers
+    </a>
+    <a class="sidebar-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Reports
+    </a>
+
+    <div class="sidebar-section" style="margin-top:12px;">Settings</div>
+    <a class="sidebar-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41 1.41M20 12h2M2 12h2M12 20v2M12 2v2"/></svg>
+      Booking settings
+    </a>
+
+    <div class="sidebar-footer">
+      <div class="staff-pill">
+        <div class="staff-avatar">S</div>
+        <div><div class="staff-name">Sarah M.</div><div class="staff-role">Front of house</div></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-title">Tonight's Reservations</div>
+        <div class="topbar-date">Sunday 15 June 2026 &nbsp;·&nbsp; <span style="color:#34c759;font-weight:700;">Open now</span></div>
+      </div>
+      <div class="topbar-right">
+        <button class="topbar-btn btn-ghost">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
+        <button class="topbar-btn btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add booking
+        </button>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- KPI row -->
+      <div class="kpi-row">
+        <div class="kpi-card kpi-confirmed">
+          <div class="kpi-label">Confirmed</div>
+          <div class="kpi-value">8</div>
+          <div class="kpi-sub">bookings tonight</div>
+        </div>
+        <div class="kpi-card kpi-pending">
+          <div class="kpi-label">Needs attention</div>
+          <div class="kpi-value">3</div>
+          <div class="kpi-sub">pending confirmation</div>
+        </div>
+        <div class="kpi-card kpi-covers">
+          <div class="kpi-label">Total covers</div>
+          <div class="kpi-value">42</div>
+          <div class="kpi-sub">of 60 max tonight</div>
+        </div>
+        <div class="kpi-card kpi-seated">
+          <div class="kpi-label">Currently seated</div>
+          <div class="kpi-value">14</div>
+          <div class="kpi-sub">across 4 tables</div>
+        </div>
+      </div>
+
+      <div class="content-split">
+        <!-- Booking list -->
+        <div>
+          <div class="filters">
+            <button class="filter-pill active">All</button>
+            <button class="filter-pill">Pending</button>
+            <button class="filter-pill">Confirmed</button>
+            <button class="filter-pill">Seated</button>
+            <button class="filter-pill">Done</button>
+            <div class="filter-search">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" placeholder="Search name or phone…"/>
+            </div>
+          </div>
+
+          <div class="bookings">
+            <div class="time-group-label">Early evening · 6:00 – 7:00 pm</div>
+
+            <div class="booking-card is-seated">
+              <div class="bc-left">
+                <div class="bc-time">6:00</div>
+                <div class="bc-info">
+                  <div class="bc-name-row">
+                    <span class="bc-name">Thompson family</span>
+                    <span class="vip-badge">⭐ VIP</span>
+                    <span class="status-pill s-seated">Seated</span>
+                  </div>
+                  <div class="bc-meta">
+                    <span>6 guests</span>
+                    <span>·</span>
+                    <span>Table 4</span>
+                    <span>·</span>
+                    <span class="bc-note">Anniversary dinner — champagne on arrival</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bc-actions">
+                <button class="action-btn action-more">···</button>
+              </div>
+            </div>
+
+            <div class="booking-card is-confirmed">
+              <div class="bc-left">
+                <div class="bc-time">6:30</div>
+                <div class="bc-info">
+                  <div class="bc-name-row">
+                    <span class="bc-name">Patel</span>
+                    <span class="status-pill s-confirmed">Confirmed</span>
+                  </div>
+                  <div class="bc-meta">
+                    <span>4 guests</span>
+                    <span>·</span>
+                    <span>No table assigned</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bc-actions">
+                <button class="action-btn action-seat">Seat now</button>
+                <button class="action-btn action-more">···</button>
+              </div>
+            </div>
+
+            <div class="booking-card is-pending">
+              <div class="bc-left">
+                <div class="bc-time">7:00</div>
+                <div class="bc-info">
+                  <div class="bc-name-row">
+                    <span class="bc-name">Wilson × 9</span>
+                    <span class="status-pill s-pending">Pending</span>
+                  </div>
+                  <div class="bc-meta">
+                    <span>9 guests</span>
+                    <span>·</span>
+                    <span>Booked online 2 hours ago</span>
+                    <span>·</span>
+                    <span class="bc-note">Nut allergy — 2 guests</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bc-actions">
+                <button class="action-btn action-confirm">✓ Confirm</button>
+                <button class="action-btn action-more">···</button>
+              </div>
+            </div>
+
+            <div class="time-group-label" style="margin-top:12px;">Main sitting · 7:30 – 8:30 pm</div>
+
+            <div class="booking-card is-confirmed">
+              <div class="bc-left">
+                <div class="bc-time">7:30</div>
+                <div class="bc-info">
+                  <div class="bc-name-row">
+                    <span class="bc-name">Chen</span>
+                    <span class="status-pill s-confirmed">Confirmed</span>
+                  </div>
+                  <div class="bc-meta"><span>2 guests</span><span>·</span><span>Added by staff</span></div>
+                </div>
+              </div>
+              <div class="bc-actions">
+                <button class="action-btn action-seat">Seat now</button>
+                <button class="action-btn action-more">···</button>
+              </div>
+            </div>
+
+            <div class="booking-card is-confirmed">
+              <div class="bc-left">
+                <div class="bc-time">8:00</div>
+                <div class="bc-info">
+                  <div class="bc-name-row">
+                    <span class="bc-name">O'Brien</span>
+                    <span class="status-pill s-confirmed">Confirmed</span>
+                  </div>
+                  <div class="bc-meta"><span>5 guests</span><span>·</span><span>Deposit paid £40</span></div>
+                </div>
+              </div>
+              <div class="bc-actions">
+                <button class="action-btn action-seat">Seat now</button>
+                <button class="action-btn action-more">···</button>
+              </div>
+            </div>
+
+            <div class="booking-card is-done">
+              <div class="bc-left">
+                <div class="bc-time">5:30</div>
+                <div class="bc-info">
+                  <div class="bc-name-row">
+                    <span class="bc-name">Early bird (Rodriguez)</span>
+                    <span class="status-pill s-done">Completed</span>
+                  </div>
+                  <div class="bc-meta"><span>3 guests</span><span>·</span><span>Table 2 · Cleared</span></div>
+                </div>
+              </div>
+              <div class="bc-actions">
+                <button class="action-btn action-more">···</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right panel -->
+        <div class="pending-panel">
+          <div class="panel-card">
+            <div class="panel-title">
+              Needs your attention
+              <span class="panel-badge">3</span>
+            </div>
+            <div class="mini-booking">
+              <div class="mini-avatar">W</div>
+              <div class="mini-info">
+                <div class="mini-name">Wilson × 9 — 7:00 pm</div>
+                <div class="mini-sub">Large party · Nut allergy noted</div>
+              </div>
+              <div class="mini-actions">
+                <button class="mini-btn mini-yes">✓</button>
+                <button class="mini-btn mini-no">✗</button>
+              </div>
+            </div>
+            <div class="mini-booking">
+              <div class="mini-avatar">K</div>
+              <div class="mini-info">
+                <div class="mini-name">Kumar × 8 — 8:30 pm</div>
+                <div class="mini-sub">Booked 4 minutes ago</div>
+              </div>
+              <div class="mini-actions">
+                <button class="mini-btn mini-yes">✓</button>
+                <button class="mini-btn mini-no">✗</button>
+              </div>
+            </div>
+            <div class="mini-booking">
+              <div class="mini-avatar">G</div>
+              <div class="mini-info">
+                <div class="mini-name">Garcia × 12 — Tomorrow</div>
+                <div class="mini-sub">Deposit not yet paid</div>
+              </div>
+              <div class="mini-actions">
+                <button class="mini-btn mini-yes">✓</button>
+                <button class="mini-btn mini-no">✗</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <div class="panel-title">Capacity — Tonight</div>
+            <div style="margin-bottom:10px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:#8e8e93;margin-bottom:5px;"><span>42 covers booked</span><span>60 max</span></div>
+              <div style="background:#f2f2f7;border-radius:999px;height:8px;overflow:hidden;">
+                <div style="background:linear-gradient(90deg,#34c759,#30d158);width:70%;height:100%;border-radius:999px;"></div>
+              </div>
+              <div style="font-size:11px;color:#8e8e93;margin-top:5px;">18 covers still available</div>
+            </div>
+            <div style="display:grid;gap:6px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:#8e8e93;">6pm sitting</span><span style="font-weight:700;">18 / 20</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:#8e8e93;">7:30pm sitting</span><span style="font-weight:700;">24 / 40</span></div>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <div class="panel-title">Upcoming reminders</div>
+            <div style="font-size:12px;color:#8e8e93;display:grid;gap:8px;">
+              <div style="display:flex;justify-content:space-between;"><span>Patel × 4</span><span style="color:#ff9500;font-weight:700;">In 28 min</span></div>
+              <div style="display:flex;justify-content:space-between;"><span>Chen × 2</span><span style="color:#1c1c1e;font-weight:600;">7:30 pm</span></div>
+              <div style="display:flex;justify-content:space-between;"><span>O'Brien × 5</span><span style="color:#1c1c1e;font-weight:600;">8:00 pm</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+</body>
+</html>
