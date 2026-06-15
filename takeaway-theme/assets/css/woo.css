@@ -231,7 +231,7 @@
     margin: 0 0 var(--tt-space-4);
 }
 .woocommerce-MyAccount-content h3 {
-    font-size: var(--tt-text-md);
+    font-size: var(--tt-text-lg);
     font-weight: 800;
     margin: 0 0 var(--tt-space-3);
 }
@@ -309,7 +309,7 @@ mark.order-status.status-on-hold    { background: color-mix(in srgb, var(--tt-wa
 .woocommerce-table--order-details td { padding: 10px 0; border-bottom: 1px solid var(--tt-border); vertical-align: top; }
 .woocommerce-table--order-details thead th { font-weight: 800; color: var(--tt-muted); font-size: var(--tt-text-xs); text-transform: uppercase; letter-spacing: .06em; }
 .woocommerce-table--order-details tfoot tr:last-child th,
-.woocommerce-table--order-details tfoot tr:last-child td { border-bottom: 0; font-weight: 900; font-size: var(--tt-text-md); }
+.woocommerce-table--order-details tfoot tr:last-child td { border-bottom: 0; font-weight: 900; font-size: var(--tt-text-lg); }
 .woocommerce-table--order-details tfoot tr th,
 .woocommerce-table--order-details tfoot tr td { font-weight: 700; }
 
