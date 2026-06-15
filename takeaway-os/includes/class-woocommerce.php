@@ -457,7 +457,8 @@ final class TTOS_WooCommerce {
             if (empty($cart_item['ttos_extra_total']) || empty($cart_item['data']) || !is_object($cart_item['data'])) continue;
             $product_id = (int) ($cart_item['product_id'] ?? 0);
             $base = get_post_meta($product_id, '_price', true);
-            $cart_item['data']->set_price((float) $base + (float) $cart_item['ttos_extra_total']);
+            // Clamp to ≥ 0 — prevents negative session values from underpricing items.
+            $cart_item['data']->set_price(max(0.0, (float) $base + (float) $cart_item['ttos_extra_total']));
         }
     }
 

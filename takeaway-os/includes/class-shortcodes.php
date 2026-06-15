@@ -322,8 +322,14 @@ final class TTOS_Shortcodes {
         $message = '';
         if (!empty($_GET['ttos_order_id']) && TTOS_WooCommerce::active()) {
             $order = wc_get_order(absint($_GET['ttos_order_id']));
-            if ($order) {
+            // IDOR guard: only show the order to the customer who placed it.
+            $order_customer = $order ? (int) $order->get_customer_id() : 0;
+            $current_user   = get_current_user_id();
+            $owns_order     = $order && $order_customer > 0 && $current_user === $order_customer;
+            if ($owns_order) {
                 $message = '<div class="ttos-front-card ttos-tracker-result" role="status"><h3>' . esc_html__('Order', 'takeaway-os') . ' #' . esc_html($order->get_id()) . '</h3><p class="ttos-tracker-status">' . esc_html(wc_get_order_status_name($order->get_status())) . '</p></div>';
+            } elseif ($order && !$owns_order) {
+                $message = '<div class="ttos-front-card ttos-tracker-result" role="status">' . esc_html__('We could not find that order number. Check the number on your confirmation, or call us.', 'takeaway-os') . '</div>';
             } else {
                 $message = '<div class="ttos-front-card ttos-tracker-result" role="status">' . esc_html__('We could not find that order number. Check the number on your confirmation, or call us.', 'takeaway-os') . '</div>';
             }
@@ -446,11 +452,10 @@ final class TTOS_Shortcodes {
             $content = str_replace(array_keys($tokens), array_values($tokens), $content);
         }
 
-        // Convert lightweight markdown headings so policy text can use ## / ### syntax.
-        $content = preg_replace('/^## (.+)$/m',  '<h3>$1</h3>', $content);
-        $content = preg_replace('/^### (.+)$/m', '<h4>$1</h4>', $content);
-        // Bold: **text**
-        $content = preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', $content);
+        // Convert lightweight markdown — escape captures before inserting into tags (XSS prevention).
+        $content = preg_replace_callback('/^## (.+)$/m',  function ($m) { return '<h3>' . esc_html($m[1]) . '</h3>'; }, $content);
+        $content = preg_replace_callback('/^### (.+)$/m', function ($m) { return '<h4>' . esc_html($m[1]) . '</h4>'; }, $content);
+        $content = preg_replace_callback('/\*\*(.+?)\*\*/', function ($m) { return '<strong>' . esc_html($m[1]) . '</strong>'; }, $content);
 
         $out = '<div class="ttos-policy">';
         if (current_user_can('ttos_manage_settings')) {

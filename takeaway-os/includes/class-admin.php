@@ -171,7 +171,19 @@ final class TTOS_Admin {
 
         if ($action === 'save_trading' && current_user_can('ttos_manage_settings')) {
             $raw = wp_unslash($_POST['trading'] ?? array());
-            $trading = array_map('sanitize_text_field', $raw);
+            if (!is_array($raw)) { $raw = array(); }
+            // Monetary/numeric fields require scalar values — reject nested arrays and non-numeric input.
+            $numeric_fields = array('min_order', 'delivery_fee', 'free_delivery_over', 'delivery_radius', 'prep_time', 'delivery_time');
+            $trading = array();
+            foreach ($raw as $key => $value) {
+                if (!is_scalar($value)) continue;
+                if (in_array($key, $numeric_fields, true)) {
+                    if (!is_numeric($value)) continue;
+                    $trading[$key] = (string) abs((float) $value);
+                } else {
+                    $trading[$key] = sanitize_text_field($value);
+                }
+            }
             $trading['collection_enabled'] = !empty($raw['collection_enabled']) ? '1' : '0';
             $trading['delivery_enabled'] = !empty($raw['delivery_enabled']) ? '1' : '0';
             TTOS_Settings::update_section('trading', $trading);
@@ -480,7 +492,22 @@ final class TTOS_Admin {
 
     private static function notices(): void {
         if (empty($_GET['ttos_notice'])) return;
-        echo '<div class="ttos-notice">Saved. Takeaway OS settings were updated.</div>';
+        $notice = sanitize_key($_GET['ttos_notice']);
+        $messages = array(
+            'settings-saved'       => array('type' => 'success', 'text' => __('Settings saved.', 'takeaway-os')),
+            'branding-saved'       => array('type' => 'success', 'text' => __('Branding saved.', 'takeaway-os')),
+            'delivery-saved'       => array('type' => 'success', 'text' => __('Delivery & collection settings saved.', 'takeaway-os')),
+            'trading-saved'        => array('type' => 'success', 'text' => __('Trading settings saved.', 'takeaway-os')),
+            'business-saved'       => array('type' => 'success', 'text' => __('Business details saved.', 'takeaway-os')),
+            'content-saved'        => array('type' => 'success', 'text' => __('Site content saved.', 'takeaway-os')),
+            'woocommerce-required' => array('type' => 'error',   'text' => __('WooCommerce must be active to use this feature.', 'takeaway-os')),
+            'modules-locked'       => array('type' => 'error',   'text' => __('That module key is invalid.', 'takeaway-os')),
+            'modules-unlocked'     => array('type' => 'success', 'text' => __('Add-ons unlocked.', 'takeaway-os')),
+            'campaign-created'     => array('type' => 'success', 'text' => __('Campaign created.', 'takeaway-os')),
+            'key-invalid'          => array('type' => 'error',   'text' => __('Invalid licence key.', 'takeaway-os')),
+        );
+        $m = $messages[$notice] ?? array('type' => 'success', 'text' => __('Saved.', 'takeaway-os'));
+        echo '<div class="ttos-notice is-' . esc_attr($m['type']) . '">' . esc_html($m['text']) . '</div>';
     }
 
     private static function nav(): void {
