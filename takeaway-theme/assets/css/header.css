@@ -47,29 +47,38 @@
     border-bottom-color: transparent;
 }
 
-/* Single row: grid with left cluster and right cluster */
+/* Three-column utility strip: status pill | contacts (centred) | account+social */
 .tt-utility-top {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
-    gap: 18px;
+    gap: 12px;
     min-height: 44px;
 }
 
-/* Left: pill + contact links */
-.tt-utility-left {
+/* Left: status pill only */
+.tt-utility-status {
     display: flex;
     align-items: center;
-    gap: 10px;
+    flex-shrink: 0;
+}
+
+/* Centre: contact links — centred on desktop & landscape tablet */
+.tt-utility-contacts {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     min-width: 0;
 }
 
-/* Contact links in utility-top */
+/* Contact link chips — match pill height so the strip stays even */
 .tt-contact-link {
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    padding: var(--tt-space-2) 12px;
+    height: 34px;
+    padding: 0 12px;
     border-radius: 999px;
     background: var(--tt-surface);
     border: 1px solid var(--tt-border);
@@ -80,7 +89,8 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    min-height: 44px;
+    /* Expand click area to 44px without affecting visual size */
+    padding-block: 5px;
     transition: border-color .15s, color .15s;
 }
 .tt-contact-link:hover { border-color: var(--tt-primary); color: var(--tt-primary); }
@@ -356,6 +366,7 @@
     display: inline-flex;
     align-items: center;
     gap: 9px;
+    box-sizing: border-box;
     height: 48px;
     padding: 0 18px;
     border-radius: var(--tt-radius-md);
@@ -437,9 +448,11 @@
 /* Order CTA — double-class specificity beats base.css .tt-btn */
 .tt-order-short { display: none; }
 .tt-btn.tt-siteheader-order {
+    box-sizing: border-box;
     height: 48px;
-    border-radius: var(--tt-radius-md);
+    min-height: unset; /* override base.css min-height so height wins exactly */
     padding: 0 22px;
+    border-radius: var(--tt-radius-md);
     font-weight: 900;
     font-size: var(--tt-text-sm);
     white-space: nowrap;
@@ -515,9 +528,11 @@ html.tt-drawer-open, html.tt-drawer-open body { overflow: hidden; }
     .tt-drawer-toggle { display: inline-flex; }
 }
 
-/* Below 980px: hide contact links from utility-top */
+/* Below 980px: collapse centre contact column */
 @media (max-width: 980px) {
-    .tt-contact-link { display: none; }
+    .tt-utility-contacts { display: none; }
+    /* Collapse the empty centre column so pill and account stay flush */
+    .tt-utility-top { grid-template-columns: auto auto; }
 }
 
 /* Below 760px: icon-only basket, shorten order btn */

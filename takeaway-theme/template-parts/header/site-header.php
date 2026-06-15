@@ -7,10 +7,13 @@
 
 defined('ABSPATH') || exit;
 
-$logo_id     = absint(ttheme_brand('logo_id', 0));
-$phone       = tt_phone();
-$email       = tt_email();
-$biz_name    = tt_business_name();
+$logo_id           = absint(ttheme_brand('logo_id', 0));
+$phone             = tt_phone();
+$email             = tt_email();
+$biz_name          = tt_business_name();
+$show_phone        = ttheme_brand('show_header_phone', '1') !== '0';
+$show_email        = ttheme_brand('show_header_email', '1') !== '0';
+$show_hdr_socials  = ttheme_brand('show_header_socials', '1') !== '0';
 $account_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('myaccount') : '';
 $cart_url    = function_exists('wc_get_cart_url') ? wc_get_cart_url() : '';
 
@@ -49,16 +52,20 @@ $logout_url       = function_exists('wc_logout_url') ? wc_logout_url(home_url('/
     <div class="tt-utility" id="tt-utility">
         <div class="tt-wrap tt-utility-top">
 
-            <!-- Left: status pill + contact links -->
-            <div class="tt-utility-left">
+            <!-- Left: status pill only -->
+            <div class="tt-utility-status">
                 <?php echo tt_open_status_pill(); // phpcs:ignore WordPress.Security.EscapeOutput ?>
-                <?php if ($phone) : ?>
+            </div>
+
+            <!-- Centre: contact links (hidden on narrow screens) -->
+            <div class="tt-utility-contacts">
+                <?php if ($show_phone && $phone) : ?>
                     <a class="tt-contact-link" href="tel:<?php echo esc_attr(preg_replace('/[^0-9+]/', '', $phone)); ?>">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8 19.79 19.79 0 01.07 2.18 2 2 0 012.03 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
                         <span><?php echo esc_html($phone); ?></span>
                     </a>
                 <?php endif; ?>
-                <?php if ($email) : ?>
+                <?php if ($show_email && $email) : ?>
                     <a class="tt-contact-link" href="mailto:<?php echo esc_attr($email); ?>">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 7L2 7"/></svg>
                         <span><?php echo esc_html($email); ?></span>
@@ -118,7 +125,7 @@ $logout_url       = function_exists('wc_logout_url') ? wc_logout_url(home_url('/
                     <?php endif; ?>
                 <?php endif; ?>
 
-                <?php if (!empty($socials)) : ?>
+                <?php if ($show_hdr_socials && !empty($socials)) : ?>
                     <nav class="tt-socials" aria-label="<?php esc_attr_e('Social links', 'takeaway-theme'); ?>">
                         <?php foreach ($socials as $s) : ?>
                             <a class="tt-social"

@@ -165,6 +165,10 @@ final class TTOS_Admin {
                 $value = sanitize_key((string) $raw[$key]);
                 if (in_array($value, $allowed, true)) $branding[$key] = $value;
             }
+            // Header visibility toggles (checkboxes — absent from POST when unchecked).
+            foreach (array('show_header_phone', 'show_header_email', 'show_header_socials') as $key) {
+                $branding[$key] = !empty($raw[$key]) ? '1' : '0';
+            }
             TTOS_Settings::update_section('branding', $branding);
             self::redirect_notice('branding-saved');
         }
@@ -842,6 +846,14 @@ final class TTOS_Admin {
         self::select_field('Footer style', 'branding[footer_style]', $tokens['footer_style'], array('dark' => 'Dark', 'light' => 'Light'));
         echo '</div>';
         echo '<p class="ttos-muted">Dark and system modes apply to the new token-driven templates as they roll out; current pages stay light until then.</p>';
+
+        echo '<h3 class="ttos-brand-subhead">Header contact strip</h3>';
+        echo '<p class="ttos-muted">Control which contact details and icons appear in the utility bar above the main navigation.</p>';
+        echo '<div class="ttos-grid ttos-grid-3">';
+        self::toggle_field('Show phone number', 'branding[show_header_phone]', $branding['show_header_phone'] ?? '1');
+        self::toggle_field('Show email address', 'branding[show_header_email]', $branding['show_header_email'] ?? '1');
+        self::toggle_field('Show social icons', 'branding[show_header_socials]', $branding['show_header_socials'] ?? '1');
+        echo '</div>';
 
         echo '<h3 class="ttos-brand-subhead">Live preview</h3>';
         $preview_style = '--tt-primary:' . esc_attr($tokens['primary']) . ';--tt-accent:' . esc_attr($tokens['accent']) . ';--tt-bg:' . esc_attr($tokens['bg']) . ';--tt-surface:' . esc_attr($tokens['surface']) . ';--tt-surface-soft:' . esc_attr($tokens['surface_soft']) . ';--tt-text:' . esc_attr($tokens['text']) . ';--tt-muted:' . esc_attr($tokens['muted']) . ';--tt-border:' . esc_attr($tokens['border']) . ';--tt-success:' . esc_attr($tokens['success']) . ';--tt-warning:' . esc_attr($tokens['warning']) . ';--tt-error:' . esc_attr($tokens['error']) . ';--tt-radius-sm:' . absint($tokens['radius_sm']) . 'px;--tt-radius-md:' . absint($tokens['radius_md']) . 'px;--tt-radius-lg:' . absint($tokens['radius_lg']) . 'px';
@@ -1843,6 +1855,11 @@ final class TTOS_Admin {
 
     private static function field(string $label, string $name, $value = '', string $type = 'text'): void {
         echo '<label>' . esc_html($label) . '<input type="' . esc_attr($type) . '" name="' . esc_attr($name) . '" value="' . esc_attr((string) $value) . '"></label>';
+    }
+
+    private static function toggle_field(string $label, string $name, string $value = '1'): void {
+        $checked = $value === '1' ? ' checked' : '';
+        echo '<label class="ttos-toggle-label"><input type="checkbox" name="' . esc_attr($name) . '" value="1"' . $checked . '> ' . esc_html($label) . '</label>';
     }
 
     private static function media_field(string $label, string $name, int $value = 0, string $button = 'Choose image'): void {
