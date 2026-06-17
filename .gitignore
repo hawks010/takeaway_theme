@@ -1,0 +1,13 @@
+.DS_Store
+
+# Local build artefacts
+takeaway-os-v*.zip
+takeaway-theme-v*-bundled.zip
+takeaway-v*-critical-check.txt
+takeaway-v*-production-readiness.txt
+
+# Graph/cache noise
+graphify-out/cache/ast/
+
+# Local browser/output scratch
+homepage_desktop

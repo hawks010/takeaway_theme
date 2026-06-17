@@ -1,0 +1,1021 @@
+/*
+ * Menu / ordering experience (v0.4.0). Styles the takeaway_menu shortcode
+ * output and the compact menu page head. Token-driven, mobile-first.
+ *
+ * Sections:
+ *   1. Page head
+ *   2. Fulfilment toggle (replicated from home.css — needed on /menu/ archive)
+ *   3. Toolbar: search + filters
+ *   4. Category nav / filter tabs
+ *   5. Sections & product cards (TTOS grid)
+ *   6. WooCommerce product grid (.products)
+ *   7. Quantity controls
+ *   8. Sticky basket / mobile CTA
+ *   9. Empty state
+ *  10. Focus-visible accessibility
+ *  11. Responsive breakpoints
+ */
+
+/* ============================================================
+   1. PAGE HEAD
+   ============================================================ */
+.tt-pagehead {
+    background: var(--tt-surface-soft);
+    padding: var(--tt-space-6) 0 var(--tt-space-5);
+}
+
+/* === v0.3.20 premium menu navigation and filter layout === */
+.tt-pagehead-menu .tt-eyebrow{margin-bottom:8px}
+.tt-pagehead h1{
+    font-size:clamp(56px,8vw,116px);
+    line-height:.88;
+    letter-spacing:-.07em;
+}
+.ttos-menu-ad-strip{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:14px;
+    margin:0 0 18px;
+}
+.ttos-menu-ad{
+    position:relative;
+    min-height:158px;
+    display:grid;
+    align-content:end;
+    overflow:hidden;
+    border-radius:25px;
+    padding:18px;
+    color:#fff;
+    text-decoration:none;
+    background:var(--tt-dark);
+    box-shadow:0 20px 54px rgba(26,20,16,.08);
+}
+.ttos-menu-ad:before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:linear-gradient(180deg,transparent 18%,rgba(18,14,11,.88));
+    z-index:1;
+}
+.ttos-menu-ad>span{
+    position:absolute;
+    inset:0;
+    background:radial-gradient(circle at 25% 26%,rgba(255,255,255,.26),transparent 15%),radial-gradient(circle at 78% 30%,rgba(255,172,0,.72),transparent 20%),linear-gradient(135deg,var(--tt-primary),#1a1410);
+    transition:transform .24s ease;
+}
+.ttos-menu-ad:hover>span{transform:scale(1.04)}
+.ttos-menu-ad strong,.ttos-menu-ad small,.ttos-menu-ad b{position:relative;z-index:2}
+.ttos-menu-ad strong{font-size:clamp(21px,2.2vw,32px);line-height:1;letter-spacing:-.04em}
+.ttos-menu-ad small{margin-top:5px;color:rgba(255,255,255,.76);font-weight:750}
+.ttos-menu-ad b{justify-self:start;margin-top:12px;padding:7px 11px;border-radius:999px;background:#fff;color:var(--tt-primary);font-size:13px}
+.ttos-menu-toolbar{grid-template-columns:minmax(0,1fr);align-items:stretch}
+.ttos-filter-search-wrap{min-width:0}
+.ttos-filter-search{min-height:60px;padding-inline:22px}
+.ttos-filter-allergens{align-self:stretch}
+.ttos-filter-allergens summary{
+    display:flex;
+    align-items:center;
+    min-height:50px;
+    padding:0 16px;
+    border-radius:25px;
+    background:var(--tt-bg);
+    border:1px solid var(--tt-border);
+    color:var(--tt-muted);
+    width:fit-content;
+}
+.ttos-menu-filter-toggle{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-height:44px;
+    margin:0 0 14px;
+    padding:0 18px;
+    border:1px solid var(--tt-border);
+    border-radius:25px;
+    background:var(--tt-surface);
+    color:var(--tt-text);
+    font:inherit;
+    font-weight:900;
+    cursor:pointer;
+}
+.ttos-menu-layout{
+    display:grid;
+    grid-template-columns:0 minmax(0,1fr);
+    gap:0;
+    transition:grid-template-columns .22s ease,gap .22s ease;
+}
+.ttos-menu-layout.is-filter-open{
+    grid-template-columns:minmax(190px,230px) minmax(0,1fr);
+    gap:22px;
+}
+.ttos-menu-sidebar{min-width:0;overflow:hidden}
+.ttos-menu-sidebar-inner{
+    position:sticky;
+    top:calc(var(--tt-header-h,124px) + 18px);
+    display:grid;
+    gap:12px;
+    padding:18px;
+    border:1px solid var(--tt-border);
+    border-radius:25px;
+    background:var(--tt-surface);
+    box-shadow:0 18px 44px rgba(26,20,16,.055);
+}
+.ttos-menu-sidebar-inner p{margin:0;color:var(--tt-primary);font-size:11px;font-weight:950;letter-spacing:.16em;text-transform:uppercase}
+.ttos-menu-side-nav{display:grid;gap:6px}
+.ttos-menu-side-nav a{min-height:40px;display:flex;align-items:center;padding:0 12px;border-radius:18px;color:var(--tt-muted);text-decoration:none;font-weight:850}
+.ttos-menu-side-nav a:hover,.ttos-menu-side-nav a.is-active{background:var(--tt-primary);color:#fff}
+.ttos-menu-main{min-width:0}
+@media(min-width:901px){
+    .ttos-menu-toolbar{grid-template-columns:minmax(300px,1fr) auto minmax(180px,.38fr);gap:14px;align-items:center}
+    .ttos-filter-allergens{max-width:none}
+}
+@media(max-width:900px){
+    .ttos-menu-ad-strip{grid-template-columns:1fr}
+    .ttos-menu-layout,.ttos-menu-layout.is-filter-open{grid-template-columns:1fr}
+    .ttos-menu-sidebar,.ttos-menu-filter-toggle{display:none}
+}
+@media(max-width:620px){
+    .tt-pagehead h1{font-size:54px}
+    .ttos-menu-ad{min-height:140px}
+    .ttos-filter-allergens summary{width:100%}
+}
+.tt-pagehead h1 {
+    font-size: var(--tt-text-3xl);
+    line-height: 1.05;
+    letter-spacing: -.02em;
+    margin: 0;
+}
+.tt-pagehead-sub {
+    color: var(--tt-muted);
+    margin: var(--tt-space-2) 0 0;
+}
+.tt-pagehead-row {
+    display: grid;
+    gap: var(--tt-space-5);
+    align-items: end;
+}
+.tt-pagehead-menu.has-bg {
+    position: relative;
+    overflow: hidden;
+}
+.tt-pagehead-menu.has-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: var(--tt-pagehead-bg);
+    background-size: cover;
+    background-position: center;
+    opacity: .12;
+}
+.tt-pagehead-menu .tt-pagehead-row { position: relative; }
+.tt-pagecontent { padding: var(--tt-space-6) 0 var(--tt-space-8); }
+.tt-menu-content { padding: var(--tt-space-5) 0 var(--tt-space-8); }
+.tt-menu-intro,
+.tt-menu-help {
+    color: var(--tt-muted);
+    max-width: 640px;
+    margin: 0 0 var(--tt-space-5);
+}
+.tt-menu-help { margin: var(--tt-space-6) 0 0; }
+
+/* ============================================================
+   2. FULFILMENT TOGGLE
+   Replicated here so the /menu/ archive page gets these styles
+   even though home.css is only enqueued on is_front_page().
+   ============================================================ */
+.tt-pagehead-fulfilment {
+    display: flex;
+    flex-direction: column;
+    gap: var(--tt-space-3);
+}
+.tt-fulfilment-toggle {
+    display: inline-flex;
+    align-items: center;
+    background: var(--tt-surface);
+    border: 1px solid var(--tt-border);
+    border-radius: 999px;
+    padding: 4px;
+    gap: 4px;
+}
+.tt-fulfilment-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--tt-space-2);
+    padding: 10px 20px;
+    border-radius: 999px;
+    border: none;
+    background: transparent;
+    color: var(--tt-muted);
+    font-weight: 700;
+    font-size: var(--tt-text-base);
+    cursor: pointer;
+    min-height: 44px;
+    white-space: nowrap;
+    transition: background .15s, color .15s;
+}
+.tt-fulfilment-pill.is-active,
+.tt-fulfilment-pill[aria-checked="true"] {
+    background: var(--tt-primary);
+    color: #fff;
+}
+.tt-fulfilment-pill:not(.is-active):hover {
+    color: var(--tt-text);
+    background: var(--tt-surface-soft);
+}
+.tt-pagehead-zone {
+    font-size: var(--tt-text-sm);
+    color: var(--tt-muted);
+    display: flex;
+    align-items: center;
+    gap: var(--tt-space-2);
+}
+/* class display:flex otherwise beats the UA [hidden] rule on a specificity tie,
+   so the delivery/collection zone toggle silently does nothing */
+.tt-pagehead-zone[hidden] { display: none; }
+.tt-pagehead-zone strong { color: var(--tt-text); }
+.tt-pagehead-postcode label {
+    margin: 0;
+    color: var(--tt-muted);
+    font-size: var(--tt-text-base);
+    font-weight: 700;
+    line-height: 1.2;
+}
+.tt-pagehead-postcode .tt-postcode-check-row {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) auto;
+    gap: 8px;
+    width: min(100%, 430px);
+    max-width: none;
+    align-items: stretch;
+}
+.tt-pagehead-postcode input[type="text"] {
+    width: 100%;
+    min-height: 56px;
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-sm);
+    background: var(--tt-surface);
+    color: var(--tt-text);
+    padding: 0 18px;
+    font: inherit;
+    font-weight: 700;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tt-border) 35%, transparent);
+}
+.tt-pagehead-postcode input[type="text"]::placeholder { color: var(--tt-muted); }
+.tt-pagehead-postcode .tt-btn {
+    min-height: 56px;
+    border-radius: var(--tt-radius-sm);
+    padding: 0 26px;
+    font-weight: 900;
+    box-shadow: 0 16px 32px color-mix(in srgb, var(--tt-primary) 18%, transparent);
+}
+
+/* ============================================================
+   3. TOOLBAR: search + filters
+   ============================================================ */
+.ttos-menu-toolbar {
+    display: grid;
+    gap: var(--tt-space-3);
+    background: var(--tt-surface);
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-md);
+    padding: var(--tt-space-4);
+    margin: 0 0 var(--tt-space-4);
+}
+.ttos-filter-search-wrap { display: block; }
+.ttos-filter-search {
+    width: 100%;
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-sm);
+    padding: 12px 14px;
+    font: inherit;
+    font-size: var(--tt-text-base);
+    min-height: 44px;
+    background: var(--tt-bg);
+    color: var(--tt-text);
+    transition: border-color .15s;
+}
+.ttos-filter-search:focus {
+    outline: 3px solid var(--tt-primary);
+    outline-offset: 2px;
+    border-color: var(--tt-primary);
+}
+.ttos-filter-diets {
+    display: flex;
+    gap: var(--tt-space-2);
+    flex-wrap: wrap;
+}
+.ttos-filter-diet {
+    border: 1px solid var(--tt-border);
+    background: var(--tt-surface);
+    color: var(--tt-text);
+    border-radius: 999px;
+    padding: 10px 16px;
+    font-weight: 700;
+    font-size: var(--tt-text-base);
+    cursor: pointer;
+    min-height: 44px;
+    transition: background .15s, border-color .15s, color .15s;
+}
+.ttos-filter-diet[aria-pressed="true"] {
+    background: var(--tt-text);
+    border-color: var(--tt-text);
+    color: var(--tt-bg);
+}
+.ttos-filter-diet:hover:not([aria-pressed="true"]) {
+    border-color: var(--tt-primary);
+    color: var(--tt-primary);
+}
+.ttos-filter-allergens {
+    /* Ensure the allergens column doesn't overflow the 3-col toolbar grid */
+    min-width: 0;
+    overflow: hidden;
+}
+.ttos-filter-allergens summary {
+    cursor: pointer;
+    font-weight: 700;
+    color: var(--tt-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ttos-filter-allergens-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--tt-space-2) var(--tt-space-4);
+    padding: var(--tt-space-3) 0 0;
+}
+.ttos-filter-allergens-list label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--tt-text-sm);
+    color: var(--tt-muted);
+}
+
+/* ============================================================
+   4. CATEGORY NAV / FILTER TABS
+   ============================================================ */
+.ttos-cat-nav {
+    position: sticky;
+    top: var(--tt-header-h, 80px);
+    z-index: 40;
+    background: color-mix(in srgb, var(--tt-bg) 92%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    margin: 0 0 var(--tt-space-5);
+    padding: var(--tt-space-2) 0;
+    border-bottom: 1px solid var(--tt-border);
+}
+.ttos-cat-nav-row {
+    display: flex;
+    gap: var(--tt-space-2);
+    /* Scrollable on mobile — flex nowrap + overflow-x auto */
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px; /* prevent focus outline clip */
+}
+.ttos-cat-nav-row::-webkit-scrollbar { display: none; }
+.ttos-cat-nav a {
+    flex-shrink: 0;
+    text-decoration: none;
+    color: var(--tt-muted);
+    font-weight: 800;
+    font-size: var(--tt-text-sm);
+    padding: 9px 14px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    transition: background .15s, color .15s;
+}
+.ttos-cat-nav a:hover { color: var(--tt-primary); }
+/* Active pill: brand colour background, white text */
+.ttos-cat-nav a.is-active {
+    background: var(--tt-primary);
+    color: #fff;
+    border-color: var(--tt-primary);
+}
+
+/* WooCommerce category nav (archive-product.php widget_product_categories) */
+.widget_product_categories ul {
+    display: flex;
+    gap: var(--tt-space-2);
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    list-style: none;
+    margin: 0 0 var(--tt-space-4);
+    padding: 0;
+    scrollbar-width: none;
+}
+.widget_product_categories ul::-webkit-scrollbar { display: none; }
+.widget_product_categories ul li a {
+    display: inline-block;
+    flex-shrink: 0;
+    padding: 9px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--tt-border);
+    background: var(--tt-surface);
+    color: var(--tt-text);
+    font-weight: 700;
+    font-size: var(--tt-text-sm);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background .15s, color .15s, border-color .15s;
+}
+.widget_product_categories ul li a:hover,
+.widget_product_categories ul li.current-cat > a {
+    background: var(--tt-primary);
+    border-color: var(--tt-primary);
+    color: #fff;
+}
+/* Hide the Uncategorized category everywhere on the menu page */
+.product-cat-uncategorized,
+li.product-cat-uncategorized,
+.widget_product_categories li.cat-item-uncategorized { display: none !important; }
+
+/* ============================================================
+   5. TTOS SECTIONS & PRODUCT CARDS
+   ============================================================ */
+.ttos-menu-section {
+    margin: 0 0 var(--tt-space-7);
+    scroll-margin-top: var(--tt-header-h, 80px);
+}
+.ttos-menu-section-title {
+    font-size: var(--tt-text-2xl);
+    letter-spacing: -.01em;
+    margin: 0 0 var(--tt-space-2);
+}
+.ttos-menu-section-desc {
+    color: var(--tt-muted);
+    margin: 0 0 var(--tt-space-4);
+}
+
+.ttos-product-grid {
+    display: grid;
+    gap: var(--tt-space-4);
+}
+.ttos-product {
+    background: var(--tt-surface);
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-md);
+    box-shadow: var(--tt-shadow);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow .2s, transform .2s;
+}
+/* Card hover lift */
+.ttos-product:hover {
+    box-shadow: 0 24px 60px rgba(26, 20, 16, .14);
+    transform: translateY(-2px);
+}
+/* Aspect ratio 4/3 on card images */
+.ttos-product-media {
+    aspect-ratio: 4 / 3;
+    background: var(--tt-surface-soft);
+    overflow: hidden;
+}
+.ttos-product-media img,
+.ttos-product-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform .3s;
+}
+.ttos-product:hover .ttos-product-media img,
+.ttos-product:hover .ttos-product-img { transform: scale(1.03); }
+.ttos-product-media-empty {
+    display: grid;
+    place-items: center;
+}
+.ttos-product-media-empty span {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--tt-primary), var(--tt-accent));
+    opacity: .45;
+}
+.ttos-product-body {
+    padding: var(--tt-space-4) var(--tt-space-4) var(--tt-space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--tt-space-2);
+    flex: 1;
+}
+.ttos-product-body > .ttos-order-btn,
+.ttos-product-body > .ttos-config-form {
+    margin-top: auto;
+    width: 100%;
+}
+.ttos-product-body > .ttos-order-btn {
+    align-self: stretch;
+    justify-content: center;
+}
+.ttos-product-title {
+    display: flex;
+    gap: var(--tt-space-3);
+    align-items: baseline;
+    justify-content: space-between;
+}
+.ttos-product-title h3 {
+    margin: 0;
+    font-size: var(--tt-text-xl);
+    line-height: 1.2;
+    /* Clamp to 2 lines — prevents long titles from breaking card grid alignment */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+/* Price: text colour, bold (CTA button is the only orange element per card) */
+.ttos-product-price {
+    color: var(--tt-text);
+    font-size: var(--tt-text-lg);
+    font-weight: 700;
+    white-space: nowrap;
+}
+.ttos-product-desc {
+    margin: 0;
+    color: var(--tt-muted);
+    font-size: var(--tt-text-sm);
+    line-height: 1.55;
+}
+.ttos-product-allergens { color: var(--tt-muted); }
+.ttos-product-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+}
+.ttos-chip {
+    display: inline-block;
+    background: var(--tt-surface-soft);
+    border: 1px solid var(--tt-border);
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: var(--tt-text-xs);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+.ttos-chip-popular {
+    background: color-mix(in srgb, var(--tt-accent) 22%, transparent);
+    border-color: color-mix(in srgb, var(--tt-accent) 50%, transparent);
+}
+.ttos-chip-vegan,
+.ttos-chip-vegetarian {
+    background: color-mix(in srgb, var(--tt-success) 14%, transparent);
+    border-color: color-mix(in srgb, var(--tt-success) 38%, transparent);
+}
+.ttos-chip-spicy {
+    background: color-mix(in srgb, var(--tt-error) 12%, transparent);
+    border-color: color-mix(in srgb, var(--tt-error) 35%, transparent);
+}
+.ttos-product.is-sold { opacity: .55; }
+.ttos-order-btn.is-disabled {
+    background: var(--tt-muted);
+    cursor: not-allowed;
+    opacity: .65;
+}
+
+/* Add-to-basket / order button — full brand colour */
+.ttos-order-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tt-primary);
+    color: #fff;
+    border: 0;
+    border-radius: var(--tt-radius-sm);
+    padding: 11px 18px;
+    font-weight: 800;
+    font-size: var(--tt-text-base);
+    text-decoration: none;
+    cursor: pointer;
+    min-height: 44px;
+    white-space: nowrap;
+    transition: opacity .15s, transform .1s;
+}
+.ttos-order-btn:hover:not(.is-disabled) { opacity: .88; }
+.ttos-order-btn:active:not(.is-disabled) { transform: scale(.97); }
+
+/* Staff-only helper note */
+.ttos-admin-note {
+    background: color-mix(in srgb, var(--tt-warning) 12%, transparent);
+    border-left: 4px solid var(--tt-warning);
+    border-radius: var(--tt-radius-sm);
+    padding: var(--tt-space-3) var(--tt-space-4);
+    color: var(--tt-text);
+    font-size: var(--tt-text-sm);
+    font-weight: 600;
+    margin: 0 0 var(--tt-space-4);
+}
+
+/* ============================================================
+   6. WOOCOMMERCE PRODUCT GRID (.products)
+   Targets the default WooCommerce loop output on archive-product.php
+   if the shortcode is absent / fallback rendering is used.
+   ============================================================ */
+ul.products {
+    display: grid;
+    gap: var(--tt-space-4);
+    list-style: none;
+    margin: 0 0 var(--tt-space-7);
+    padding: 0;
+}
+ul.products li.product {
+    background: var(--tt-surface);
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-md);
+    box-shadow: var(--tt-shadow);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow .2s, transform .2s;
+}
+ul.products li.product:hover {
+    box-shadow: 0 24px 60px rgba(26, 20, 16, .14);
+    transform: translateY(-2px);
+}
+/* Product image — aspect-ratio 4/3, object-fit cover */
+ul.products li.product a img,
+ul.products li.product .woocommerce-loop-product__link img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    display: block;
+    transition: transform .3s;
+}
+ul.products li.product:hover a img { transform: scale(1.03); }
+ul.products li.product .woocommerce-loop-product__link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+/* Product name */
+ul.products li.product .woocommerce-loop-product__title,
+ul.products li.product h2 {
+    font-size: var(--tt-text-xl);
+    font-weight: 700;
+    margin: var(--tt-space-4) var(--tt-space-4) var(--tt-space-2);
+    line-height: 1.2;
+}
+/* Price — text colour, bold (CTA button is the only orange element per card) */
+ul.products li.product .price,
+ul.products li.product .price ins,
+ul.products li.product .price .woocommerce-Price-amount {
+    color: var(--tt-text);
+    font-weight: 700;
+    font-size: var(--tt-text-lg);
+}
+ul.products li.product .price del { color: var(--tt-muted); }
+ul.products li.product .price {
+    display: block;
+    padding: 0 var(--tt-space-4);
+    margin-bottom: var(--tt-space-3);
+}
+/* Add-to-basket button — brand colour, white text */
+ul.products li.product .button,
+ul.products li.product .add_to_cart_button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(100% - var(--tt-space-8));
+    margin: 0 var(--tt-space-4) var(--tt-space-4);
+    background: var(--tt-primary);
+    color: #fff;
+    border: 0;
+    border-radius: var(--tt-radius-sm);
+    padding: 11px 18px;
+    font-weight: 800;
+    font-size: var(--tt-text-base);
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    min-height: 44px;
+    transition: opacity .15s;
+}
+ul.products li.product .button:hover,
+ul.products li.product .add_to_cart_button:hover { opacity: .88; }
+
+/* ============================================================
+   7. QUANTITY CONTROLS
+   Styles both WooCommerce .quantity wrappers and any TTOS
+   inline quantity steppers.
+   ============================================================ */
+/* Wrapper: row with minus/input/plus inline */
+.quantity,
+.ttos-qty-wrap {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-sm);
+    overflow: hidden;
+    background: var(--tt-surface);
+}
+/* The numeric input */
+.quantity input[type="number"],
+.quantity input.qty,
+.ttos-qty-wrap input {
+    -moz-appearance: textfield;
+    appearance: textfield;
+    width: 42px;
+    min-height: 44px;
+    border: none;
+    border-left: 1px solid var(--tt-border);
+    border-right: 1px solid var(--tt-border);
+    background: var(--tt-bg);
+    color: var(--tt-text);
+    font-weight: 700;
+    font-size: var(--tt-text-base);
+    text-align: center;
+    padding: 0;
+    font: inherit;
+    font-weight: 700;
+}
+/* Hide browser number spinners */
+.quantity input[type="number"]::-webkit-inner-spin-button,
+.quantity input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+/* Stepper buttons */
+.qty-minus,
+.qty-plus,
+.ttos-qty-minus,
+.ttos-qty-plus,
+button.minus,
+button.plus {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    min-height: 44px;
+    background: var(--tt-surface);
+    border: none;
+    color: var(--tt-text);
+    font-size: var(--tt-text-lg);
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background .12s, color .12s;
+    user-select: none;
+}
+.qty-minus:hover,
+.qty-plus:hover,
+.ttos-qty-minus:hover,
+.ttos-qty-plus:hover,
+button.minus:hover,
+button.plus:hover {
+    background: var(--tt-primary);
+    color: #fff;
+}
+
+/* ============================================================
+   8. STICKY BASKET / MOBILE CTA
+   ============================================================ */
+.ttos-sticky-cart {
+    position: sticky;
+    bottom: var(--tt-space-4);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--tt-space-4);
+    margin: var(--tt-space-6) auto 0;
+    max-width: 720px;
+    background: var(--tt-text);
+    color: var(--tt-bg);
+    border-radius: var(--tt-radius-md);
+    padding: var(--tt-space-3) var(--tt-space-4);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .25);
+}
+/* Hidden when basket is empty */
+.ttos-sticky-cart[data-count="0"] { display: none; }
+.ttos-sticky-cart-info strong { display: block; font-size: var(--tt-text-base); }
+.ttos-sticky-cart-info span    { font-size: var(--tt-text-sm); opacity: .8; }
+.ttos-sticky-cart .ttos-order-btn {
+    background: var(--tt-primary);
+    flex-shrink: 0;
+}
+
+/* Theme basket CTA (.tt-basket-cta) — mobile-only fixed bar */
+.tt-basket-cta {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    background: var(--tt-primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--tt-space-4);
+    padding: var(--tt-space-3) var(--tt-space-5);
+    box-shadow: 0 -4px 24px rgba(26, 20, 16, .18);
+}
+.tt-basket-cta-label { font-weight: 700; font-size: var(--tt-text-base); }
+.tt-basket-cta-count {
+    background: #fff;
+    color: var(--tt-primary);
+    font-weight: 800;
+    font-size: var(--tt-text-sm);
+    border-radius: 999px;
+    padding: 2px 8px;
+    min-width: 24px;
+    text-align: center;
+}
+.tt-basket-cta-btn {
+    background: #fff;
+    color: var(--tt-primary);
+    border: none;
+    border-radius: var(--tt-radius-sm);
+    padding: 10px 18px;
+    font-weight: 800;
+    font-size: var(--tt-text-base);
+    cursor: pointer;
+    min-height: 44px;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   9. EMPTY STATE
+   ============================================================ */
+/* WooCommerce info notice — e.g. "No products found" */
+.woocommerce-info,
+p.woocommerce-info {
+    background: color-mix(in srgb, var(--tt-primary) 8%, var(--tt-surface));
+    border-left: 4px solid var(--tt-primary);
+    border-radius: var(--tt-radius-sm);
+    padding: var(--tt-space-4) var(--tt-space-5);
+    color: var(--tt-text);
+    font-size: var(--tt-text-base);
+    margin: var(--tt-space-6) 0;
+    /* Reset WooCommerce default before: icon */
+    list-style: none;
+}
+.woocommerce-info::before { display: none; }
+/* No-results / empty search state */
+.ttos-empty-state,
+.woocommerce-no-products-found {
+    text-align: center;
+    padding: var(--tt-space-8) var(--tt-space-5);
+    color: var(--tt-muted);
+}
+.ttos-empty-state h3,
+.woocommerce-no-products-found h2 {
+    font-size: var(--tt-text-2xl);
+    margin: 0 0 var(--tt-space-3);
+    color: var(--tt-text);
+}
+
+/* ============================================================
+   10. FOCUS-VISIBLE ACCESSIBILITY
+   Explicit rings on all interactive menu elements for keyboard nav.
+   ============================================================ */
+.ttos-order-btn:focus-visible,
+.ttos-filter-diet:focus-visible,
+.ttos-cat-nav a:focus-visible,
+.ttos-filter-search:focus-visible,
+.tt-fulfilment-pill:focus-visible,
+.tt-basket-cta-btn:focus-visible,
+ul.products li.product .button:focus-visible,
+ul.products li.product .add_to_cart_button:focus-visible,
+.qty-minus:focus-visible,
+.qty-plus:focus-visible,
+.ttos-qty-minus:focus-visible,
+.ttos-qty-plus:focus-visible,
+button.minus:focus-visible,
+button.plus:focus-visible {
+    outline: 3px solid var(--tt-primary);
+    outline-offset: 3px;
+}
+/* For quantity input keyboard focus */
+.quantity input.qty:focus-visible,
+.quantity input[type="number"]:focus-visible,
+.ttos-qty-wrap input:focus-visible {
+    outline: 3px solid var(--tt-primary);
+    outline-offset: 1px;
+}
+
+/* ============================================================
+   11. RESPONSIVE BREAKPOINTS
+   ============================================================ */
+/* ≤ 620px — single column, fixed bottom basket bar */
+@media (max-width: 620px) {
+    .ttos-sticky-cart {
+        position: fixed;
+        left: var(--tt-space-3);
+        right: var(--tt-space-3);
+        bottom: var(--tt-space-3);
+        margin: 0;
+        max-width: none;
+    }
+    .ttos-cat-nav { top: var(--tt-header-h, 80px); }
+    /* Compact toolbar stacking on small screens — single column */
+    .ttos-menu-toolbar { grid-template-columns: 1fr; gap: var(--tt-space-3); }
+    .ttos-filter-allergens { max-width: none; }
+    .ttos-filter-search { width: 100%; }
+}
+
+/* 621 – 900px — 2-column card grid */
+@media (min-width: 621px) {
+    .ttos-product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    ul.products           { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    /* Hide .tt-basket-cta on larger screens — TTOS sticky cart takes over */
+    .tt-basket-cta        { display: none; }
+}
+
+/* ≥ 901px — 3-column card grid + multi-col toolbar */
+@media (min-width: 901px) {
+    .ttos-product-grid    { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    ul.products           { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .tt-pagehead-row      { grid-template-columns: 1fr auto; }
+    /* 3-col toolbar: search | diet filters | allergens
+       allergens column is width-capped to prevent overflow */
+    .ttos-menu-toolbar {
+        grid-template-columns: minmax(220px, 1fr) auto minmax(0, 200px);
+        align-items: center;
+    }
+    .ttos-filter-allergens {
+        /* Ensure it stays in bounds at mid-widths */
+        max-width: 200px;
+        align-self: start;
+    }
+    /* Fulfilment toggle sits beside the page title */
+    .tt-pagehead-fulfilment {
+        flex-direction: row;
+        align-items: center;
+        gap: var(--tt-space-5);
+    }
+    .tt-pagehead-postcode {
+        display: grid;
+        grid-template-columns: auto minmax(300px, 430px);
+        align-items: center;
+        gap: var(--tt-space-3);
+    }
+    .tt-pagehead-postcode label {
+        white-space: nowrap;
+    }
+    /* Hide .tt-basket-cta on desktop */
+    .tt-basket-cta { display: none; }
+}
+
+@media (max-width: 620px) {
+    .tt-pagehead-zone,
+    .tt-pagehead-postcode {
+        display: block;
+        width: 100%;
+    }
+    .tt-pagehead-postcode .tt-postcode-check-row {
+        grid-template-columns: 1fr;
+        width: 100%;
+    }
+    .tt-pagehead-postcode .tt-btn {
+        width: 100%;
+    }
+}
+
+/* === v0.3.20 final cascade: premium menu navigation === */
+.tt-pagehead h1{font-size:clamp(56px,8vw,116px);line-height:.88;letter-spacing:-.07em}
+.ttos-menu-ad-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:0 0 18px}
+.ttos-menu-ad{position:relative;min-height:158px;display:grid;align-content:end;overflow:hidden;border-radius:25px;padding:18px;color:#fff;text-decoration:none;background:var(--tt-dark);box-shadow:0 20px 54px rgba(26,20,16,.08)}
+.ttos-menu-ad:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 18%,rgba(18,14,11,.88));z-index:1}
+.ttos-menu-ad>span{position:absolute;inset:0;background:radial-gradient(circle at 25% 26%,rgba(255,255,255,.26),transparent 15%),radial-gradient(circle at 78% 30%,rgba(255,172,0,.72),transparent 20%),linear-gradient(135deg,var(--tt-primary),#1a1410);transition:transform .24s ease}
+.ttos-menu-ad:hover>span{transform:scale(1.04)}
+.ttos-menu-ad strong,.ttos-menu-ad small,.ttos-menu-ad b{position:relative;z-index:2}
+.ttos-menu-ad strong{font-size:clamp(21px,2.2vw,32px);line-height:1;letter-spacing:-.04em}
+.ttos-menu-ad small{margin-top:5px;color:rgba(255,255,255,.76);font-weight:750}
+.ttos-menu-ad b{justify-self:start;margin-top:12px;padding:7px 11px;border-radius:999px;background:#fff;color:var(--tt-primary);font-size:13px}
+.ttos-filter-search{min-height:60px;padding-inline:22px}
+.ttos-filter-allergens summary{display:flex;align-items:center;min-height:50px;padding:0 16px;border-radius:25px;background:var(--tt-bg);border:1px solid var(--tt-border);color:var(--tt-muted);width:fit-content}
+.ttos-menu-filter-toggle{display:inline-flex;align-items:center;justify-content:center;min-height:44px;margin:0 0 14px;padding:0 18px;border:1px solid var(--tt-border);border-radius:25px;background:var(--tt-surface);color:var(--tt-text);font:inherit;font-weight:900;cursor:pointer}
+.ttos-menu-layout{display:grid;grid-template-columns:0 minmax(0,1fr);gap:0;transition:grid-template-columns .22s ease,gap .22s ease}
+.ttos-menu-layout.is-filter-open{grid-template-columns:minmax(190px,230px) minmax(0,1fr);gap:22px}
+.ttos-menu-sidebar{min-width:0;overflow:hidden}
+.ttos-menu-sidebar-inner{position:sticky;top:calc(var(--tt-header-h,124px) + 18px);display:grid;gap:12px;padding:18px;border:1px solid var(--tt-border);border-radius:25px;background:var(--tt-surface);box-shadow:0 18px 44px rgba(26,20,16,.055)}
+.ttos-menu-sidebar-inner p{margin:0;color:var(--tt-primary);font-size:11px;font-weight:950;letter-spacing:.16em;text-transform:uppercase}
+.ttos-menu-side-nav{display:grid;gap:6px}
+.ttos-menu-side-nav a{min-height:40px;display:flex;align-items:center;padding:0 12px;border-radius:18px;color:var(--tt-muted);text-decoration:none;font-weight:850}
+.ttos-menu-side-nav a:hover,.ttos-menu-side-nav a.is-active{background:var(--tt-primary);color:#fff}
+.ttos-menu-main{min-width:0}
+@media(min-width:901px){.ttos-menu-toolbar{grid-template-columns:minmax(300px,1fr) auto minmax(180px,.38fr);gap:14px;align-items:center}.ttos-filter-allergens{max-width:none}}
+@media(max-width:900px){.ttos-menu-ad-strip{grid-template-columns:1fr}.ttos-menu-layout,.ttos-menu-layout.is-filter-open{grid-template-columns:1fr}.ttos-menu-sidebar,.ttos-menu-filter-toggle{display:none}}
+@media(max-width:620px){.tt-pagehead h1{font-size:54px}.ttos-menu-ad{min-height:140px}.ttos-filter-allergens summary{width:100%}}
+
+/* === v0.3.21 final cascade: toolbar alignment === */
+@media(min-width:901px){
+    .ttos-menu-toolbar{
+        align-items:stretch;
+    }
+    .ttos-filter-allergens{
+        display:flex;
+        align-items:stretch;
+        align-self:stretch;
+    }
+    .ttos-filter-allergens summary{
+        min-height:60px;
+        width:100%;
+    }
+}

@@ -1,0 +1,40 @@
+name: Release Packages
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare script
+        run: chmod +x scripts/build_release_packages.sh
+
+      - name: Build release packages
+        run: scripts/build_release_packages.sh
+
+      - name: Upload plugin package
+        uses: actions/upload-artifact@v4
+        with:
+          name: takeaway-os-package
+          path: takeaway-os-v*.zip
+
+      - name: Upload theme package
+        uses: actions/upload-artifact@v4
+        with:
+          name: takeaway-theme-package
+          path: takeaway-theme-v*-bundled.zip
+
+      - name: Upload bundled plugin zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: takeaway-bundled-plugin
+          path: takeaway-theme/inc/bundled-plugins/takeaway-os.zip
+
