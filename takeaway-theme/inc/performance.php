@@ -10,20 +10,69 @@ add_action('wp_head', 'ttheme_preload_home_hero_image', 1);
 
 function ttheme_resource_hints(array $urls, string $relation_type): array {
     if ($relation_type === 'preconnect') {
-        $urls[] = array('href' => 'https://cdnjs.cloudflare.com', 'crossorigin' => 'anonymous');
-        $urls[] = array('href' => 'https://cdn.jsdelivr.net', 'crossorigin' => 'anonymous');
-        if (is_front_page() || is_page()) {
+        if (ttheme_accessibility_loads_fontawesome()) {
+            $urls[] = array('href' => 'https://cdnjs.cloudflare.com', 'crossorigin' => 'anonymous');
+        }
+
+        if (ttheme_accessibility_enabled()) {
+            $urls[] = array('href' => 'https://cdn.jsdelivr.net', 'crossorigin' => 'anonymous');
+        }
+
+        if (ttheme_home_uses_google_maps()) {
             $urls[] = 'https://maps.google.com';
             $urls[] = 'https://www.google.com';
         }
     }
 
-    if ($relation_type === 'dns-prefetch' && (is_front_page() || is_page())) {
+    if ($relation_type === 'dns-prefetch' && ttheme_home_uses_google_maps()) {
         $urls[] = '//maps.google.com';
         $urls[] = '//www.google.com';
     }
 
     return $urls;
+}
+
+function ttheme_accessibility_enabled(): bool {
+    $settings = get_option('amh_a11y_settings', array(
+        'enabled' => true,
+        'load_fontawesome' => true,
+    ));
+
+    return !isset($settings['enabled']) || !empty($settings['enabled']);
+}
+
+function ttheme_accessibility_loads_fontawesome(): bool {
+    $settings = get_option('amh_a11y_settings', array(
+        'enabled' => true,
+        'load_fontawesome' => true,
+    ));
+
+    return (!isset($settings['enabled']) || !empty($settings['enabled']))
+        && !empty($settings['load_fontawesome']);
+}
+
+function ttheme_home_uses_google_maps(): bool {
+    if (!is_front_page()) {
+        return false;
+    }
+
+    $provider = function_exists('tt_content')
+        ? (string) tt_content('contact_map', 'map_provider', 'osm')
+        : 'osm';
+
+    $google_maps_url = function_exists('tt_content')
+        ? (string) tt_content('contact_map', 'google_maps_url', '')
+        : '';
+
+    if ($provider === 'google' && $google_maps_url !== '') {
+        return true;
+    }
+
+    if (function_exists('tt_address_lines')) {
+        return !empty(tt_address_lines());
+    }
+
+    return false;
 }
 
 function ttheme_home_hero_image_id(): int {

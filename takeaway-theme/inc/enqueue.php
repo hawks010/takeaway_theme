@@ -14,9 +14,27 @@ function ttheme_enqueue(): void {
         wp_enqueue_style('takeaway-theme-home', TTHEME_URL . '/assets/css/home.css', array('takeaway-theme-base'), TTHEME_VERSION);
     }
     wp_enqueue_style('takeaway-theme', TTHEME_URL . '/assets/css/theme.css', array('takeaway-theme-base'), TTHEME_VERSION);
-    // Loaded after theme.css so the new token styles win over legacy rules.
-    wp_enqueue_style('takeaway-theme-menu', TTHEME_URL . '/assets/css/menu.css', array('takeaway-theme'), TTHEME_VERSION);
-    wp_enqueue_style('takeaway-theme-woo', TTHEME_URL . '/assets/css/woo.css', array('takeaway-theme'), TTHEME_VERSION);
+
+    $load_menu = false;
+    $load_woo = false;
+
+    if (class_exists('WooCommerce')) {
+        $load_menu = function_exists('is_woocommerce') && is_woocommerce();
+        $load_woo = $load_menu
+            || (function_exists('is_cart') && is_cart())
+            || (function_exists('is_checkout') && is_checkout())
+            || (function_exists('is_account_page') && is_account_page());
+    }
+
+    if ($load_menu) {
+        // Loaded after theme.css so the menu-specific tokens win over legacy rules.
+        wp_enqueue_style('takeaway-theme-menu', TTHEME_URL . '/assets/css/menu.css', array('takeaway-theme'), TTHEME_VERSION);
+    }
+
+    if ($load_woo) {
+        wp_enqueue_style('takeaway-theme-woo', TTHEME_URL . '/assets/css/woo.css', array('takeaway-theme'), TTHEME_VERSION);
+    }
+
     wp_enqueue_style('takeaway-theme-utility', TTHEME_URL . '/assets/css/utility.css', array('takeaway-theme'), TTHEME_VERSION);
     wp_enqueue_script('takeaway-theme', TTHEME_URL . '/assets/js/theme.js', array(), TTHEME_VERSION, true);
 }

@@ -204,7 +204,7 @@
 .iw-copy{color:color-mix(in srgb,currentColor 72%,transparent);font-weight:750}
 .iw-signature{justify-content:flex-end;color:color-mix(in srgb,currentColor 74%,transparent)}
 .iw-agency-link{color:inherit;text-decoration:none;font-weight:900}
-.iw-icon{width:26px;height:26px;border-radius:999px;object-fit:cover;background:#fff}
+.iw-icon{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:999px;background:#fff;color:#111;font-size:10px;font-weight:900;letter-spacing:.08em}
 .iw-brand{color:#fff}
 .tt-sitefooter-light .iw-brand{color:var(--tt-text)}
 .iw-agency-link:hover .iw-brand{color:var(--tt-accent)}

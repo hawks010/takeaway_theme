@@ -139,10 +139,11 @@ The remaining commercial-release risk is not the settings architecture. It is hu
 
 ## Next practical step
 
-Before opening a real GitHub release/update channel:
+The repo now has the missing pieces to support a safe parent-theme updater:
 
-1. create the GitHub repo
-2. push this workspace as the product source
-3. adopt the child-theme rule for all client custom work
-4. only then build the updater layer
+1. `takeaway-theme` bundles `plugin-update-checker`
+2. the parent theme registers a GitHub-backed updater against `hawks010/takeaway_theme`
+3. the updater is locked to release assets matching `takeaway-theme-v*-bundled.zip`
+4. the release workflow publishes those zip files as GitHub release assets on tagged releases
 
+This avoids the biggest monorepo risk: WordPress trying to install the whole repository zip as a theme update.

@@ -6,6 +6,7 @@ define('TTHEME_VERSION', '0.3.33');
 define('TTHEME_DIR', get_template_directory());
 define('TTHEME_URL', get_template_directory_uri());
 
+require_once TTHEME_DIR . '/inc/theme-updater.php';
 require_once TTHEME_DIR . '/inc/setup.php';
 require_once TTHEME_DIR . '/inc/enqueue.php';
 require_once TTHEME_DIR . '/inc/performance.php';

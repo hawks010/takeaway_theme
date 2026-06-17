@@ -171,7 +171,7 @@ if ($show('show_accessibility_link')) {
                 echo '<span class="iw-signature tt-sitefooter-credit">';
                 echo '<span class="iw-text">' . esc_html__('Built & Maintained by', 'takeaway-theme') . '</span>';
                 echo '<a class="iw-agency-link" href="' . esc_url($built_url) . '" target="_blank" rel="noopener noreferrer" aria-label="' . esc_attr__('Built and Maintained by Inkfire Limited', 'takeaway-theme') . '">';
-                echo '<img class="iw-icon" src="https://inkfire.co.uk/wp-content/uploads/2025/11/IMG_1089.png" alt="" aria-hidden="true" loading="lazy">';
+                echo '<span class="iw-icon" aria-hidden="true">IF</span>';
                 echo '<span class="iw-brand">Inkfire Limited</span>';
                 echo '</a></span>';
             }
