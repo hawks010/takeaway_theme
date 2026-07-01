@@ -69,6 +69,14 @@ function tt_cta_url(string $target): string {
  * Returns ['state' => 'open'|'closed'|'unknown', 'label' => string].
  */
 function tt_open_status(): array {
+    if (class_exists('TTOS_Operations') && method_exists('TTOS_Operations', 'ordering_state')) {
+        $state = TTOS_Operations::ordering_state();
+        $mode = !empty($state['open']) ? 'open' : (!empty($state['preorder_enabled']) ? 'preorder' : 'closed');
+        return array(
+            'state' => $mode,
+            'label' => (string) ($state['label'] ?? ''),
+        );
+    }
     if (!function_exists('ttos_get_opening_hours')) {
         return array('state' => 'unknown', 'label' => '');
     }
