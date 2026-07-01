@@ -64,8 +64,10 @@ final class TTOS_Shortcodes {
             $cats[] = array('term' => $cat, 'query' => $query, 'empty' => !$has);
         }
 
+        $ordering_state = class_exists('TTOS_Operations') ? TTOS_Operations::ordering_state() : array();
+
         ob_start();
-        echo '<div class="ttos-menu-wrap">';
+        echo '<div class="ttos-menu-wrap" id="ttos-menu-start">';
 
         echo '<section class="ttos-menu-ad-strip" aria-label="' . esc_attr__('Menu offers', 'takeaway-os') . '">';
         $offers = array(
@@ -77,6 +79,8 @@ final class TTOS_Shortcodes {
             echo '<a class="ttos-menu-ad" href="' . esc_url(home_url('/meal-deals/')) . '"><span aria-hidden="true"></span><strong>' . esc_html($offer[0]) . '</strong><small>' . esc_html($offer[1]) . '</small><b>' . esc_html($offer[2]) . '</b></a>';
         }
         echo '</section>';
+
+        self::menu_ordering_notice($ordering_state);
 
         // Tools: search + filters.
         if ($show_search || $show_dietary || $show_allergens) {
@@ -239,6 +243,10 @@ final class TTOS_Shortcodes {
     }
 
     private static function add_to_basket_form(int $product_id): void {
+        if (class_exists('TTOS_Operations') && !TTOS_Operations::can_accept_menu_orders()) {
+            echo '<button type="button" class="ttos-order-btn is-disabled" disabled>' . esc_html__('We’re currently closed', 'takeaway-os') . '</button>';
+            return;
+        }
         $groups = TTOS_WooCommerce::get_option_groups($product_id);
         $modal_id = 'ttos-config-modal-' . $product_id . '-' . wp_rand(100, 999);
 
@@ -294,6 +302,29 @@ final class TTOS_Shortcodes {
         if ($groups) {
             echo '</div></div>';
         }
+    }
+
+    private static function menu_ordering_notice(array $state): void {
+        if (empty($state) || !empty($state['open'])) {
+            return;
+        }
+
+        $next = !empty($state['next_open_ts'])
+            ? sprintf(__('Next opening time: %s', 'takeaway-os'), wp_date('D j M, H:i', (int) $state['next_open_ts'], wp_timezone()))
+            : '';
+        $button_label = !empty($state['preorder_enabled']) ? __('Start preorder', 'takeaway-os') : __('View menu', 'takeaway-os');
+        $body = !empty($state['preorder_enabled'])
+            ? __('You can still plan ahead. Choose a preorder time and we’ll get everything ready when we reopen.', 'takeaway-os')
+            : __('We are not taking immediate orders right now. You can still browse the menu while we are closed.', 'takeaway-os');
+
+        echo '<section class="ttos-order-lock" aria-labelledby="ttos-order-lock-title">';
+        echo '<p class="ttos-panel-kicker">' . esc_html__('Ordering update', 'takeaway-os') . '</p><h2 id="ttos-order-lock-title">' . esc_html__('We’re currently closed', 'takeaway-os') . '</h2>';
+        echo '<p>' . esc_html($body) . '</p>';
+        if ($next !== '') {
+            echo '<p class="ttos-order-lock-next">' . esc_html($next) . '</p>';
+        }
+        echo '<a class="ttos-order-btn" href="#ttos-menu-start">' . esc_html($button_label) . '</a>';
+        echo '</section>';
     }
 
     /* ------------------------------------------------------------------ *
