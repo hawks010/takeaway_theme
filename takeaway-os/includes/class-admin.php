@@ -13,6 +13,7 @@ final class TTOS_Admin {
         add_action('admin_bar_menu', array(__CLASS__, 'admin_bar'), 100);
         add_action('wp_ajax_ttos_order_board', array(__CLASS__, 'ajax_order_board'));
         add_action('wp_ajax_ttos_order_action', array(__CLASS__, 'ajax_order_action'));
+        add_action('admin_post_ttos_export_customer_profiles_csv', array(__CLASS__, 'export_customer_profiles_csv'));
         add_action('in_admin_header', array(__CLASS__, 'suppress_foreign_notices'), 1000);
         add_action('admin_head', array(__CLASS__, 'suppress_foreign_notices_css'));
     }
@@ -173,9 +174,8 @@ final class TTOS_Admin {
         if ($action === 'save_business' && current_user_can('ttos_manage_settings')) {
             $business = array_map('sanitize_text_field', wp_unslash($_POST['business'] ?? array()));
             TTOS_Settings::update_section('business', $business);
-            if (!empty($business['restaurant_name'])) update_option('blogname', $business['restaurant_name']);
-            if (isset($business['tagline'])) update_option('blogdescription', $business['tagline']);
-            if (!empty($business['email']) && is_email($business['email'])) update_option('admin_email', $business['email']);
+            TTOS_Settings::sync_business_runtime($business);
+            TTOS_Settings::sync_business_to_site_content($business);
             self::redirect_notice('settings-saved');
         }
 
@@ -426,7 +426,12 @@ final class TTOS_Admin {
             $email = sanitize_email(wp_unslash($_POST['customer_email'] ?? ''));
             if ($email) {
                 $profiles = self::customer_profiles();
-                $profiles[strtolower($email)] = array(
+                $key = strtolower($email);
+                $existing = is_array($profiles[$key] ?? null) ? $profiles[$key] : array();
+                $profiles[$key] = array(
+                    'name'           => sanitize_text_field(wp_unslash($_POST['customer_name'] ?? ($existing['name'] ?? ''))),
+                    'phone'          => sanitize_text_field(wp_unslash($_POST['customer_phone'] ?? ($existing['phone'] ?? ''))),
+                    'postcode'       => sanitize_text_field(wp_unslash($_POST['customer_postcode'] ?? ($existing['postcode'] ?? ''))),
                     'tags'           => sanitize_text_field(wp_unslash($_POST['customer_tags'] ?? '')),
                     'internal_notes' => sanitize_textarea_field(wp_unslash($_POST['customer_notes'] ?? '')),
                     'marketing_ok'   => !empty($_POST['marketing_ok']) ? '1' : '0',
@@ -437,6 +442,25 @@ final class TTOS_Admin {
             }
             wp_safe_redirect(add_query_arg(array('page' => 'takeaway-os-customers', 'customer' => rawurlencode($email), 'ttos_notice' => 'customer-saved'), admin_url('admin.php')));
             exit;
+        }
+
+        if ($action === 'import_customer_profiles' && current_user_can('ttos_view_reports')) {
+            $result = self::import_customer_profiles();
+            if (is_wp_error($result)) {
+                self::flash_notice('error', $result->get_error_message());
+            } else {
+                self::flash_notice(
+                    !empty($result['warnings']) ? 'warning' : 'success',
+                    sprintf(
+                        __('Imported %1$d customer profile(s): %2$d created, %3$d updated, %4$d skipped.', 'takeaway-os'),
+                        (int) $result['processed'],
+                        (int) $result['created'],
+                        (int) $result['updated'],
+                        (int) $result['skipped']
+                    )
+                );
+            }
+            self::redirect_notice('customer-imported', 'takeaway-os-customers');
         }
 
         if ($action === 'adjust_customer_loyalty' && current_user_can('ttos_view_reports')) {
@@ -550,6 +574,11 @@ final class TTOS_Admin {
     }
 
     private static function notices(): void {
+        $flash = self::consume_flash_notice();
+        if (is_array($flash) && !empty($flash['message'])) {
+            echo '<div class="ttos-notice is-' . esc_attr((string) ($flash['type'] ?? 'success')) . '">' . esc_html((string) $flash['message']) . '</div>';
+            return;
+        }
         if (empty($_GET['ttos_notice'])) return;
         $notice = sanitize_key($_GET['ttos_notice']);
         $messages = array(
@@ -563,10 +592,32 @@ final class TTOS_Admin {
             'modules-locked'       => array('type' => 'error',   'text' => __('That module key is invalid.', 'takeaway-os')),
             'modules-unlocked'     => array('type' => 'success', 'text' => __('Add-ons unlocked.', 'takeaway-os')),
             'campaign-created'     => array('type' => 'success', 'text' => __('Campaign created.', 'takeaway-os')),
+            'customer-imported'    => array('type' => 'success', 'text' => __('Customer import finished.', 'takeaway-os')),
             'key-invalid'          => array('type' => 'error',   'text' => __('Invalid licence key.', 'takeaway-os')),
         );
         $m = $messages[$notice] ?? array('type' => 'success', 'text' => __('Saved.', 'takeaway-os'));
         echo '<div class="ttos-notice is-' . esc_attr($m['type']) . '">' . esc_html($m['text']) . '</div>';
+    }
+
+    private static function flash_notice(string $type, string $message): void {
+        set_transient(
+            'ttos_admin_notice_' . get_current_user_id(),
+            array(
+                'type'    => sanitize_key($type),
+                'message' => sanitize_text_field($message),
+            ),
+            5 * MINUTE_IN_SECONDS
+        );
+    }
+
+    private static function consume_flash_notice(): ?array {
+        $key = 'ttos_admin_notice_' . get_current_user_id();
+        $notice = get_transient($key);
+        if (!is_array($notice)) {
+            return null;
+        }
+        delete_transient($key);
+        return $notice;
     }
 
     private static function nav(): void {
@@ -1454,13 +1505,14 @@ final class TTOS_Admin {
         $requested = (string) $order->get_meta('_ttos_requested_time');
         $prep = (int) $order->get_meta('_ttos_prep_minutes');
         $due_ts = (int) $order->get_meta('_ttos_due_ts');
+        $is_preorder = $order->get_meta('_ttos_is_preorder') === '1';
         $late = self::order_is_late($order);
         $newish = in_array($status, array('pending','processing','on-hold'), true) && $minutes <= 5;
         $classes = array('ttos-order-card', 'status-' . $status, 'method-' . $fulfilment);
         if ($late) $classes[] = 'is-late';
         if ($newish) $classes[] = 'is-new';
         echo '<article class="' . esc_attr(implode(' ', $classes)) . '" data-order-id="' . esc_attr((string) $order->get_id()) . '"><header><div><strong>#' . esc_html((string) $order->get_id()) . '</strong><small>' . esc_html($created ? $created->date_i18n('H:i') : '') . ' · ' . esc_html((string) $minutes) . 'm ago</small></div><b>' . wp_kses_post($order->get_formatted_order_total()) . '</b></header>';
-        echo '<div class="ttos-order-badges"><span class="ttos-fulfilment ' . esc_attr($fulfilment) . '">' . esc_html(ucfirst($fulfilment)) . '</span><span>' . esc_html(self::format_requested_time($requested)) . '</span><span>' . esc_html(wc_get_order_status_name($status)) . '</span><span>' . esc_html(self::payment_status_label($order)) . '</span><span>' . esc_html($order->get_payment_method_title() ?: 'Payment pending') . '</span>' . ($prep ? '<span>Prep ' . esc_html((string) $prep) . 'm</span>' : '') . ($due_ts ? '<span class="' . esc_attr($late ? 'ttos-bad' : 'ttos-good') . '">' . esc_html(self::due_label($due_ts)) . '</span>' : '') . '</div>';
+        echo '<div class="ttos-order-badges"><span class="ttos-fulfilment ' . esc_attr($fulfilment) . '">' . esc_html(ucfirst($fulfilment)) . '</span><span>' . esc_html(self::format_requested_time($requested)) . '</span>' . ($is_preorder ? '<span class="ttos-good">Pre-order</span>' : '') . '<span>' . esc_html(wc_get_order_status_name($status)) . '</span><span>' . esc_html(self::payment_status_label($order)) . '</span><span>' . esc_html($order->get_payment_method_title() ?: 'Payment pending') . '</span>' . ($prep ? '<span>Prep ' . esc_html((string) $prep) . 'm</span>' : '') . ($due_ts ? '<span class="' . esc_attr($late ? 'ttos-bad' : 'ttos-good') . '">' . esc_html(self::due_label($due_ts)) . '</span>' : '') . '</div>';
         echo '<p class="ttos-order-customer">' . esc_html($order->get_formatted_billing_full_name() ?: 'Guest customer') . '<br><small>' . esc_html($order->get_billing_phone()) . ($order->get_billing_email() ? ' · ' . esc_html($order->get_billing_email()) : '') . '</small></p>';
         if ($fulfilment === 'delivery') {
             $address = $order->get_formatted_shipping_address() ?: $order->get_formatted_billing_address();
@@ -1585,6 +1637,7 @@ final class TTOS_Admin {
             self::customer_profile_panel(strtolower($selected_email), $customers[strtolower($selected_email)]);
         }
 
+        self::customer_import_panel();
         self::campaign_builder_panel();
 
         echo '<section class="ttos-card"><div class="ttos-order-cockpit-head"><div><h2>Customer segments</h2><p class="ttos-muted">Filter the list, open a customer profile, then add notes, loyalty adjustments or a targeted reward.</p></div>';
@@ -1665,6 +1718,9 @@ final class TTOS_Admin {
         }
         foreach ($customers as $email => &$c) {
             $profile = $profiles[$email] ?? array();
+            $c['name'] = trim((string) ($c['name'] ?: ($profile['name'] ?? '')));
+            $c['phone'] = (string) ($c['phone'] ?: ($profile['phone'] ?? ''));
+            $c['postcode'] = (string) ($c['postcode'] ?: ($profile['postcode'] ?? ''));
             $c['tags'] = (string) ($profile['tags'] ?? '');
             $c['internal_notes'] = (string) ($profile['internal_notes'] ?? '');
             $c['marketing_ok'] = (string) ($profile['marketing_ok'] ?? '0');
@@ -1678,6 +1734,30 @@ final class TTOS_Admin {
             else $c['status'] = 'new';
         }
         unset($c);
+        foreach ($profiles as $email => $profile) {
+            $email = strtolower(sanitize_email((string) $email));
+            if ($email === '' || isset($customers[$email])) {
+                continue;
+            }
+            $customers[$email] = array(
+                'name' => sanitize_text_field((string) ($profile['name'] ?? '')),
+                'phone' => sanitize_text_field((string) ($profile['phone'] ?? '')),
+                'postcode' => sanitize_text_field((string) ($profile['postcode'] ?? '')),
+                'orders' => 0,
+                'total' => 0.0,
+                'aov' => 0.0,
+                'last' => '',
+                'last_ts' => 0,
+                'first_ts' => 0,
+                'status' => 'new',
+                'tags' => (string) ($profile['tags'] ?? ''),
+                'internal_notes' => (string) ($profile['internal_notes'] ?? ''),
+                'marketing_ok' => (string) ($profile['marketing_ok'] ?? '0'),
+                'birthday' => (string) ($profile['birthday'] ?? ''),
+                'items' => array(),
+                'order_ids' => array(),
+            );
+        }
         uasort($customers, function($a, $b){ return $b['last_ts'] <=> $a['last_ts']; });
         return $customers;
     }
@@ -1744,6 +1824,9 @@ final class TTOS_Admin {
         echo '<div><h3>CRM notes</h3><form method="post">';
         wp_nonce_field('ttos_save_customer_profile');
         echo '<input type="hidden" name="ttos_action" value="save_customer_profile"><input type="hidden" name="customer_email" value="' . esc_attr($email) . '">';
+        self::field('Name', 'customer_name', $customer['name']);
+        self::field('Phone', 'customer_phone', $customer['phone']);
+        self::field('Postcode', 'customer_postcode', $customer['postcode']);
         self::field('Tags', 'customer_tags', $customer['tags']);
         self::field('Birthday / useful date', 'birthday', $customer['birthday']);
         echo '<label>Internal notes<textarea name="customer_notes" rows="5">' . esc_textarea($customer['internal_notes']) . '</textarea></label>';
@@ -1768,6 +1851,15 @@ final class TTOS_Admin {
         self::field('Discount amount', 'campaign_amount', '5', 'number');
         self::field('Expires in days', 'campaign_expires_days', '14', 'number');
         echo '<label>Action<span class="ttos-muted" style="display:block;margin-top:6px">Coupon will be customer-email restricted.</span><button class="ttos-button" ' . disabled(!$enabled, true, false) . '>Create campaign coupon</button></label></form></section>';
+    }
+
+    private static function customer_import_panel(): void {
+        $export_url = wp_nonce_url(admin_url('admin-post.php?action=ttos_export_customer_profiles_csv'), 'ttos_export_customer_profiles_csv');
+        echo '<section class="ttos-card"><h2>Customer import / export</h2><p class="ttos-muted">Upload CRM leads or existing takeaway customers into the same profile store used by tags, notes and marketing preferences. Order history is still read from WooCommerce.</p>';
+        echo '<div class="ttos-grid ttos-grid-2"><div><h3>Import customer CSV</h3><p class="ttos-muted">Required header: <code>email</code>. Optional headers: <code>name</code>, <code>phone</code>, <code>postcode</code>, <code>tags</code>, <code>internal_notes</code>, <code>marketing_ok</code>, <code>birthday</code>.</p><form method="post" enctype="multipart/form-data">';
+        wp_nonce_field('ttos_import_customer_profiles');
+        echo '<input type="hidden" name="ttos_action" value="import_customer_profiles"><input type="file" name="customer_csv" accept=".csv,text/csv"><button class="ttos-button">Import customer CSV</button></form></div>';
+        echo '<div><h3>Export customer CRM CSV</h3><p class="ttos-muted">Downloads the current CRM snapshot, including imported profiles, marketing flags and WooCommerce order totals for round-tripping.</p><p><a class="ttos-button" href="' . esc_url($export_url) . '">Export customer CRM CSV</a></p></div></div></section>';
     }
 
     private static function campaign_history_panel(): void {
@@ -1796,6 +1888,132 @@ final class TTOS_Admin {
             update_post_meta($id, 'date_expires', time() + max(1, $expires_days) * DAY_IN_SECONDS);
         }
         return $code;
+    }
+
+    private static function import_customer_profiles() {
+        $upload = TTOS_Hardening::stash_uploaded_file($_FILES['customer_csv'] ?? array(), array('csv'), 2 * 1024 * 1024, 'customer-import-');
+        if (is_wp_error($upload)) {
+            return $upload;
+        }
+
+        $profiles = self::customer_profiles();
+        $summary = array('processed' => 0, 'created' => 0, 'updated' => 0, 'skipped' => 0);
+        $warnings = array();
+        $handle = fopen($upload['path'], 'r');
+        if (!$handle) {
+            TTOS_Hardening::cleanup_import_file($upload['path']);
+            return new WP_Error('ttos_customer_import_open', __('The uploaded customer CSV could not be opened.', 'takeaway-os'));
+        }
+
+        try {
+            $headers = fgetcsv($handle);
+            if (!$headers) {
+                return new WP_Error('ttos_customer_import_headers', __('The customer CSV is empty or missing its header row.', 'takeaway-os'));
+            }
+            $headers = array_map(array(__CLASS__, 'normalise_csv_header'), $headers);
+            if (!in_array('email', $headers, true)) {
+                return new WP_Error('ttos_customer_import_email', __('The customer CSV must include an "email" column.', 'takeaway-os'));
+            }
+
+            while (($row = fgetcsv($handle)) !== false) {
+                if (!is_array($row) || self::csv_row_blank($row)) {
+                    continue;
+                }
+                $data = array();
+                foreach ($headers as $index => $key) {
+                    if ($key === '') {
+                        continue;
+                    }
+                    $data[$key] = isset($row[$index]) ? trim((string) $row[$index]) : '';
+                }
+
+                $email = strtolower(sanitize_email((string) ($data['email'] ?? '')));
+                if ($email === '' || !is_email($email)) {
+                    $warnings[] = __('A row was skipped because the email address was missing or invalid.', 'takeaway-os');
+                    $summary['skipped']++;
+                    continue;
+                }
+
+                $existing = is_array($profiles[$email] ?? null) ? $profiles[$email] : array();
+                $profiles[$email] = array(
+                    'name'           => sanitize_text_field((string) ($data['name'] ?? ($existing['name'] ?? ''))),
+                    'phone'          => sanitize_text_field((string) ($data['phone'] ?? ($existing['phone'] ?? ''))),
+                    'postcode'       => sanitize_text_field((string) ($data['postcode'] ?? ($existing['postcode'] ?? ''))),
+                    'tags'           => sanitize_text_field((string) ($data['tags'] ?? ($existing['tags'] ?? ''))),
+                    'internal_notes' => sanitize_textarea_field((string) ($data['internal_notes'] ?? ($existing['internal_notes'] ?? ''))),
+                    'marketing_ok'   => self::csv_bool((string) ($data['marketing_ok'] ?? ($existing['marketing_ok'] ?? '0'))) ? '1' : '0',
+                    'birthday'       => sanitize_text_field((string) ($data['birthday'] ?? ($existing['birthday'] ?? ''))),
+                    'updated'        => time(),
+                );
+                $summary['processed']++;
+                if ($existing) {
+                    $summary['updated']++;
+                } else {
+                    $summary['created']++;
+                }
+            }
+        } finally {
+            fclose($handle);
+            TTOS_Hardening::cleanup_import_file($upload['path']);
+        }
+
+        if (!$summary['processed']) {
+            return new WP_Error('ttos_customer_import_empty', __('No customer profiles were imported from that CSV.', 'takeaway-os'));
+        }
+
+        update_option('ttos_customer_profiles', $profiles, false);
+        if ($warnings) {
+            $summary['warnings'] = $warnings;
+        }
+        return $summary;
+    }
+
+    public static function export_customer_profiles_csv(): void {
+        if (!current_user_can('ttos_view_reports') || !check_admin_referer('ttos_export_customer_profiles_csv')) {
+            wp_die('Not allowed.');
+        }
+        nocache_headers();
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=takeaway-customer-crm-' . gmdate('Y-m-d') . '.csv');
+        $out = fopen('php://output', 'w');
+        fputcsv($out, array('email','name','phone','postcode','tags','internal_notes','marketing_ok','birthday','orders','lifetime_value','last_order','status'));
+        foreach (self::customer_snapshot_enhanced(500) as $email => $customer) {
+            fputcsv($out, array(
+                $email,
+                $customer['name'],
+                $customer['phone'],
+                $customer['postcode'],
+                $customer['tags'],
+                $customer['internal_notes'],
+                $customer['marketing_ok'],
+                $customer['birthday'],
+                $customer['orders'],
+                wc_format_decimal((float) $customer['total'], 2),
+                $customer['last'],
+                $customer['status'],
+            ));
+        }
+        fclose($out);
+        exit;
+    }
+
+    private static function normalise_csv_header(string $header): string {
+        $header = strtolower(trim($header));
+        $header = preg_replace('/[^a-z0-9]+/', '_', $header);
+        return trim((string) $header, '_');
+    }
+
+    private static function csv_row_blank(array $row): bool {
+        foreach ($row as $value) {
+            if (trim((string) $value) !== '') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static function csv_bool(string $value): bool {
+        return in_array(strtolower(trim($value)), array('1', 'yes', 'true', 'y', 'on'), true);
     }
 
     public static function page_reports(): void {
@@ -1963,7 +2181,7 @@ final class TTOS_Admin {
             'allergen_filters' => array('name' => 'Allergen filtering', 'description' => 'Customer-facing filters and warnings.', 'price' => '£250', 'status' => 'PRO PARTIAL', 'note' => 'Allergen data is mapped, but the public filter layer is not a finished paid surface.', 'toggleable' => false),
             'inventory_lite' => array('name' => 'Inventory Lite', 'description' => 'Sold-out toggles, limited item counts and daily availability.', 'price' => '£250', 'status' => 'PRO READY', 'note' => 'Safe to enable for production.', 'toggleable' => true),
             'analytics_pro' => array('name' => 'Analytics Pro', 'description' => 'Best sellers, quiet hours, margin hints and owner reports.', 'price' => '£350', 'status' => 'PRO READY', 'note' => 'Safe to enable for production.', 'toggleable' => true),
-            'promo_engine' => array('name' => 'Promo engine', 'description' => 'Timed discounts, first-order offers and direct-order campaigns.', 'price' => '£300', 'status' => 'PRO PARTIAL', 'note' => 'Foundations exist, but it should not be sold as a finished automation engine yet.', 'toggleable' => false),
+            'promo_engine' => array('name' => 'Promo engine', 'description' => 'Timed discounts, first-order offers and direct-order campaigns.', 'price' => '£300', 'status' => 'PRO PARTIAL', 'note' => 'Manual campaigns and basic win-back automation are live; broader timed-promo automation still needs finishing.', 'toggleable' => false),
             'content_manager' => array('name' => 'Content manager', 'description' => 'Owner-safe homepage sections, images and offer blocks.', 'price' => '£250', 'status' => 'CORE INCLUDED', 'note' => 'This behaviour is now part of the core CRM/site content experience.', 'toggleable' => true),
             'kds_pro' => array('name' => 'Kitchen Display Pro', 'description' => 'Large-screen kitchen board, filters and prep timers.', 'price' => '£350', 'status' => 'PRO PARTIAL', 'note' => 'Core tickets are live; enhanced KDS packaging should stay disabled until separated cleanly.', 'toggleable' => false),
             'epos_connector' => array('name' => 'EPOS connector', 'description' => 'Square/ICRTouch/webhook mapping.', 'price' => '£500+', 'status' => 'ADMIN-ONLY STUB', 'note' => 'Integration settings exist for future use. Not active until configured and verified.', 'toggleable' => false),
