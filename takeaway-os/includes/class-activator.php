@@ -11,6 +11,7 @@ final class TTOS_Activator {
         self::create_pages();
         update_option('ttos_version', TTOS_VERSION, false);
         update_option('ttos_do_activation_redirect', '1', false);
+        update_option(TTOS_Client_Intake::STARTUP_PENDING, '1', false);
         flush_rewrite_rules();
     }
 

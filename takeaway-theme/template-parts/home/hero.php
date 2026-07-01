@@ -155,13 +155,8 @@ if (!$image_id && post_type_exists('product')) {
 
         <div class="tt-home-hero-visual">
             <?php
-            $hero_img = $image_id ? wp_get_attachment_image($image_id, 'large', false, array(
-                'class' => 'tt-home-hero-img',
-                'alt' => sprintf(__('Food from %s', 'takeaway-theme'), tt_business_name()),
-                'fetchpriority' => 'high',
-                'decoding' => 'async',
-                'sizes' => '(min-width: 901px) 48vw, 92vw',
-            )) : '';
+            $hero_label = sprintf(__('Food from %s', 'takeaway-theme'), tt_business_name());
+            $hero_img = $image_id ? tt_image($image_id, 'large', 'tt-home-hero-img', $hero_label) : '';
             if ($hero_img !== '') {
                 echo '<div class="tt-home-hero-imgwrap">' . $hero_img . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput
             } elseif ($hero_products) {
@@ -181,7 +176,8 @@ if (!$image_id && post_type_exists('product')) {
                 echo '<a class="tt-board-link" href="' . esc_url(tt_menu_url()) . '">' . esc_html__('Browse the full menu', 'takeaway-theme') . '</a>';
                 echo '</div>';
             } else {
-                echo '<div class="tt-home-hero-placeholder" aria-hidden="true"><span class="tt-blob tt-blob-1"></span><span class="tt-blob tt-blob-2"></span><span class="tt-blob tt-blob-3"></span></div>';
+                $hero_placeholder_text = trim($title . ' ' . $eyebrow . ' ' . (string) ttheme_business('cuisine', ''));
+                echo '<div class="tt-home-hero-placeholder">' . tt_food_placeholder($hero_placeholder_text, '', $hero_label) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput
             }
             ?>
         </div><!-- /.tt-home-hero-visual -->

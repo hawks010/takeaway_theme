@@ -505,7 +505,9 @@ final class TTOS_Features {
         echo '<div class="ttos-grid ttos-grid-2">'; self::field('VAT estimate rate (%)', 'feature_settings[accounting][vat_rate]', $s['vat_rate'], 'number'); self::field('Owner/accountant email', 'feature_settings[accounting][daily_email]', $s['daily_email'], 'email'); echo '</div><button class="ttos-button">Save accounting settings</button></form>';
         $daily = self::daily_close_snapshot();
         echo '<div class="ttos-grid ttos-grid-4">'; self::metric('Today gross', self::money($daily['gross'])); self::metric('Card', self::money($daily['card'])); self::metric('Cash', self::money($daily['cash'])); self::metric('VAT est.', self::money($daily['vat'])); echo '</div>';
-        echo '<p><a class="ttos-button" href="' . esc_url(wp_nonce_url(admin_url('admin-post.php?action=ttos_export_orders_csv'), 'ttos_export_orders_csv')) . '">Export orders CSV</a></p></section>';
+        echo '<p><a class="ttos-button" href="' . esc_url(wp_nonce_url(admin_url('admin-post.php?action=ttos_export_orders_csv'), 'ttos_export_orders_csv')) . '">Export orders CSV</a></p>';
+        self::accounting_export_log_table();
+        echo '</section>';
     }
 
     private static function settings_hidden_except(string $sections_csv): void {
@@ -972,6 +974,7 @@ final class TTOS_Features {
             'fulfilment' => array(
                 'method' => $order->get_meta('_ttos_fulfilment_method') ?: 'unknown',
                 'requested_time' => $order->get_meta('_ttos_requested_time') ?: 'asap',
+                'is_preorder' => $order->get_meta('_ttos_is_preorder') === '1',
                 'prep_minutes' => $order->get_meta('_ttos_prep_minutes'),
                 'due_ts' => $order->get_meta('_ttos_due_ts'),
             ),
@@ -1106,15 +1109,79 @@ final class TTOS_Features {
 
     public static function export_orders_csv(): void {
         if (!current_user_can('ttos_view_reports') || !check_admin_referer('ttos_export_orders_csv')) wp_die('Not allowed.');
-        header('Content-Type: text/csv'); header('Content-Disposition: attachment; filename="takeaway-orders-' . gmdate('Y-m-d') . '.csv"'); $out = fopen('php://output','w'); fputcsv($out, array('order_id','date','status','customer','email','phone','payment','total','tax','shipping'));
-        if (TTOS_WooCommerce::active()) foreach (wc_get_orders(array('limit'=>1000,'return'=>'objects')) as $o) fputcsv($out, array($o->get_id(), $o->get_date_created() ? $o->get_date_created()->date('Y-m-d H:i:s') : '', $o->get_status(), $o->get_formatted_billing_full_name(), $o->get_billing_email(), $o->get_billing_phone(), $o->get_payment_method_title(), $o->get_total(), $o->get_total_tax(), $o->get_shipping_total()));
-        fclose($out); exit;
+        $rows = array();
+        if (TTOS_WooCommerce::active()) {
+            foreach (wc_get_orders(array('limit'=>1000,'return'=>'objects')) as $o) {
+                $rows[] = array(
+                    $o->get_id(),
+                    $o->get_date_created() ? $o->get_date_created()->date('Y-m-d H:i:s') : '',
+                    $o->get_status(),
+                    $o->get_formatted_billing_full_name(),
+                    $o->get_billing_email(),
+                    $o->get_billing_phone(),
+                    sanitize_key((string) $o->get_meta('_ttos_fulfilment_method')),
+                    (string) $o->get_meta('_ttos_requested_time'),
+                    $o->get_meta('_ttos_is_preorder') === '1' ? 'yes' : 'no',
+                    $o->get_payment_method_title(),
+                    $o->get_total(),
+                    $o->get_total_tax(),
+                    $o->get_shipping_total(),
+                );
+            }
+        }
+        self::record_accounting_export($rows ? 'success' : 'warning', sprintf('Orders export generated with %d row(s).', count($rows)), array('rows' => count($rows)));
+        self::export_csv('takeaway-orders-' . gmdate('Y-m-d') . '.csv', array('order_id','date','status','customer','email','phone','fulfilment','requested_time','preorder','payment','total','tax','shipping'), $rows);
     }
 
     public static function export_customers_csv(): void {
         if (!current_user_can('ttos_view_reports') || !check_admin_referer('ttos_export_customers_csv')) wp_die('Not allowed.');
-        header('Content-Type: text/csv'); header('Content-Disposition: attachment; filename="takeaway-customers-' . gmdate('Y-m-d') . '.csv"'); $out = fopen('php://output','w'); fputcsv($out, array('name','email','orders','lifetime_value','last_order','dormant'));
-        foreach (self::customer_snapshot() as $email => $c) fputcsv($out, array($c['name'], $email, $c['orders'], $c['total'], $c['last'], $c['dormant'] ? 'yes' : 'no'));
-        fclose($out); exit;
+        $rows = array();
+        foreach (self::customer_snapshot() as $email => $c) {
+            $rows[] = array($c['name'], $email, $c['orders'], $c['total'], $c['last'], $c['dormant'] ? 'yes' : 'no');
+        }
+        self::record_accounting_export($rows ? 'success' : 'warning', sprintf('Customers export generated with %d row(s).', count($rows)), array('rows' => count($rows)));
+        self::export_csv('takeaway-customers-' . gmdate('Y-m-d') . '.csv', array('name','email','orders','lifetime_value','last_order','dormant'), $rows);
+    }
+
+    private static function export_csv(string $filename, array $headers, array $rows): void {
+        nocache_headers();
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . sanitize_file_name($filename) . '"');
+        $out = fopen('php://output', 'w');
+        fputcsv($out, $headers);
+        foreach ($rows as $row) {
+            fputcsv($out, $row);
+        }
+        fclose($out);
+        exit;
+    }
+
+    private static function record_accounting_export(string $status, string $message, array $context = array()): void {
+        $log = get_option('ttos_accounting_export_log', array());
+        if (!is_array($log)) {
+            $log = array();
+        }
+        $log[] = array(
+            'time'    => time(),
+            'status'  => sanitize_key($status),
+            'message' => sanitize_text_field($message),
+            'context' => $context,
+        );
+        update_option('ttos_accounting_export_log', array_slice($log, -50), false);
+    }
+
+    private static function accounting_export_log_table(): void {
+        $log = get_option('ttos_accounting_export_log', array());
+        if (!is_array($log) || !$log) {
+            echo '<p class="ttos-muted">No accounting exports logged yet.</p>';
+            return;
+        }
+        echo '<h3>Recent export activity</h3><table class="ttos-table"><thead><tr><th>Time</th><th>Status</th><th>Message</th></tr></thead><tbody>';
+        foreach (array_reverse(array_slice($log, -5)) as $row) {
+            $status = (string) ($row['status'] ?? 'info');
+            $class = $status === 'success' ? 'ttos-good' : ($status === 'warning' ? 'ttos-warn' : 'ttos-bad');
+            echo '<tr><td>' . esc_html(date_i18n('d M Y H:i', (int) ($row['time'] ?? time()))) . '</td><td><span class="' . esc_attr($class) . '">' . esc_html(ucfirst($status)) . '</span></td><td>' . esc_html((string) ($row['message'] ?? '')) . '</td></tr>';
+        }
+        echo '</tbody></table>';
     }
 }

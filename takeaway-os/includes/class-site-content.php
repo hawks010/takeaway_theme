@@ -187,6 +187,9 @@ final class TTOS_Site_Content {
         $stored['version'] = self::CONTENT_VERSION;
         $stored[$section] = $values;
         update_option(self::OPTION, $stored, false);
+        if ($section === 'business_info' && class_exists('TTOS_Settings')) {
+            TTOS_Settings::sync_business_from_site_content($values);
+        }
     }
 
     /**

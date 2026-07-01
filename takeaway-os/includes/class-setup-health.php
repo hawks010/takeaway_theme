@@ -159,13 +159,22 @@ final class TTOS_Setup_Health {
         $warn = 0;
         $fail = 0;
         $pending = array();
+        $scored_total = 0;
 
         foreach ($checks as $check) {
-            if ($check['status'] === 'pass') {
+            $status = (string) ($check['status'] ?? '');
+            if (!self::is_scored_status($status)) {
+                continue;
+            }
+
+            $scored_total++;
+
+            if ($status === 'pass') {
                 $pass++;
                 continue;
             }
-            if ($check['status'] === 'warn') {
+
+            if ($status === 'warn') {
                 $warn++;
             } else {
                 $fail++;
@@ -173,15 +182,14 @@ final class TTOS_Setup_Health {
             $pending[] = $check['label'];
         }
 
-        $total = count($checks);
-        $progress = $total > 0 ? (int) round(($pass / $total) * 100) : 0;
+        $progress = $scored_total > 0 ? (int) round(($pass / $scored_total) * 100) : 0;
 
         return array(
             'checks' => $checks,
             'pass' => $pass,
             'warn' => $warn,
             'fail' => $fail,
-            'total' => $total,
+            'total' => $scored_total,
             'progress' => $progress,
             'pending' => $pending,
             'core_ready' => self::basic_site_ready($checks),
@@ -294,21 +302,19 @@ final class TTOS_Setup_Health {
         $checks[] = self::schedule_check('popup');
 
         // Branding asset checks (warn only — content gaps, not broken site)
-        $logo_id    = absint(class_exists('TTOS_Settings') ? (TTOS_Settings::get('branding', 'logo_id') ?: 0) : 0);
-        $favicon_id = absint(class_exists('TTOS_Settings') ? (TTOS_Settings::get('branding', 'favicon_id') ?: 0) : 0);
         $checks[] = self::make_check(
             'branding_logo',
             'Site logo uploaded',
-            $logo_id > 0,
-            'A site logo has been uploaded in Branding.',
-            'No site logo has been uploaded. The site will show the business initial letter as a fallback. Upload a logo in Branding → Logo.'
+            self::branding_logo_present(),
+            'A site logo is available via Branding or the WordPress custom logo.',
+            'No site logo has been uploaded in Branding or WordPress custom logo. The site will show the business initial letter as a fallback. Upload one in Branding → Logo or Appearance → Customise.'
         );
         $checks[] = self::make_check(
             'branding_favicon',
             'Favicon uploaded',
-            $favicon_id > 0,
-            'A favicon has been uploaded in Branding.',
-            'No favicon has been uploaded. Browsers will show a blank tab icon. Upload one in Branding → Favicon.'
+            self::branding_favicon_present(),
+            'A favicon is available via Branding or the WordPress Site Icon.',
+            'No favicon has been uploaded in Branding or WordPress Site Icon. Browsers will show a blank tab icon until one is added.'
         );
 
         // Social links: optional warn (not a site-breaking gap)
@@ -343,16 +349,10 @@ final class TTOS_Setup_Health {
         );
 
         // Delivery/collection completeness
-        $dc = TTOS_Site_Content::get('delivery_collection');
-        $dc_set = count(array_filter((array) $dc, static function ($v) { return $v !== '' && $v !== null; }));
-        $dc_total = max(1, count((array) $dc));
-        $dc_percent = (int) round($dc_set / $dc_total * 100);
-        $checks[] = self::make_check(
+        $checks[] = self::status_from_tuple(
             'delivery_collection_data',
             'Delivery & Collection details filled',
-            $dc_percent >= 50,
-            'Delivery & Collection: ' . $dc_set . '/' . $dc_total . ' fields filled.',
-            'Delivery & Collection section is mostly empty (' . $dc_set . '/' . $dc_total . ' fields). Fill in zone details, minimums, and collection settings in Site Content → Delivery & Collection.'
+            self::delivery_collection_status()
         );
 
         // Staging-only user accounts — warn before production handover
@@ -622,7 +622,7 @@ final class TTOS_Setup_Health {
     private static function checks_panel(array $checks): void {
         echo '<section class="ttos-card"><div class="ttos-card-head"><div><h2>Health checks</h2><p class="ttos-muted">Pass/warn/fail cards for the current install state.</p></div></div><div class="ttos-setup-health-grid">';
         foreach ($checks as $check) {
-            $class = $check['status'] === 'pass' ? 'ttos-good' : ($check['status'] === 'warn' ? 'ttos-warn' : 'ttos-bad');
+            $class = self::status_badge_class((string) ($check['status'] ?? ''));
             echo '<article class="ttos-setup-health-card ' . esc_attr('is-' . $check['status']) . '"><div class="ttos-card-head"><h3>' . esc_html($check['label']) . '</h3><span class="' . esc_attr($class) . '">' . esc_html(strtoupper($check['status'])) . '</span></div><p>' . esc_html($check['message']) . '</p>';
             if (!empty($check['hint'])) {
                 echo '<small class="ttos-muted">' . esc_html($check['hint']) . '</small>';
@@ -700,6 +700,23 @@ final class TTOS_Setup_Health {
         );
     }
 
+    private static function is_scored_status(string $status): bool {
+        return in_array($status, array('pass', 'warn', 'fail'), true);
+    }
+
+    private static function status_badge_class(string $status): string {
+        if ($status === 'pass') {
+            return 'ttos-good';
+        }
+        if ($status === 'warn') {
+            return 'ttos-warn';
+        }
+        if ($status === 'hint') {
+            return 'ttos-muted';
+        }
+        return 'ttos-bad';
+    }
+
     private static function page_check(string $key, string $label, string $pass_message, string $fail_message): array {
         $status = TTOS_Page_Manager::status($key);
         $ready = !empty($status['id']);
@@ -728,6 +745,117 @@ final class TTOS_Setup_Health {
 
     private static function nav_menu_exists(string $menu_name): bool {
         return (bool) wp_get_nav_menu_object($menu_name);
+    }
+
+    private static function branding_logo_present(): bool {
+        $branding_logo = absint(class_exists('TTOS_Settings') ? (TTOS_Settings::get('branding', 'logo_id') ?: 0) : 0);
+        if (self::valid_attachment_image($branding_logo)) {
+            return true;
+        }
+
+        $custom_logo = absint(get_theme_mod('custom_logo', 0));
+        return self::valid_attachment_image($custom_logo);
+    }
+
+    private static function branding_favicon_present(): bool {
+        $branding_favicon = absint(class_exists('TTOS_Settings') ? (TTOS_Settings::get('branding', 'favicon_id') ?: 0) : 0);
+        if (self::valid_attachment_image($branding_favicon)) {
+            return true;
+        }
+
+        $site_icon = absint(get_option('site_icon', 0));
+        return self::valid_attachment_image($site_icon);
+    }
+
+    private static function valid_attachment_image(int $attachment_id): bool {
+        return $attachment_id > 0 && get_post_type($attachment_id) === 'attachment' && wp_attachment_is_image($attachment_id);
+    }
+
+    private static function delivery_collection_status(): array {
+        $dc = class_exists('TTOS_Site_Content') ? TTOS_Site_Content::get('delivery_collection') : array();
+        $trading = class_exists('TTOS_Settings') ? TTOS_Settings::get('trading') : array();
+
+        $delivery_enabled = ($dc['delivery_enabled'] ?? '1') === '1';
+        $collection_enabled = ($dc['collection_enabled'] ?? '1') === '1';
+
+        $copy_fields = array(
+            'zone_summary',
+            'min_order_text',
+            'delivery_estimate_text',
+            'collection_estimate_text',
+            'free_delivery_text',
+            'paused_message',
+            'delivery_intro',
+            'collection_intro',
+        );
+        $copy_count = 0;
+        foreach ($copy_fields as $field) {
+            if (trim((string) ($dc[$field] ?? '')) !== '') {
+                $copy_count++;
+            }
+        }
+
+        $delivery_has_area = self::any_present(
+            (string) ($dc['zone_summary'] ?? ''),
+            (string) ($trading['delivery_postcodes'] ?? ''),
+            (string) ($trading['delivery_radius'] ?? '')
+        );
+        $delivery_has_minimum = self::any_present(
+            (string) ($dc['min_order_text'] ?? ''),
+            (string) ($trading['min_order'] ?? '')
+        );
+        $delivery_has_eta = self::any_present(
+            (string) ($dc['delivery_estimate_text'] ?? ''),
+            (string) ($trading['delivery_time'] ?? '')
+        );
+        $collection_has_eta = self::any_present(
+            (string) ($dc['collection_estimate_text'] ?? ''),
+            (string) ($trading['prep_time'] ?? '')
+        );
+
+        $missing = array();
+        if ($delivery_enabled) {
+            if (!$delivery_has_area) {
+                $missing[] = 'delivery area/zone coverage';
+            }
+            if (!$delivery_has_minimum) {
+                $missing[] = 'minimum order guidance';
+            }
+            if (!$delivery_has_eta) {
+                $missing[] = 'delivery time estimate';
+            }
+        }
+        if ($collection_enabled && !$collection_has_eta) {
+            $missing[] = 'collection time estimate';
+        }
+
+        if (!$missing) {
+            $message = 'Delivery and collection runtime details are available via Site Content or Trading settings.';
+            if ($copy_count > 0) {
+                $message .= ' Customer-facing copy fields filled: ' . $copy_count . '/' . count($copy_fields) . '.';
+            }
+            return array(
+                'status' => 'pass',
+                'message' => $message,
+                'hint' => '',
+            );
+        }
+
+        return array(
+            'status' => 'warn',
+            'message' => 'Delivery & Collection is missing: ' . implode(', ', $missing) . '.',
+            'hint' => 'Add the missing details in Site Content → Delivery & Collection, or complete the Trading settings fallback values used by the public templates.',
+        );
+    }
+
+    private static function any_present(string ...$values): bool {
+        foreach ($values as $value) {
+            if (trim($value) !== '') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static function starter_content_exists(): bool {
@@ -811,11 +939,24 @@ final class TTOS_Setup_Health {
         $enabled = ($settings['enabled'] ?? 'no') === 'yes';
         $testmode = ($settings['testmode'] ?? 'no') === 'yes';
         $has_credentials = !empty($settings['api_credentials']) || !empty($settings['publishable_key']) || !empty($settings['test_publishable_key']);
+        $manual_gateways = self::manual_gateways_enabled();
 
         if (!$enabled) {
+            if (self::is_non_production_context() && $manual_gateways) {
+                return array(
+                    'status' => 'pass',
+                    'message' => 'Stripe is intentionally disabled on this non-production install. Mode detected: ' . ($testmode ? 'test mode' : 'live mode') . '. Manual gateway available: ' . implode(', ', $manual_gateways) . '.',
+                    'hint' => 'Enable Stripe with test or live credentials when moving beyond staging QA.',
+                );
+            }
+
+            $message = 'Stripe is active but disabled in WooCommerce. Mode detected: ' . ($testmode ? 'test mode' : 'live mode') . '.';
+            if (!$has_credentials) {
+                $message .= ' No Stripe credentials were detected yet.';
+            }
             return array(
                 'status' => 'warn',
-                'message' => 'Stripe is active but disabled in WooCommerce. Mode detected: ' . ($testmode ? 'test mode' : 'live mode') . '.',
+                'message' => $message,
                 'hint' => 'For beta, keep Stripe in test mode if testing cards. For paid production, enable and verify live card payments.',
             );
         }
@@ -844,13 +985,7 @@ final class TTOS_Setup_Health {
             );
         }
 
-        $manual = array();
-        foreach (self::payment_gateways() as $gateway) {
-            $id = isset($gateway->id) ? (string) $gateway->id : '';
-            if (in_array($id, array('bacs', 'cod', 'cheque'), true) && isset($gateway->enabled) && $gateway->enabled === 'yes') {
-                $manual[] = self::gateway_label($gateway);
-            }
-        }
+        $manual = self::manual_gateways_enabled();
 
         if ($manual) {
             return array(
@@ -942,11 +1077,30 @@ final class TTOS_Setup_Health {
             );
         }
 
+        if (self::is_non_production_context()) {
+            return array(
+                'status' => 'pass',
+                'message' => 'SMTP plugin is active and email delivery is intentionally deferred on this non-production install.',
+                'hint' => 'Add real SMTP credentials before production handover or live order-email sign-off.',
+            );
+        }
+
         return array(
             'status' => 'warn',
             'message' => 'SMTP plugin active but no saved connection/settings record was detected.',
             'hint' => 'Configure SMTP credentials, then use the Setup Health email test.',
         );
+    }
+
+    private static function manual_gateways_enabled(): array {
+        $manual = array();
+        foreach (self::payment_gateways() as $gateway) {
+            $id = isset($gateway->id) ? (string) $gateway->id : '';
+            if (in_array($id, array('bacs', 'cod', 'cheque'), true) && isset($gateway->enabled) && $gateway->enabled === 'yes') {
+                $manual[] = self::gateway_label($gateway);
+            }
+        }
+        return $manual;
     }
 
     private static function active_smtp_plugins(): array {
@@ -974,6 +1128,25 @@ final class TTOS_Setup_Health {
                 return true;
             }
         }
+        return false;
+    }
+
+    private static function is_non_production_context(): bool {
+        if (function_exists('wp_get_environment_type') && wp_get_environment_type() !== 'production') {
+            return true;
+        }
+
+        $host = (string) wp_parse_url(home_url('/'), PHP_URL_HOST);
+        if ($host === '') {
+            return false;
+        }
+
+        foreach (array('thatdeveloper.co.uk', 'staging', 'test.', 'dev.') as $marker) {
+            if (stripos($host, $marker) !== false) {
+                return true;
+            }
+        }
+
         return false;
     }
 

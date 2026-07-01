@@ -29,20 +29,20 @@ final class TTOS_Settings {
                 'logo_id'       => 0,
                 'favicon_id'    => 0,
                 'hero_image_id' => 0,
-                'primary'       => '#c53000',
-                'accent'        => '#ffac00',
-                'bg'            => '#f9f4ee',
+                'primary'       => '#d83a16',
+                'accent'        => '#d99a22',
+                'bg'            => '#fbf4ea',
                 'surface'       => '#ffffff',
-                'surface_soft'  => '#f1eae0',
-                'text'          => '#1a1410',
-                'muted'         => '#6f655e',
-                'border'        => '#e8dfd4',
-                'success'       => '#157a35',
+                'surface_soft'  => '#f8efe4',
+                'text'          => '#1f1712',
+                'muted'         => '#75665c',
+                'border'        => '#e5d6c5',
+                'success'       => '#2f7d46',
                 'warning'       => '#8a5200',
-                'error'         => '#b33a3a',
-                'radius_sm'     => '25',
-                'radius_md'     => '25',
-                'radius_lg'     => '25',
+                'error'         => '#b73525',
+                'radius_sm'     => '16',
+                'radius_md'     => '20',
+                'radius_lg'     => '24',
                 'shadow'        => 'soft',
                 'default_mode'  => 'light',
                 'header_style'  => 'solid',
@@ -54,9 +54,9 @@ final class TTOS_Settings {
                 // Legacy v0.2.x keys. Kept stored so old CSS aliases and
                 // saved client values keep working; new installs mirror the
                 // token values above.
-                'secondary'     => '#ffac00',
-                'dark'          => '#1a1410',
-                'cream'         => '#f9f4ee',
+                'secondary'     => '#d99a22',
+                'dark'          => '#1f1712',
+                'cream'         => '#fbf4ea',
                 'style_skin'    => 'charcoal',
             ),
             'trading' => array(
@@ -129,6 +129,111 @@ final class TTOS_Settings {
         $settings = self::get();
         $settings[$section] = wp_parse_args($values, self::defaults()[$section] ?? array());
         update_option('ttos_settings', $settings, false);
+    }
+
+    public static function business_profile(): array {
+        $business = self::get('business');
+        if (class_exists('TTOS_Site_Content')) {
+            $content = TTOS_Site_Content::get('business_info');
+            if (is_array($content)) {
+                $map = array(
+                    'restaurant_name' => 'business_name',
+                    'phone'           => 'phone',
+                    'email'           => 'email',
+                    'address_1'       => 'address_1',
+                    'address_2'       => 'address_2',
+                    'town'            => 'town',
+                    'postcode'        => 'postcode',
+                    'company_number'  => 'company_number',
+                    'vat_number'      => 'vat_number',
+                    'fsa_rating'      => 'hygiene_rating',
+                );
+                foreach ($map as $business_key => $content_key) {
+                    if (!empty($content[$content_key])) {
+                        $business[$business_key] = sanitize_text_field((string) $content[$content_key]);
+                    }
+                }
+            }
+        }
+        return $business;
+    }
+
+    public static function sync_business_runtime(array $business): void {
+        if (!empty($business['restaurant_name'])) {
+            update_option('blogname', sanitize_text_field((string) $business['restaurant_name']));
+        }
+        if (array_key_exists('tagline', $business)) {
+            update_option('blogdescription', sanitize_text_field((string) $business['tagline']));
+        }
+        if (!empty($business['email']) && is_email($business['email'])) {
+            update_option('admin_email', sanitize_email((string) $business['email']));
+        }
+        if (!empty($business['address_1'])) {
+            update_option('woocommerce_store_address', sanitize_text_field((string) $business['address_1']));
+        }
+        if (array_key_exists('address_2', $business)) {
+            update_option('woocommerce_store_address_2', sanitize_text_field((string) $business['address_2']));
+        }
+        if (!empty($business['town'])) {
+            update_option('woocommerce_store_city', sanitize_text_field((string) $business['town']));
+        }
+        if (!empty($business['postcode'])) {
+            update_option('woocommerce_store_postcode', sanitize_text_field((string) $business['postcode']));
+        }
+        update_option('woocommerce_store_country', 'GB');
+    }
+
+    public static function sync_business_to_site_content(array $business): void {
+        if (!class_exists('TTOS_Site_Content')) {
+            return;
+        }
+        $content = TTOS_Site_Content::get('business_info');
+        if (!is_array($content)) {
+            $content = array();
+        }
+        $map = array(
+            'restaurant_name' => 'business_name',
+            'phone'           => 'phone',
+            'email'           => 'email',
+            'address_1'       => 'address_1',
+            'address_2'       => 'address_2',
+            'town'            => 'town',
+            'postcode'        => 'postcode',
+            'company_number'  => 'company_number',
+            'vat_number'      => 'vat_number',
+            'fsa_rating'      => 'hygiene_rating',
+        );
+        foreach ($map as $business_key => $content_key) {
+            if (!array_key_exists($business_key, $business)) {
+                continue;
+            }
+            $content[$content_key] = sanitize_text_field((string) $business[$business_key]);
+        }
+        TTOS_Site_Content::update_section('business_info', $content);
+    }
+
+    public static function sync_business_from_site_content(array $content): void {
+        $business = self::get('business');
+        $map = array(
+            'business_name'   => 'restaurant_name',
+            'phone'           => 'phone',
+            'email'           => 'email',
+            'address_1'       => 'address_1',
+            'address_2'       => 'address_2',
+            'town'            => 'town',
+            'postcode'        => 'postcode',
+            'company_number'  => 'company_number',
+            'vat_number'      => 'vat_number',
+            'hygiene_rating'  => 'fsa_rating',
+        );
+        foreach ($map as $content_key => $business_key) {
+            if (!array_key_exists($content_key, $content)) {
+                continue;
+            }
+            $business[$business_key] = sanitize_text_field((string) $content[$content_key]);
+        }
+        self::update_section('business', $business);
+        self::sync_business_runtime($business);
     }
 
     public static function modules(): array {
@@ -209,9 +314,9 @@ final class TTOS_Settings {
             return 'none';
         }
         if ($dark_mode) {
-            return $level === 'strong' ? '0 26px 70px rgba(0,0,0,.6)' : '0 16px 44px rgba(0,0,0,.45)';
+            return $level === 'strong' ? '0 18px 40px rgba(0,0,0,.4)' : '0 10px 24px rgba(0,0,0,.28)';
         }
-        return $level === 'strong' ? '0 26px 70px rgba(26,20,16,.16)' : '0 16px 44px rgba(26,20,16,.08)';
+        return $level === 'strong' ? '0 16px 34px rgba(31,23,18,.12)' : '0 8px 20px rgba(31,23,18,.08)';
     }
 
     /**

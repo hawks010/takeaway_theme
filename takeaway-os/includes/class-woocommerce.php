@@ -429,7 +429,7 @@ final class TTOS_WooCommerce {
     }
 
     public static function validate_configured_add_to_cart(bool $passed, int $product_id, int $quantity): bool {
-        if (empty($_POST['ttos_configured_add'])) return $passed;
+        if (!self::is_configured_add_request_for_product($product_id)) return $passed;
         if (empty($_POST['ttos_config_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ttos_config_nonce'])), 'ttos_configure_product_' . $product_id)) return false;
         $posted = isset($_POST['ttos_options']) && is_array($_POST['ttos_options']) ? wp_unslash($_POST['ttos_options']) : array();
         $validated = self::validate_selected_options($product_id, $posted);
@@ -441,7 +441,7 @@ final class TTOS_WooCommerce {
     }
 
     public static function add_configured_cart_item_data(array $cart_item_data, int $product_id, int $variation_id): array {
-        if (empty($_POST['ttos_configured_add']) || empty($_POST['ttos_config_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ttos_config_nonce'])), 'ttos_configure_product_' . $product_id)) {
+        if (!self::is_configured_add_request_for_product($product_id) || empty($_POST['ttos_config_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ttos_config_nonce'])), 'ttos_configure_product_' . $product_id)) {
             return $cart_item_data;
         }
         $posted = isset($_POST['ttos_options']) && is_array($_POST['ttos_options']) ? wp_unslash($_POST['ttos_options']) : array();
@@ -462,6 +462,14 @@ final class TTOS_WooCommerce {
             $cart_item_data['ttos_suggested_products'] = $suggested_ids;
         }
         return $cart_item_data;
+    }
+
+    private static function is_configured_add_request_for_product(int $product_id): bool {
+        if (empty($_POST['ttos_configured_add'])) {
+            return false;
+        }
+        $requested_product_id = isset($_POST['add-to-cart']) ? absint(wp_unslash($_POST['add-to-cart'])) : 0;
+        return $requested_product_id > 0 && $requested_product_id === $product_id;
     }
 
     public static function display_configured_cart_item_data(array $item_data, array $cart_item): array {

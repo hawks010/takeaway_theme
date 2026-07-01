@@ -35,6 +35,7 @@ $ttos_files = array(
     'includes/class-operations.php',
     'includes/class-hardening.php',
     'includes/class-production.php',
+    'includes/class-client-intake.php',
     'includes/class-admin.php',
     'includes/class-shortcodes.php',
 );
@@ -66,6 +67,7 @@ add_action('plugins_loaded', function () {
     TTOS_Operations::hooks();
     TTOS_Hardening::hooks();
     TTOS_Production::hooks();
+    TTOS_Client_Intake::hooks();
     TTOS_Admin::hooks();
     TTOS_Shortcodes::hooks();
 });

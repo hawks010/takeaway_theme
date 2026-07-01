@@ -2362,3 +2362,60 @@ mark.order-status.status-on-hold    { background: color-mix(in srgb, var(--tt-wa
         animation:none;
     }
 }
+
+/* === v0.3.34 warm-default Woo refinements === */
+.woocommerce-account.logged-in .woocommerce-MyAccount-navigation{
+    box-shadow:var(--tt-shadow-sm);
+}
+.tt-account-hero{
+    color:var(--tt-text);
+    background:
+        radial-gradient(circle at 86% 18%, color-mix(in srgb, var(--tt-accent) 16%, transparent), transparent 30%),
+        linear-gradient(180deg, var(--tt-surface) 0%, var(--tt-surface-soft) 100%);
+    box-shadow:var(--tt-shadow-md);
+}
+.tt-account-hero:after{
+    border-color:rgba(198,177,154,.28);
+}
+.tt-account-hero .tt-account-kicker{
+    color:var(--tt-primary);
+}
+.tt-account-hero h2,
+.tt-account-hero p:not(.tt-account-kicker){
+    color:var(--tt-text);
+}
+.tt-account-hero p:not(.tt-account-kicker){
+    color:var(--tt-muted);
+}
+.tt-account-primary{
+    background:var(--tt-primary);
+    color:#fff;
+    box-shadow:0 14px 28px rgba(212,74,39,.18);
+}
+.tt-account-secondary{
+    background:#fff;
+    color:var(--tt-text);
+    border:1px solid var(--tt-border);
+}
+.tt-account-deal{
+    color:var(--tt-text);
+    background:var(--tt-surface);
+    box-shadow:var(--tt-shadow-sm);
+}
+.tt-account-deal:before{
+    background:linear-gradient(180deg, transparent 30%, rgba(255,253,250,.9));
+}
+.tt-account-deal-art{
+    background:
+        radial-gradient(circle at 74% 18%, color-mix(in srgb, var(--tt-accent) 24%, transparent), transparent 22%),
+        linear-gradient(135deg, var(--tt-surface-soft), #fff);
+}
+.tt-account-deal-placeholder{
+    background:
+        radial-gradient(circle at 22% 24%, rgba(255,255,255,.8), transparent 18%),
+        radial-gradient(circle at 70% 38%, color-mix(in srgb, var(--tt-accent) 24%, transparent), transparent 18%),
+        linear-gradient(135deg, var(--tt-surface-soft), #fff);
+}
+.tt-account-deal-copy small{
+    color:var(--tt-muted);
+}
