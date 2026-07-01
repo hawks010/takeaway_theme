@@ -131,6 +131,111 @@ final class TTOS_Settings {
         update_option('ttos_settings', $settings, false);
     }
 
+    public static function business_profile(): array {
+        $business = self::get('business');
+        if (class_exists('TTOS_Site_Content')) {
+            $content = TTOS_Site_Content::get('business_info');
+            if (is_array($content)) {
+                $map = array(
+                    'restaurant_name' => 'business_name',
+                    'phone'           => 'phone',
+                    'email'           => 'email',
+                    'address_1'       => 'address_1',
+                    'address_2'       => 'address_2',
+                    'town'            => 'town',
+                    'postcode'        => 'postcode',
+                    'company_number'  => 'company_number',
+                    'vat_number'      => 'vat_number',
+                    'fsa_rating'      => 'hygiene_rating',
+                );
+                foreach ($map as $business_key => $content_key) {
+                    if (!empty($content[$content_key])) {
+                        $business[$business_key] = sanitize_text_field((string) $content[$content_key]);
+                    }
+                }
+            }
+        }
+        return $business;
+    }
+
+    public static function sync_business_runtime(array $business): void {
+        if (!empty($business['restaurant_name'])) {
+            update_option('blogname', sanitize_text_field((string) $business['restaurant_name']));
+        }
+        if (array_key_exists('tagline', $business)) {
+            update_option('blogdescription', sanitize_text_field((string) $business['tagline']));
+        }
+        if (!empty($business['email']) && is_email($business['email'])) {
+            update_option('admin_email', sanitize_email((string) $business['email']));
+        }
+        if (!empty($business['address_1'])) {
+            update_option('woocommerce_store_address', sanitize_text_field((string) $business['address_1']));
+        }
+        if (array_key_exists('address_2', $business)) {
+            update_option('woocommerce_store_address_2', sanitize_text_field((string) $business['address_2']));
+        }
+        if (!empty($business['town'])) {
+            update_option('woocommerce_store_city', sanitize_text_field((string) $business['town']));
+        }
+        if (!empty($business['postcode'])) {
+            update_option('woocommerce_store_postcode', sanitize_text_field((string) $business['postcode']));
+        }
+        update_option('woocommerce_store_country', 'GB');
+    }
+
+    public static function sync_business_to_site_content(array $business): void {
+        if (!class_exists('TTOS_Site_Content')) {
+            return;
+        }
+        $content = TTOS_Site_Content::get('business_info');
+        if (!is_array($content)) {
+            $content = array();
+        }
+        $map = array(
+            'restaurant_name' => 'business_name',
+            'phone'           => 'phone',
+            'email'           => 'email',
+            'address_1'       => 'address_1',
+            'address_2'       => 'address_2',
+            'town'            => 'town',
+            'postcode'        => 'postcode',
+            'company_number'  => 'company_number',
+            'vat_number'      => 'vat_number',
+            'fsa_rating'      => 'hygiene_rating',
+        );
+        foreach ($map as $business_key => $content_key) {
+            if (!array_key_exists($business_key, $business)) {
+                continue;
+            }
+            $content[$content_key] = sanitize_text_field((string) $business[$business_key]);
+        }
+        TTOS_Site_Content::update_section('business_info', $content);
+    }
+
+    public static function sync_business_from_site_content(array $content): void {
+        $business = self::get('business');
+        $map = array(
+            'business_name'   => 'restaurant_name',
+            'phone'           => 'phone',
+            'email'           => 'email',
+            'address_1'       => 'address_1',
+            'address_2'       => 'address_2',
+            'town'            => 'town',
+            'postcode'        => 'postcode',
+            'company_number'  => 'company_number',
+            'vat_number'      => 'vat_number',
+            'hygiene_rating'  => 'fsa_rating',
+        );
+        foreach ($map as $content_key => $business_key) {
+            if (!array_key_exists($content_key, $content)) {
+                continue;
+            }
+            $business[$business_key] = sanitize_text_field((string) $content[$content_key]);
+        }
+        self::update_section('business', $business);
+        self::sync_business_runtime($business);
+    }
+
     public static function modules(): array {
         $modules = self::get('modules');
         foreach (self::production_locked_modules() as $slug) {
