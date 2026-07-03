@@ -1286,6 +1286,7 @@ This is the highest-risk stage — spec §7.1's accessibility requirements are b
 - Create: `takeaway-os/intake/src/menu-builder/CategoryTree.jsx`
 - Create: `takeaway-os/intake/src/menu-builder/ItemEditor.jsx`
 - Create: `takeaway-os/intake/src/menu-builder/useKeyboardReorder.js`
+- Create: `takeaway-os/intake/src/hooks/useIsNarrow.js`
 - Modify: `takeaway-os/intake/src/IntakeWizard.jsx` (register `menu_builder` step)
 
 - [ ] **Step 1: Write the data model**
@@ -1522,14 +1523,35 @@ export default function ItemEditor({ item, onChange, onUploadImage }) {
 }
 ```
 
-- [ ] **Step 5: Write `MenuBuilder.jsx` (the step component) and image upload wiring**
+- [ ] **Step 5: Write the narrow-viewport hook, then `MenuBuilder.jsx` and image upload wiring**
+
+Spec §7.1 requires: "On narrow viewports, the item editor becomes a full-screen sheet, not a squeezed sidebar column." Write the hook first, then use it in `MenuBuilder.jsx` below — this is a real, tested behaviour change, not just a stated intention.
+
+`takeaway-os/intake/src/hooks/useIsNarrow.js`:
+```js
+import { useState, useEffect } from 'react'
+
+const BREAKPOINT = 640
+
+export function useIsNarrow() {
+  const [isNarrow, setIsNarrow] = useState(() => window.innerWidth <= BREAKPOINT)
+  useEffect(() => {
+    const onResize = () => setIsNarrow(window.innerWidth <= BREAKPOINT)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+  return isNarrow
+}
+```
 
 Item photo upload reuses the same `/intake/upload` endpoint from Stage 3 Step 4, with `field` set to a per-item dynamic key (`menu_item_photo`); the returned `record.uploads.menu_item_photo` array's last entry's `stored_name` becomes that item's `image_upload_ref`.
 
+`takeaway-os/intake/src/menu-builder/MenuBuilder.jsx`:
 ```jsx
 import React, { useState } from 'react'
 import CategoryTree from './CategoryTree.jsx'
 import ItemEditor from './ItemEditor.jsx'
+import { useIsNarrow } from '../hooks/useIsNarrow.js'
 import { api } from '../api.js'
 
 const emptyItem = () => ({ id: 'item-' + Date.now(), name: '', description: '', price: '', image_upload_ref: null, allergens: [], option_groups: [], kitchen_note: '' })
@@ -1539,6 +1561,7 @@ export default function MenuBuilder({ data, onNext, saving }) {
     { id: 'cat-' + Date.now(), name: 'New category', sub_categories: [{ id: 'sub-' + Date.now(), name: '', items: [emptyItem()] }] }
   ])
   const [selectedItemId, setSelectedItemId] = useState(categories[0]?.sub_categories[0]?.items[0]?.id)
+  const isNarrow = useIsNarrow()
 
   const allItems = categories.flatMap(c => c.sub_categories.flatMap(s => s.items))
   const selectedItem = allItems.find(i => i.id === selectedItemId)
@@ -1568,18 +1591,34 @@ export default function MenuBuilder({ data, onNext, saving }) {
     if (last) updateItem({ ...selectedItem, image_upload_ref: last.stored_name })
   }
 
+  const editor = selectedItem ? (
+    <ItemEditor item={selectedItem} onChange={updateItem} onUploadImage={uploadItemImage} />
+  ) : (
+    <p style={{ fontSize: 13, color: 'var(--tt-muted, #75665c)' }}>Select or add an item to edit it.</p>
+  )
+
+  // Narrow viewport + an item open: render the editor as a full-screen sheet
+  // over the tree, not squeezed into a thin side column (spec §7.1). The
+  // sheet gets its own scroll and an explicit back control, since a fixed
+  // overlay removes the tree from view entirely while it's open.
+  if (isNarrow && selectedItem) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, background: 'var(--tt-surface, #fff)', zIndex: 1000, overflowY: 'auto', padding: 20 }}>
+        <button type="button" onClick={() => setSelectedItemId(null)}
+          style={{ minHeight: 44, padding: '0 14px', border: 'none', background: 'none', color: 'var(--tt-primary, #d83a16)', fontSize: 14, cursor: 'pointer' }}>
+          ← Back to menu
+        </button>
+        {editor}
+      </div>
+    )
+  }
+
   return (
     <div>
       <h2 style={{ fontSize: 16 }}>Build your menu</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 16, marginTop: 12 }}>
+      <div style={{ display: isNarrow ? 'block' : 'grid', gridTemplateColumns: isNarrow ? 'none' : '260px 1fr', gap: 16, marginTop: 12 }}>
         <CategoryTree categories={categories} onChange={setCategories} onSelectItem={setSelectedItemId} selectedItemId={selectedItemId} />
-        <div>
-          {selectedItem ? (
-            <ItemEditor item={selectedItem} onChange={updateItem} onUploadImage={uploadItemImage} />
-          ) : (
-            <p style={{ fontSize: 13, color: 'var(--tt-muted, #75665c)' }}>Select or add an item to edit it.</p>
-          )}
-        </div>
+        {!isNarrow && <div>{editor}</div>}
       </div>
       <button type="button" disabled={saving} onClick={() => onNext({ categories })}
         style={{ marginTop: 16, padding: '10px 20px', border: 'none', borderRadius: 8, background: 'var(--tt-primary, #d83a16)', color: '#fff', fontSize: 14, cursor: 'pointer' }}>
@@ -1589,6 +1628,7 @@ export default function MenuBuilder({ data, onNext, saving }) {
   )
 }
 ```
+On a narrow viewport with nothing selected, only the tree renders (full width, no squeezed second column) — tapping an item then opens the full-screen sheet above. On wide viewports, behaviour is unchanged from before this fix: side-by-side grid, no sheet.
 
 - [ ] **Step 6: Add the `menu_item_photo` upload spec to the PHP backend**
 
@@ -1672,13 +1712,14 @@ registerStep('menu_builder', MenuBuilder)
 3. **Interrupted-drag test:** start a keyboard drag (`Space` down), then click elsewhere with the mouse without pressing `Space` or `Escape`. Confirm the drag auto-cancels within 15 seconds (per the `useKeyboardReorder` safety timer) rather than staying stuck.
 4. **Touch target check:** inspect every button/handle/chip in devtools — computed height must be ≥44px. Every one written above uses `minHeight: 44` or is a 44px flex container; confirm none were missed.
 5. **Contrast check:** run the existing Setup Health-style contrast checker (or manual check) on allergen chip states and drag handles against both light and any dark-mode token values.
-6. If any of 2–5 fail, fix before moving to Stage 6 — this is the spec's hardest requirement and the one most likely to regress silently.
+6. **Narrow viewport check:** resize the browser to 375px wide (or use devtools device mode). Select a menu item and confirm the editor takes over the full screen with a working "← Back to menu" button, rather than squeezing into a thin column next to the tree. Resize back to desktop width and confirm the side-by-side layout returns.
+7. If any of 2–6 fail, fix before moving to Stage 6 — this is the spec's hardest requirement and the one most likely to regress silently.
 
 - [ ] **Step 10: Commit**
 
 ```bash
-git add takeaway-os/intake/src/menu-builder/ takeaway-os/intake/src/IntakeWizard.jsx takeaway-os/includes/class-intake-rest.php takeaway-os/includes/class-client-intake.php
-git commit -m "feat: add accessible drag-and-drop menu builder"
+git add takeaway-os/intake/src/menu-builder/ takeaway-os/intake/src/hooks/ takeaway-os/intake/src/IntakeWizard.jsx takeaway-os/includes/class-intake-rest.php takeaway-os/includes/class-client-intake.php
+git commit -m "feat: add accessible drag-and-drop menu builder with narrow-viewport full-screen editor"
 ```
 
 ---
