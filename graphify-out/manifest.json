@@ -5,37 +5,37 @@
     "semantic_hash": ""
   },
   "takeaway-os/assets/admin.js": {
-    "mtime": 1781064803.829321,
+    "mtime": 1781064803.0,
     "ast_hash": "eb39775283b231765a553ae0c18e427a",
     "semantic_hash": ""
   },
   "takeaway-os/assets/frontend.js": {
-    "mtime": 1781201473.3993669,
-    "ast_hash": "b74455f4bdcd1c74e29bb36224f23a89",
+    "mtime": 1781578248.0,
+    "ast_hash": "224897b90972e3bf9d967ff174cc3949",
     "semantic_hash": ""
   },
   "takeaway-os/includes/class-activator.php": {
-    "mtime": 1781102380.817014,
+    "mtime": 1781102380.0,
     "ast_hash": "4e9749f7a1e625c9d84de23293297d19",
     "semantic_hash": ""
   },
   "takeaway-os/includes/class-admin.php": {
-    "mtime": 1781102413.8872864,
-    "ast_hash": "fe0a9a388dbb11bfbda301b45ee88b68",
+    "mtime": 1781550181.0,
+    "ast_hash": "4cefdf478d6c7d89c9f2b447dbef1a85",
     "semantic_hash": ""
   },
   "takeaway-os/includes/class-analytics.php": {
-    "mtime": 1780890165.8002236,
+    "mtime": 1780890165.0,
     "ast_hash": "0ce0734d1bb24941febcc1d0b2259add",
     "semantic_hash": ""
   },
   "takeaway-os/includes/class-features.php": {
-    "mtime": 1780891495.0522358,
+    "mtime": 1780891495.0,
     "ast_hash": "f09d46225bbc4af6db0eff5085cf239e",
     "semantic_hash": ""
   },
   "takeaway-os/includes/class-hardening.php": {
-    "mtime": 1780891427.8644233,
+    "mtime": 1780891427.0,
     "ast_hash": "2a8ae62ed92c34c1528d6b7f2eec3d1d",
     "semantic_hash": ""
   },
@@ -45,58 +45,58 @@
     "semantic_hash": ""
   },
   "takeaway-os/includes/class-operations.php": {
-    "mtime": 1781141078.7067335,
+    "mtime": 1781141078.0,
     "ast_hash": "597a61b9f866328b001b6d740f46720d",
     "semantic_hash": ""
   },
   "takeaway-os/includes/class-page-manager.php": {
-    "mtime": 1781141086.7818003,
+    "mtime": 1781141086.0,
     "ast_hash": "7f9bc83b19bc12f5cafef6bb0267274b",
     "semantic_hash": ""
   },
   "takeaway-os/includes/class-plugin-checker.php": {
-    "mtime": 1780886198.9274547,
+    "mtime": 1780886198.0,
     "ast_hash": "1d8a20dd623b5a1f2cbb90cb9e370988",
     "semantic_hash": ""
   },
   "takeaway-os/includes/class-production.php": {
-    "mtime": 1780886025.6956499,
-    "ast_hash": "ed2eafd54d78d86054ac3b8ec69678a6",
+    "mtime": 1781485516.0,
+    "ast_hash": "a1a06a9199fa12bd0bcad6532e2908d8",
     "semantic_hash": ""
   },
   "takeaway-os/includes/class-public-ui.php": {
-    "mtime": 1781201729.249845,
-    "ast_hash": "a5b214680d4759d7a03a425cb7fe862d",
+    "mtime": 1781489336.0,
+    "ast_hash": "c1bb1ae6971c3dcfc16811f22874ae51",
     "semantic_hash": ""
   },
   "takeaway-os/includes/class-settings.php": {
-    "mtime": 1781064667.154734,
-    "ast_hash": "9374a16c156b6824c0b2eb1406cc5d19",
+    "mtime": 1781576055.0,
+    "ast_hash": "cbab12666c69ea571bd0b17d7c6ca200",
     "semantic_hash": ""
   },
   "takeaway-os/includes/class-setup-health.php": {
-    "mtime": 1781201535.7674112,
-    "ast_hash": "237ba44b3ee97724992e424166e4f3e6",
+    "mtime": 1781563570.0,
+    "ast_hash": "5202a785c2e1d38555d839c9c522280c",
     "semantic_hash": ""
   },
   "takeaway-os/includes/class-shortcodes.php": {
-    "mtime": 1781141025.4684033,
-    "ast_hash": "a365be9b537b54a80e151fcd03ca1071",
+    "mtime": 1781578344.0,
+    "ast_hash": "e75340e862de43c47d0020f47ad557d1",
     "semantic_hash": ""
   },
   "takeaway-os/includes/class-site-content.php": {
-    "mtime": 1781066843.9516487,
-    "ast_hash": "85800b77d525a96c494837478c943354",
+    "mtime": 1781470481.0,
+    "ast_hash": "aba924bf131349392f4f198786782576",
     "semantic_hash": ""
   },
   "takeaway-os/includes/class-woocommerce.php": {
-    "mtime": 1780878828.0,
-    "ast_hash": "ddd0ff84621e69dc77fb0fdd4c096130",
+    "mtime": 1781572888.0,
+    "ast_hash": "f2bf02ca7508c10102adb30c70bc6a38",
     "semantic_hash": ""
   },
   "takeaway-os/takeaway-os.php": {
-    "mtime": 1781204088.7134256,
-    "ast_hash": "8387f3e8412889ecf9a26b90240b07cd",
+    "mtime": 1781578248.0,
+    "ast_hash": "a77283b10ccaf927145fd0f300da1d40",
     "semantic_hash": ""
   },
   "takeaway-os/uninstall.php": {
@@ -105,52 +105,52 @@
     "semantic_hash": ""
   },
   "takeaway-theme/404.php": {
-    "mtime": 1781141138.1209152,
+    "mtime": 1781141138.0,
     "ast_hash": "ae04b1386d5a72236ca6737d9a638e58",
     "semantic_hash": ""
   },
   "takeaway-theme/archive-product.php": {
-    "mtime": 1781204328.325447,
-    "ast_hash": "71c0c65ca6ce620cfba7ba2c3a213b25",
+    "mtime": 1781410463.0,
+    "ast_hash": "83ea128be9d614d26e22ba4eb1a3515d",
     "semantic_hash": ""
   },
   "takeaway-theme/assets/js/theme.js": {
-    "mtime": 1781104425.2975123,
-    "ast_hash": "d8a3435a37d37a783b95ad09c9618e0f",
+    "mtime": 1781574586.0,
+    "ast_hash": "e145e696617b6228920ea2ef70bcfaed",
     "semantic_hash": ""
   },
   "takeaway-theme/footer.php": {
-    "mtime": 1781104024.388903,
+    "mtime": 1781104024.0,
     "ast_hash": "27d7bd397598eb71ecba22ef94643359",
     "semantic_hash": ""
   },
   "takeaway-theme/front-page.php": {
-    "mtime": 1781104081.852175,
+    "mtime": 1781104081.0,
     "ast_hash": "da30734336f4c6a6e9213b79e36044b3",
     "semantic_hash": ""
   },
   "takeaway-theme/functions.php": {
-    "mtime": 1781204088.7137928,
-    "ast_hash": "b29e85560afe2f3ee2a58c875583cbdd",
+    "mtime": 1781583284.0,
+    "ast_hash": "0718195c63c16ced6243acbd6d52a31d",
     "semantic_hash": ""
   },
   "takeaway-theme/header.php": {
-    "mtime": 1781104011.1912508,
+    "mtime": 1781104011.0,
     "ast_hash": "d089cb3ec605035ca6f4dcf1e7a786f3",
     "semantic_hash": ""
   },
   "takeaway-theme/inc/bundled-plugins/manifest.json": {
-    "mtime": 1781204088.7147117,
+    "mtime": 1781204088.0,
     "ast_hash": "74909284a53acdbe7beb0e3ad5aea628",
     "semantic_hash": ""
   },
   "takeaway-theme/inc/enqueue.php": {
-    "mtime": 1781141259.2638338,
+    "mtime": 1781141259.0,
     "ast_hash": "ac31fdd02d3733552e4f8d803f8d8752",
     "semantic_hash": ""
   },
   "takeaway-theme/inc/plugin-checklist.php": {
-    "mtime": 1781204088.7144494,
+    "mtime": 1781204088.0,
     "ast_hash": "3bf7024adbfc95fb929ce9bd243456ed",
     "semantic_hash": ""
   },
@@ -160,8 +160,8 @@
     "semantic_hash": ""
   },
   "takeaway-theme/inc/template-helpers.php": {
-    "mtime": 1781104151.9590266,
-    "ast_hash": "47e46a9324aa4fb6139e1822d47fb088",
+    "mtime": 1781563595.0,
+    "ast_hash": "f3bbf360e88b4c9c72f774997404674f",
     "semantic_hash": ""
   },
   "takeaway-theme/index.php": {
@@ -170,88 +170,88 @@
     "semantic_hash": ""
   },
   "takeaway-theme/page.php": {
-    "mtime": 1781141127.1140063,
+    "mtime": 1781141127.0,
     "ast_hash": "f862a03ff125d5c12084c051622ff273",
     "semantic_hash": ""
   },
   "takeaway-theme/template-parts/footer/site-footer.php": {
-    "mtime": 1781141276.5420015,
-    "ast_hash": "87ed1b5af59a29d22216723beeb04198",
+    "mtime": 1781582041.0,
+    "ast_hash": "6f572e37fea544b1b4370f86b8084869",
     "semantic_hash": ""
   },
   "takeaway-theme/template-parts/header/mobile-drawer.php": {
-    "mtime": 1781103986.008692,
-    "ast_hash": "987b3443346d24a96a3ec3d916892347",
+    "mtime": 1781574393.0,
+    "ast_hash": "58030d1b474d877fb707b78aabef29f8",
     "semantic_hash": ""
   },
   "takeaway-theme/template-parts/header/site-header.php": {
-    "mtime": 1781103977.6107159,
-    "ast_hash": "8205b69e898090262482e9140872e0fc",
+    "mtime": 1781575814.0,
+    "ast_hash": "cbf94a15dac4e03fe7eef0fe44bbabe2",
     "semantic_hash": ""
   },
   "takeaway-theme/template-parts/home/about.php": {
-    "mtime": 1781104197.9748628,
+    "mtime": 1781104197.0,
     "ast_hash": "691d1cadac9737f48307e284e1878631",
     "semantic_hash": ""
   },
   "takeaway-theme/template-parts/home/booking.php": {
-    "mtime": 1781104205.9168704,
+    "mtime": 1781104205.0,
     "ast_hash": "9c2b0346106781e65e1432e177bbd7a9",
     "semantic_hash": ""
   },
   "takeaway-theme/template-parts/home/bottom-cta.php": {
-    "mtime": 1781104261.7573504,
+    "mtime": 1781104261.0,
     "ast_hash": "aefe0288c6cd2f91d87dff27161b7d25",
     "semantic_hash": ""
   },
   "takeaway-theme/template-parts/home/contact-map.php": {
-    "mtime": 1781104241.2824845,
-    "ast_hash": "fffa6dabfd82a8bf5e5c273cbea01749",
+    "mtime": 1781578249.0,
+    "ast_hash": "6f84f5b3fea5ea560ae1f9a207457905",
     "semantic_hash": ""
   },
   "takeaway-theme/template-parts/home/featured-food.php": {
-    "mtime": 1781104177.5565765,
+    "mtime": 1781104177.0,
     "ast_hash": "952180d9721550a5e3d5e28230617080",
     "semantic_hash": ""
   },
   "takeaway-theme/template-parts/home/hero.php": {
-    "mtime": 1781104103.7960613,
-    "ast_hash": "06f1d7e4593104f4d7bb5d24cad0e089",
+    "mtime": 1781582324.0,
+    "ast_hash": "ec1d893a840138b15648b2bc02ab4731",
     "semantic_hash": ""
   },
   "takeaway-theme/template-parts/home/newsletter.php": {
-    "mtime": 1781104257.2833626,
+    "mtime": 1781104257.0,
     "ast_hash": "19660d5abbb97764a0a2398191e9c29d",
     "semantic_hash": ""
   },
   "takeaway-theme/template-parts/home/offers.php": {
-    "mtime": 1781104191.7304006,
+    "mtime": 1781104191.0,
     "ast_hash": "31804e95b9323289fc5c4ea3f288fe54",
     "semantic_hash": ""
   },
   "takeaway-theme/template-parts/home/opening-hours.php": {
-    "mtime": 1781104227.1609135,
+    "mtime": 1781104227.0,
     "ast_hash": "eb474c0d9daf65e8dd3a826cfef4d467",
     "semantic_hash": ""
   },
   "takeaway-theme/template-parts/home/reviews.php": {
-    "mtime": 1781104252.165692,
+    "mtime": 1781104252.0,
     "ast_hash": "a63d7c2c8704ecaa3e85e58d9a664651",
     "semantic_hash": ""
   },
   "takeaway-theme/template-parts/home/trust-strip.php": {
-    "mtime": 1781104149.9513166,
+    "mtime": 1781104149.0,
     "ast_hash": "9847f528f419a35d94200a444a5aaa78",
     "semantic_hash": ""
   },
   "takeaway-theme/template-parts/home/why-direct.php": {
-    "mtime": 1781104185.5866404,
+    "mtime": 1781104185.0,
     "ast_hash": "049018aa654dc4bd1ef9837a92fe50c0",
     "semantic_hash": ""
   },
   "TAKEAWAY_OS_PROGRESS.md": {
-    "mtime": 1781201952.599276,
-    "ast_hash": "ba7b376130c3b3b2b564fe0369d68a92",
+    "mtime": 1781486226.8039088,
+    "ast_hash": "7400e792301a2549ba0d349938188e34",
     "semantic_hash": ""
   },
   "docs/HANDOVER.md": {
@@ -260,8 +260,8 @@
     "semantic_hash": ""
   },
   "docs/INSTALL.md": {
-    "mtime": 1781204142.605739,
-    "ast_hash": "c4aca76bd990e55dcc9ac38a0a0c0751",
+    "mtime": 1781403412.353292,
+    "ast_hash": "f435288b9d15c24a6f266edb9f723af1",
     "semantic_hash": ""
   },
   "docs/TESTING.md": {
@@ -280,12 +280,12 @@
     "semantic_hash": ""
   },
   "takeaway-os/README.md": {
-    "mtime": 1781204142.6054718,
+    "mtime": 1781204142.0,
     "ast_hash": "10e6ac55bd52cf3594094464ff0ceb6f",
     "semantic_hash": ""
   },
   "takeaway-theme/README.md": {
-    "mtime": 1781204142.6055787,
+    "mtime": 1781204142.0,
     "ast_hash": "b7fa1d75e922104465d4e77a5c92138e",
     "semantic_hash": ""
   },
@@ -762,6 +762,661 @@
   "test-artifacts/screenshots/theme-setup-update-screen.png": {
     "mtime": 1780888029.8484752,
     "ast_hash": "e84bdfe03a9e06991e368ccee4252cdb",
+    "semantic_hash": ""
+  },
+  "takeaway-theme/inc/contact.php": {
+    "mtime": 1781550897.0,
+    "ast_hash": "b350a6cdd91818fa6c107edb62d6614f",
+    "semantic_hash": ""
+  },
+  ".superpowers/brainstorm/60698-1781477190/content/approaches.html": {
+    "mtime": 1781478553.7438514,
+    "ast_hash": "809638f74bcd4653a2067f0cf092c2d0",
+    "semantic_hash": ""
+  },
+  ".superpowers/brainstorm/60698-1781477190/content/architecture.html": {
+    "mtime": 1781480615.1550186,
+    "ast_hash": "bea9f3c98c9d575646f9b93c1f8493ea",
+    "semantic_hash": ""
+  },
+  ".superpowers/brainstorm/60698-1781477190/content/crm-config.html": {
+    "mtime": 1781480721.9094262,
+    "ast_hash": "4053356fa0f8e2ad44ecf80afd8510ed",
+    "semantic_hash": ""
+  },
+  ".superpowers/brainstorm/60698-1781477190/content/my-account.html": {
+    "mtime": 1781483400.8108275,
+    "ast_hash": "c9fa80bcea0b317a03beadd34bc34ee3",
+    "semantic_hash": ""
+  },
+  ".superpowers/brainstorm/60698-1781477190/content/scope-map.html": {
+    "mtime": 1781477609.2226622,
+    "ast_hash": "5343300deeea606be7a3704b0855f015",
+    "semantic_hash": ""
+  },
+  ".superpowers/brainstorm/60698-1781477190/content/staff-dashboard.html": {
+    "mtime": 1781482812.3806787,
+    "ast_hash": "2577e9336761cbf24afc18a88b5d9ac2",
+    "semantic_hash": ""
+  },
+  ".superpowers/brainstorm/60698-1781477190/content/two-modes.html": {
+    "mtime": 1781483109.3716462,
+    "ast_hash": "0c1d884ee58f1ec44923867b9f1cb2ad",
+    "semantic_hash": ""
+  },
+  "STATE_OF_SITE.md": {
+    "mtime": 1781561406.8632975,
+    "ast_hash": "49cb178a3e8db8f4ccec9920736d198d",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-06-15-v1-3-0-complete.md": {
+    "mtime": 1781485111.9565375,
+    "ast_hash": "05ae2e1e38b8c70939173d4591e3dcb4",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-06-15-reservation-crm-design.md": {
+    "mtime": 1781484443.11717,
+    "ast_hash": "51792812c624a541e32cbe16e332a00a",
+    "semantic_hash": ""
+  },
+  "takeaway-v1.3.0-critical-check.txt": {
+    "mtime": 1781401399.570007,
+    "ast_hash": "c9cc3b52a9d48bb704b52f9e1b7f61a9",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-404.png": {
+    "mtime": 1781401666.2932694,
+    "ast_hash": "07d25039aa06852a3a897ffc949cbdd8",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-404page.png": {
+    "mtime": 1781401766.3100932,
+    "ast_hash": "07d25039aa06852a3a897ffc949cbdd8",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-accessibility.png": {
+    "mtime": 1781401663.9620354,
+    "ast_hash": "9b70d09f478a2d596918928c6e40bd0e",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-added-to-basket.png": {
+    "mtime": 1781401939.5602677,
+    "ast_hash": "0d5e1c2b02e58ff4c757c50e1b8c7762",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-admin-customers.png": {
+    "mtime": 1781402598.198292,
+    "ast_hash": "c1b8537bd8d4f4ec4287cd7b164d40b0",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-admin-dashboard.png": {
+    "mtime": 1781402580.3127832,
+    "ast_hash": "78614f85483b5fe077a93cb968093184",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-admin-kitchen.png": {
+    "mtime": 1781402594.4992356,
+    "ast_hash": "1414292df6f3c5f0121dd969559a57ae",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-admin-orders.png": {
+    "mtime": 1781402590.984032,
+    "ast_hash": "fe277590196006c507c2cbff77fe9a89",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-admin-reports.png": {
+    "mtime": 1781402601.9324276,
+    "ast_hash": "c9f689c829f3d9d9fe0142ba3d356205",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-admin-setup-health.png": {
+    "mtime": 1781402584.0327935,
+    "ast_hash": "97021f9b242615501b13509e3e9fc7af",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-admin-site-content.png": {
+    "mtime": 1781402587.839897,
+    "ast_hash": "25ac569ba32ab8d7ae4150a65eea000a",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-admin-wc-orders.png": {
+    "mtime": 1781402613.8937404,
+    "ast_hash": "057ecca0fd702247b7b019b1bc61a605",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-admin-wc-products.png": {
+    "mtime": 1781402610.7118478,
+    "ast_hash": "c2f5bb36764f77af968b538e68e04d81",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-allergens-full.png": {
+    "mtime": 1781401744.7422836,
+    "ast_hash": "2a6556917855832ccb0241914b3a2638",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-allergens.png": {
+    "mtime": 1781401696.5224748,
+    "ast_hash": "2a6556917855832ccb0241914b3a2638",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-banner-dismissed-reload.png": {
+    "mtime": 1781402997.3298194,
+    "ast_hash": "060cf498fec7e8af205313b796e24e0c",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-banner-dismissed.png": {
+    "mtime": 1781402994.6722806,
+    "ast_hash": "060cf498fec7e8af205313b796e24e0c",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-banner-reload.png": {
+    "mtime": 1781402663.6370316,
+    "ast_hash": "b34ef70a77f17347454c9958111b9327",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-banner-rendered.png": {
+    "mtime": 1781402755.5653255,
+    "ast_hash": "265340d720d584aee63340fe031e17b8",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-banner-visible.png": {
+    "mtime": 1781402633.404326,
+    "ast_hash": "265340d720d584aee63340fe031e17b8",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-business-details.png": {
+    "mtime": 1781401717.3719058,
+    "ast_hash": "ae755b2e7af94aa9c4fb5950546f8b1c",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-cameron-reset.png": {
+    "mtime": 1781402364.1058605,
+    "ast_hash": "9e1c90aba4536cd33d880e089c281b24",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-cart-full.png": {
+    "mtime": 1781402000.74563,
+    "ast_hash": "9b5ac3b445486fb8867476ed5ff1b6e6",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-cart.png": {
+    "mtime": 1781401962.2207737,
+    "ast_hash": "9b5ac3b445486fb8867476ed5ff1b6e6",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-checkout-filled.png": {
+    "mtime": 1781402031.245227,
+    "ast_hash": "bd67a4e6d1a5a1c3d8638aaa574a2eaa",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-checkout-full.png": {
+    "mtime": 1781401751.5900216,
+    "ast_hash": "9921372df3a87f830533bd37f2e7fe1b",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-checkout.png": {
+    "mtime": 1781402004.4626045,
+    "ast_hash": "36f2f0164369f45f5b6e61b394380af9",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-cockpit-error.png": {
+    "mtime": 1781402201.5266638,
+    "ast_hash": "062fe2b055f2f64eed0827421b1ed0bb",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-cockpit.png": {
+    "mtime": 1781402452.822046,
+    "ast_hash": "f8f2936a3bdad9661b2a980111e6021f",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-configurator-open.png": {
+    "mtime": 1781401919.9478679,
+    "ast_hash": "a065987cfe345de24a49c3c9fc63f4e5",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-configurator-price-update.png": {
+    "mtime": 1781401937.4505265,
+    "ast_hash": "cbcf5ecfc1f3f366208ee5a086cef764",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-configurator-state.png": {
+    "mtime": 1781401906.0449286,
+    "ast_hash": "54bc0f4ac28775d20f6cbf3bf5857a6f",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-contact.png": {
+    "mtime": 1781401652.1771836,
+    "ast_hash": "3140dba375513f986bcea4e46bb5cb0f",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-cookies.png": {
+    "mtime": 1781401715.0524237,
+    "ast_hash": "093782628de9493d39c2f2a744a835c4",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-crm.png": {
+    "mtime": 1781402465.3982155,
+    "ast_hash": "23a898c477159b74dc677a006f50614b",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-delivery-in-area.png": {
+    "mtime": 1781402497.6524065,
+    "ast_hash": "a2ebf76817070a1904a2d403f72ed706",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-delivery-out-area.png": {
+    "mtime": 1781402499.270643,
+    "ast_hash": "5f7ccb5273afafbaa41090e720e312a8",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-delivery-policy.png": {
+    "mtime": 1781401712.8011749,
+    "ast_hash": "88562d01d4423ed98f5c95ef1cc860c9",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-delivery.png": {
+    "mtime": 1781401645.3133087,
+    "ast_hash": "f5f2cd78497189fe4e67a7560337d743",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-elementor-hijack-detected.png": {
+    "mtime": 1781401568.6884236,
+    "ast_hash": "85c0d554dd5521eebe034a21c65bcd86",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-elementor-repair-button.png": {
+    "mtime": 1781401579.3372662,
+    "ast_hash": "85c0d554dd5521eebe034a21c65bcd86",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-elementor-repair-done.png": {
+    "mtime": 1781401591.445445,
+    "ast_hash": "1539502d6d63e25924010ed93b4538b3",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-food-hygiene.png": {
+    "mtime": 1781401719.7475436,
+    "ast_hash": "618cd8dd8e8d1744e4d6f97568208c45",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-homepage.png": {
+    "mtime": 1781401640.4964209,
+    "ast_hash": "cd5204a8ac6c8e7a944f42466b14419b",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-kitchen.png": {
+    "mtime": 1781402461.3907764,
+    "ast_hash": "3fc88b7ba4c07e9d7f7b205275f7c656",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-lostpw.png": {
+    "mtime": 1781401757.8365533,
+    "ast_hash": "b1e799f3afa3d9998ab7624a03076a4e",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-menu-check.png": {
+    "mtime": 1781401806.225645,
+    "ast_hash": "54bc0f4ac28775d20f6cbf3bf5857a6f",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-menu-desktop.png": {
+    "mtime": 1781401793.3727987,
+    "ast_hash": "54bc0f4ac28775d20f6cbf3bf5857a6f",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-menu-final.png": {
+    "mtime": 1781402528.5328043,
+    "ast_hash": "060cf498fec7e8af205313b796e24e0c",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-menu-full.png": {
+    "mtime": 1781401741.8248954,
+    "ast_hash": "54bc0f4ac28775d20f6cbf3bf5857a6f",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-menu-mobile.png": {
+    "mtime": 1781401958.7252376,
+    "ast_hash": "0d5e1c2b02e58ff4c757c50e1b8c7762",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-menu.png": {
+    "mtime": 1781401693.8707306,
+    "ast_hash": "54bc0f4ac28775d20f6cbf3bf5857a6f",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-my-account.png": {
+    "mtime": 1781401707.530548,
+    "ast_hash": "a672ed7896fb1098ec7e321c70d92551",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-myaccount-full.png": {
+    "mtime": 1781401754.6795053,
+    "ast_hash": "a672ed7896fb1098ec7e321c70d92551",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-order-received.png": {
+    "mtime": 1781402070.7689521,
+    "ast_hash": "3a0830a6d4a86adaadc3cd5f4fd14a90",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-orders.png": {
+    "mtime": 1781402457.1640105,
+    "ast_hash": "f4fd6617005c30e411c97899d87b19f9",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/admin-branding.png": {
+    "mtime": 1781406248.5806375,
+    "ast_hash": "78614f85483b5fe077a93cb968093184",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/admin-branding2.png": {
+    "mtime": 1781406300.0154462,
+    "ast_hash": "78614f85483b5fe077a93cb968093184",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/admin-customers.png": {
+    "mtime": 1781406377.6680503,
+    "ast_hash": "c1b8537bd8d4f4ec4287cd7b164d40b0",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/admin-dashboard.png": {
+    "mtime": 1781406242.5239003,
+    "ast_hash": "78614f85483b5fe077a93cb968093184",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/admin-kitchen.png": {
+    "mtime": 1781406309.4700978,
+    "ast_hash": "76cfa655462cbd579035f613f74dd7ce",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/admin-orders.png": {
+    "mtime": 1781406245.6918945,
+    "ast_hash": "77590c5edce325c2cdd2aae8bb13d1ff",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/admin-reports.png": {
+    "mtime": 1781406312.6941597,
+    "ast_hash": "c9f689c829f3d9d9fe0142ba3d356205",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/admin-settings-tab.png": {
+    "mtime": 1781406334.567922,
+    "ast_hash": "78614f85483b5fe077a93cb968093184",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/admin-settings.png": {
+    "mtime": 1781406367.6839812,
+    "ast_hash": "25ac569ba32ab8d7ae4150a65eea000a",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/admin-setup-health-mid.png": {
+    "mtime": 1781406374.4618142,
+    "ast_hash": "9588dd3fbb10e97fbcc40aa81bcd3f85",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/admin-setup-health.png": {
+    "mtime": 1781406373.94214,
+    "ast_hash": "97021f9b242615501b13509e3e9fc7af",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/admin-site-content-after.png": {
+    "mtime": 1781406589.9782684,
+    "ast_hash": "434a61330433248f134748e04cc5a1e3",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/admin-site-content-reload.png": {
+    "mtime": 1781406618.737719,
+    "ast_hash": "434a61330433248f134748e04cc5a1e3",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/admin-site-content-subtabs-fixed.png": {
+    "mtime": 1781406663.1805563,
+    "ast_hash": "f4c26d1ed60d94090c6e076b47bd7580",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/admin-site-content.png": {
+    "mtime": 1781406371.1049595,
+    "ast_hash": "434a61330433248f134748e04cc5a1e3",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/admin-site-content2.png": {
+    "mtime": 1781406302.8524878,
+    "ast_hash": "78614f85483b5fe077a93cb968093184",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/basket-desktop.png": {
+    "mtime": 1781406170.3605466,
+    "ast_hash": "67c81e4089a66156438b3867a0b269e1",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/checkout-desktop.png": {
+    "mtime": 1781406173.1091473,
+    "ast_hash": "67c81e4089a66156438b3867a0b269e1",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/home-desktop-bottom.png": {
+    "mtime": 1781406165.2852442,
+    "ast_hash": "84afd6f321513c70eceb46cdeda9d9a8",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/home-desktop-mid.png": {
+    "mtime": 1781406164.8062391,
+    "ast_hash": "98be27c88f9e491a548e7d257b9c4b4a",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/home-desktop.png": {
+    "mtime": 1781406164.3272762,
+    "ast_hash": "07ff6e958e495f8be455c564537ffef6",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/home-mobile-viewport.png": {
+    "mtime": 1781406236.8136232,
+    "ast_hash": "2526e73f02bbe1b7e9c83e8e342306b3",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/menu-desktop-mid.png": {
+    "mtime": 1781406168.115571,
+    "ast_hash": "fddd4e3015d7bda805ee2212f9d7c0eb",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/menu-desktop.png": {
+    "mtime": 1781406167.6342916,
+    "ast_hash": "060cf498fec7e8af205313b796e24e0c",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/menu-mobile-viewport.png": {
+    "mtime": 1781406239.4096036,
+    "ast_hash": "060cf498fec7e8af205313b796e24e0c",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/myaccount-desktop.png": {
+    "mtime": 1781406175.399779,
+    "ast_hash": "3cab813401c796d61b82125c4be6bc14",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/smoke-configurator.png": {
+    "mtime": 1781407654.8991435,
+    "ast_hash": "9074139a8f532ead4d824be46768a852",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/smoke-home.png": {
+    "mtime": 1781407650.746932,
+    "ast_hash": "f531e2f008861b8f2f46c0d9b3d435c3",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/smoke-menu.png": {
+    "mtime": 1781407626.9688394,
+    "ast_hash": "060cf498fec7e8af205313b796e24e0c",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/smoke-setup-health.png": {
+    "mtime": 1781407663.7049441,
+    "ast_hash": "97021f9b242615501b13509e3e9fc7af",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-polish/smoke-site-content.png": {
+    "mtime": 1781407660.823562,
+    "ast_hash": "434a61330433248f134748e04cc5a1e3",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-popup-after-clear.png": {
+    "mtime": 1781402690.7875469,
+    "ast_hash": "265340d720d584aee63340fe031e17b8",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-popup-check.png": {
+    "mtime": 1781402660.1540341,
+    "ast_hash": "265340d720d584aee63340fe031e17b8",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-popup-closed.png": {
+    "mtime": 1781402779.5619693,
+    "ast_hash": "91e75b170c7da8d8bea35e4d2712fe35",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-popup-esc.png": {
+    "mtime": 1781402953.498241,
+    "ast_hash": "2f04d728f67d46ecb73e042fb3bfc672",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-popup-rendered.png": {
+    "mtime": 1781402756.795524,
+    "ast_hash": "265340d720d584aee63340fe031e17b8",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-popup-visible.png": {
+    "mtime": 1781402635.126381,
+    "ast_hash": "265340d720d584aee63340fe031e17b8",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-privacy.png": {
+    "mtime": 1781401654.4709926,
+    "ast_hash": "5aab68321dc9db3b9ece6a0dc834616b",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-refunds-full.png": {
+    "mtime": 1781401763.5325422,
+    "ast_hash": "693b8d7f190101b846a9729fe51d0ddb",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-refunds.png": {
+    "mtime": 1781401699.1299977,
+    "ast_hash": "693b8d7f190101b846a9729fe51d0ddb",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-register.png": {
+    "mtime": 1781401760.6994603,
+    "ast_hash": "07d25039aa06852a3a897ffc949cbdd8",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-reports.png": {
+    "mtime": 1781402469.3258982,
+    "ast_hash": "72326b549db14cfc39147272c40760a6",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-setup-health-1.3.0.png": {
+    "mtime": 1781401444.5916483,
+    "ast_hash": "97021f9b242615501b13509e3e9fc7af",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-sticky-basket-desktop.png": {
+    "mtime": 1781401957.6154625,
+    "ast_hash": "0d5e1c2b02e58ff4c757c50e1b8c7762",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-sticky-basket-mobile.png": {
+    "mtime": 1781402000.1552396,
+    "ast_hash": "9b5ac3b445486fb8867476ed5ff1b6e6",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-terms.png": {
+    "mtime": 1781401656.7804909,
+    "ast_hash": "890e1d40a9c61274c3f6ca7ebf3e155e",
+    "semantic_hash": ""
+  },
+  "test-artifacts/screenshots/p6-tracker.png": {
+    "mtime": 1781401647.629049,
+    "ast_hash": "a726b328fe0d155a614030a1802c4053",
+    "semantic_hash": ""
+  },
+  "takeaway-theme/assets/css/functions.php": {
+    "mtime": 1781569323.0,
+    "ast_hash": "e04d12d53734ef673cfb339f896adaf2",
+    "semantic_hash": ""
+  },
+  "takeaway-theme/assets/js/base-a11y-addon.js": {
+    "mtime": 1781580205.0,
+    "ast_hash": "3bff3f1e032ce7388b8b9059133f19d4",
+    "semantic_hash": ""
+  },
+  "takeaway-theme/inc/accessibility.php": {
+    "mtime": 1781578345.0,
+    "ast_hash": "bf0c8d36a976ae4475f07e989a7bf354",
+    "semantic_hash": ""
+  },
+  "takeaway-theme/inc/account.php": {
+    "mtime": 1781576729.0,
+    "ast_hash": "0c602f9fca8b8e33a006f44f7595e577",
+    "semantic_hash": ""
+  },
+  "takeaway-theme/inc/amh-accessibility-toolkit.php": {
+    "mtime": 1781580205.0,
+    "ast_hash": "14b9cd818d10ad44e8e52201b2492e63",
+    "semantic_hash": ""
+  },
+  "takeaway-theme/inc/amh-accessibility-universal.php": {
+    "mtime": 1781582041.0,
+    "ast_hash": "02632d2ac5ab92777d1d16ade4d23523",
+    "semantic_hash": ""
+  },
+  "takeaway-theme/inc/back-to-top.php": {
+    "mtime": 1781580899.0,
+    "ast_hash": "eba810d896c598c86c0da1769fd7d849",
+    "semantic_hash": ""
+  },
+  "takeaway-theme/inc/performance.php": {
+    "mtime": 1781582324.0,
+    "ast_hash": "6c66c739cd106a34a8f42bed2a774b5f",
+    "semantic_hash": ""
+  },
+  "takeaway-theme/woocommerce/myaccount/dashboard.php": {
+    "mtime": 1781576925.0,
+    "ast_hash": "5e907cf32debf993b20ac508d93ac196",
+    "semantic_hash": ""
+  },
+  "docs/COMPLIANCE-REGISTER.md": {
+    "mtime": 1781568239.4609673,
+    "ast_hash": "e6f5439e28999421e18747d342752756",
+    "semantic_hash": ""
+  },
+  "docs/MASTER-IMPLEMENTATION-MAP.md": {
+    "mtime": 1781567924.4680662,
+    "ast_hash": "36c8868f8b210f0f444313f8d3d789ac",
+    "semantic_hash": ""
+  },
+  "docs/reviews/ACCESSIBILITY-REVIEW.md": {
+    "mtime": 1781568136.8089905,
+    "ast_hash": "c454def65cb4afc270c4a69e35db980d",
+    "semantic_hash": ""
+  },
+  "docs/reviews/CODE-CRITIQUE-REVIEW.md": {
+    "mtime": 1781567993.1866035,
+    "ast_hash": "29c5f091d3c08b8b546659d7e414b9ca",
+    "semantic_hash": ""
+  },
+  "docs/reviews/DESIGN-REVIEW.md": {
+    "mtime": 1781568184.1375372,
+    "ast_hash": "23f98402d2c4eeb5b009941fb2eba480",
+    "semantic_hash": ""
+  },
+  "docs/reviews/LIVE-TESTING-ADDENDUM.md": {
+    "mtime": 1781569848.5271428,
+    "ast_hash": "19bf8a3b7883e9907168081f8a680a22",
+    "semantic_hash": ""
+  },
+  "docs/reviews/SECURITY-REVIEW.md": {
+    "mtime": 1781568049.2522745,
+    "ast_hash": "5de792f35b1bef32a9518664fbd185c4",
     "semantic_hash": ""
   }
 }

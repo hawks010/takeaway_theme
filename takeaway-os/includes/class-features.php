@@ -40,7 +40,7 @@ final class TTOS_Features {
     }
 
     public static function menu(): void {
-        add_submenu_page('takeaway-os', 'Features', 'Features', 'ttos_modules', 'takeaway-os-features', array(__CLASS__, 'page_features'));
+        add_submenu_page('takeaway-os', 'Feature Builder', 'Feature Builder', 'ttos_modules', 'takeaway-os-features', array(__CLASS__, 'page_features'));
     }
 
     public static function defaults(): array {
@@ -255,9 +255,12 @@ final class TTOS_Features {
     }
 
     public static function page_features(): void {
-        self::shell_start('Feature builder', 'Build, configure and test every paid Takeaway OS module before Codex gets the black box recorder.');
+        self::shell_start(
+            'Feature builder',
+            'Build, configure and test every paid Takeaway OS module before Codex gets the black box recorder.',
+            self::secondary_nav_items()
+        );
         $modules = TTOS_Settings::modules();
-        echo '<div class="ttos-feature-nav"><a href="#matrix">Matrix</a><a href="#meal-deals">Meal deals</a><a href="#loyalty">Loyalty</a><a href="#inventory">Inventory</a><a href="#delivery-zones">Delivery zones</a><a href="#analytics-pro">Analytics</a><a href="#crm-pro">CRM Pro</a><a href="#content-manager">Content</a><a href="#integrations">Integrations</a><a href="#accounting">Accounting</a></div>';
         self::feature_matrix($modules);
         self::meal_deals_panel();
         self::loyalty_panel();
@@ -271,41 +274,44 @@ final class TTOS_Features {
         self::shell_end();
     }
 
-    private static function shell_start(string $title, string $subtitle = ''): void {
-        echo '<div class="ttos-wrap"><div class="ttos-shell"><div class="ttos-top"><div><p class="ttos-eyebrow">Takeaway Theme</p><h1>' . esc_html($title) . '</h1>';
-        if ($subtitle) echo '<p>' . esc_html($subtitle) . '</p>';
-        echo '</div><a class="ttos-pill" href="' . esc_url(home_url('/')) . '" target="_blank">View site ↗</a></div>';
+    private static function shell_start(string $title, string $subtitle = '', array $secondary_nav = array()): void {
+        TTOS_Admin_Shell::render_start(array(
+            'title' => $title,
+            'subtitle' => $subtitle,
+            'active' => 'takeaway-os-features',
+            'secondary_nav' => $secondary_nav,
+            'secondary_nav_label' => 'Sections',
+            'secondary_nav_aria_label' => 'Feature Builder sections',
+        ));
         if (!empty($_GET['ttos_notice'])) echo '<div class="ttos-notice">Saved. Feature systems updated.</div>';
-        echo '<nav class="ttos-nav"><a href="' . esc_url(admin_url('admin.php?page=takeaway-os')) . '">Dashboard</a><a href="' . esc_url(admin_url('admin.php?page=takeaway-os-launchpad')) . '">Launchpad</a><a href="' . esc_url(admin_url('admin.php?page=takeaway-os-menu')) . '">Menu</a><a href="' . esc_url(admin_url('admin.php?page=takeaway-os-orders')) . '">Orders</a><a href="' . esc_url(admin_url('admin.php?page=takeaway-os-features')) . '" class="active">Features</a><a href="' . esc_url(admin_url('admin.php?page=takeaway-os-modules')) . '">Add-ons</a></nav>';
     }
 
-    private static function shell_end(): void { echo '</div></div>'; }
+    private static function shell_end(): void { TTOS_Admin_Shell::render_end(); }
+
+    private static function secondary_nav_items(): array {
+        return array(
+            array('label' => 'Matrix', 'url' => '#matrix', 'active' => false),
+            array('label' => 'Meal deals', 'url' => '#meal-deals', 'active' => false),
+            array('label' => 'Loyalty', 'url' => '#loyalty', 'active' => false),
+            array('label' => 'Inventory', 'url' => '#inventory', 'active' => false),
+            array('label' => 'Delivery zones', 'url' => '#delivery-zones', 'active' => false),
+            array('label' => 'Analytics', 'url' => '#analytics-pro', 'active' => false),
+            array('label' => 'CRM Pro', 'url' => '#crm-pro', 'active' => false),
+            array('label' => 'Content', 'url' => '#content-manager', 'active' => false),
+            array('label' => 'Integrations', 'url' => '#integrations', 'active' => false),
+            array('label' => 'Accounting', 'url' => '#accounting', 'active' => false),
+        );
+    }
 
     private static function module_badge(string $slug): string {
         return TTOS_Settings::module_enabled($slug) ? '<span class="ttos-good">Enabled</span>' : '<span class="ttos-warn">Locked/off</span>';
     }
 
     private static function feature_matrix(array $modules): void {
-        $items = array(
-            'meal_deals' => array('Meal deal builder', 'Guided main + side + drink bundles mapped to Woo cart meta.'),
-            'loyalty' => array('Loyalty points', 'Awards points on completed orders.'),
-            'stamp_cards' => array('Stamp cards', 'Auto coupon after target number of completed direct orders.'),
-            'inventory_lite' => array('Inventory Lite', 'Owner-safe stock/status controls without full EPOS.'),
-            'advanced_zones' => array('Advanced zones', 'Postcode prefix fees, minimum spend and free delivery rules.'),
-            'analytics_pro' => array('Analytics Pro', '30-day top sellers, busy hours and channel split.'),
-            'crm_pro' => array('CRM Pro', 'Top spenders, dormant customers, CSV export.'),
-            'content_manager' => array('Content manager', 'Owner-safe homepage/offers shortcode.'),
-            'sms_updates' => array('SMS updates', 'Twilio status messages using restaurant templates.'),
-            'printer' => array('Printer connector', 'POST order payloads to printer relay/PrintNode bridge.'),
-            'epos_connector' => array('EPOS connector', 'Generic JSON webhook for Square/ICRTouch/middleware bridges.'),
-            'accounting' => array('Accounting export', 'Order CSV + daily close VAT estimates.'),
-            'kds_pro' => array('KDS Pro', 'Better kitchen board foundations using existing order statuses.'),
-            'promo_engine' => array('Promo engine', 'Coupon/campaign foundations via WooCommerce coupons.'),
-            'allergen_filters' => array('Allergen filtering', 'Product allergen data already mapped to taxonomy.'),
-        );
-        echo '<section id="matrix" class="ttos-card"><h2>Feature matrix</h2><p class="ttos-muted">These are the planned modules turned into testable surfaces. Toggle access in Add-ons, then configure here.</p><div class="ttos-feature-matrix">';
+        $items = class_exists('TTOS_Admin') && method_exists('TTOS_Admin', 'module_catalog') ? TTOS_Admin::module_catalog() : array();
+        echo '<section id="matrix" class="ttos-card"><h2>Feature matrix</h2><p class="ttos-muted">These are the planned modules turned into testable surfaces. Anything unfinished is marked honestly here and kept out of client roles by default.</p><div class="ttos-feature-matrix">';
         foreach ($items as $slug => $item) {
-            echo '<div><strong>' . esc_html($item[0]) . '</strong><p>' . esc_html($item[1]) . '</p>' . self::module_badge($slug) . '</div>';
+            echo '<div><strong>' . esc_html($item['name']) . '</strong><p>' . esc_html($item['description']) . '</p><p class="ttos-muted">' . esc_html($item['note']) . '</p><p><span class="ttos-mini">' . esc_html($item['status']) . '</span> ' . self::module_badge($slug) . '</p></div>';
         }
         echo '</div></section>';
     }
@@ -499,7 +505,9 @@ final class TTOS_Features {
         echo '<div class="ttos-grid ttos-grid-2">'; self::field('VAT estimate rate (%)', 'feature_settings[accounting][vat_rate]', $s['vat_rate'], 'number'); self::field('Owner/accountant email', 'feature_settings[accounting][daily_email]', $s['daily_email'], 'email'); echo '</div><button class="ttos-button">Save accounting settings</button></form>';
         $daily = self::daily_close_snapshot();
         echo '<div class="ttos-grid ttos-grid-4">'; self::metric('Today gross', self::money($daily['gross'])); self::metric('Card', self::money($daily['card'])); self::metric('Cash', self::money($daily['cash'])); self::metric('VAT est.', self::money($daily['vat'])); echo '</div>';
-        echo '<p><a class="ttos-button" href="' . esc_url(wp_nonce_url(admin_url('admin-post.php?action=ttos_export_orders_csv'), 'ttos_export_orders_csv')) . '">Export orders CSV</a></p></section>';
+        echo '<p><a class="ttos-button" href="' . esc_url(wp_nonce_url(admin_url('admin-post.php?action=ttos_export_orders_csv'), 'ttos_export_orders_csv')) . '">Export orders CSV</a></p>';
+        self::accounting_export_log_table();
+        echo '</section>';
     }
 
     private static function settings_hidden_except(string $sections_csv): void {
@@ -966,6 +974,7 @@ final class TTOS_Features {
             'fulfilment' => array(
                 'method' => $order->get_meta('_ttos_fulfilment_method') ?: 'unknown',
                 'requested_time' => $order->get_meta('_ttos_requested_time') ?: 'asap',
+                'is_preorder' => $order->get_meta('_ttos_is_preorder') === '1',
                 'prep_minutes' => $order->get_meta('_ttos_prep_minutes'),
                 'due_ts' => $order->get_meta('_ttos_due_ts'),
             ),
@@ -1100,15 +1109,79 @@ final class TTOS_Features {
 
     public static function export_orders_csv(): void {
         if (!current_user_can('ttos_view_reports') || !check_admin_referer('ttos_export_orders_csv')) wp_die('Not allowed.');
-        header('Content-Type: text/csv'); header('Content-Disposition: attachment; filename="takeaway-orders-' . gmdate('Y-m-d') . '.csv"'); $out = fopen('php://output','w'); fputcsv($out, array('order_id','date','status','customer','email','phone','payment','total','tax','shipping'));
-        if (TTOS_WooCommerce::active()) foreach (wc_get_orders(array('limit'=>1000,'return'=>'objects')) as $o) fputcsv($out, array($o->get_id(), $o->get_date_created() ? $o->get_date_created()->date('Y-m-d H:i:s') : '', $o->get_status(), $o->get_formatted_billing_full_name(), $o->get_billing_email(), $o->get_billing_phone(), $o->get_payment_method_title(), $o->get_total(), $o->get_total_tax(), $o->get_shipping_total()));
-        fclose($out); exit;
+        $rows = array();
+        if (TTOS_WooCommerce::active()) {
+            foreach (wc_get_orders(array('limit'=>1000,'return'=>'objects')) as $o) {
+                $rows[] = array(
+                    $o->get_id(),
+                    $o->get_date_created() ? $o->get_date_created()->date('Y-m-d H:i:s') : '',
+                    $o->get_status(),
+                    $o->get_formatted_billing_full_name(),
+                    $o->get_billing_email(),
+                    $o->get_billing_phone(),
+                    sanitize_key((string) $o->get_meta('_ttos_fulfilment_method')),
+                    (string) $o->get_meta('_ttos_requested_time'),
+                    $o->get_meta('_ttos_is_preorder') === '1' ? 'yes' : 'no',
+                    $o->get_payment_method_title(),
+                    $o->get_total(),
+                    $o->get_total_tax(),
+                    $o->get_shipping_total(),
+                );
+            }
+        }
+        self::record_accounting_export($rows ? 'success' : 'warning', sprintf('Orders export generated with %d row(s).', count($rows)), array('rows' => count($rows)));
+        self::export_csv('takeaway-orders-' . gmdate('Y-m-d') . '.csv', array('order_id','date','status','customer','email','phone','fulfilment','requested_time','preorder','payment','total','tax','shipping'), $rows);
     }
 
     public static function export_customers_csv(): void {
         if (!current_user_can('ttos_view_reports') || !check_admin_referer('ttos_export_customers_csv')) wp_die('Not allowed.');
-        header('Content-Type: text/csv'); header('Content-Disposition: attachment; filename="takeaway-customers-' . gmdate('Y-m-d') . '.csv"'); $out = fopen('php://output','w'); fputcsv($out, array('name','email','orders','lifetime_value','last_order','dormant'));
-        foreach (self::customer_snapshot() as $email => $c) fputcsv($out, array($c['name'], $email, $c['orders'], $c['total'], $c['last'], $c['dormant'] ? 'yes' : 'no'));
-        fclose($out); exit;
+        $rows = array();
+        foreach (self::customer_snapshot() as $email => $c) {
+            $rows[] = array($c['name'], $email, $c['orders'], $c['total'], $c['last'], $c['dormant'] ? 'yes' : 'no');
+        }
+        self::record_accounting_export($rows ? 'success' : 'warning', sprintf('Customers export generated with %d row(s).', count($rows)), array('rows' => count($rows)));
+        self::export_csv('takeaway-customers-' . gmdate('Y-m-d') . '.csv', array('name','email','orders','lifetime_value','last_order','dormant'), $rows);
+    }
+
+    private static function export_csv(string $filename, array $headers, array $rows): void {
+        nocache_headers();
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . sanitize_file_name($filename) . '"');
+        $out = fopen('php://output', 'w');
+        fputcsv($out, $headers);
+        foreach ($rows as $row) {
+            fputcsv($out, $row);
+        }
+        fclose($out);
+        exit;
+    }
+
+    private static function record_accounting_export(string $status, string $message, array $context = array()): void {
+        $log = get_option('ttos_accounting_export_log', array());
+        if (!is_array($log)) {
+            $log = array();
+        }
+        $log[] = array(
+            'time'    => time(),
+            'status'  => sanitize_key($status),
+            'message' => sanitize_text_field($message),
+            'context' => $context,
+        );
+        update_option('ttos_accounting_export_log', array_slice($log, -50), false);
+    }
+
+    private static function accounting_export_log_table(): void {
+        $log = get_option('ttos_accounting_export_log', array());
+        if (!is_array($log) || !$log) {
+            echo '<p class="ttos-muted">No accounting exports logged yet.</p>';
+            return;
+        }
+        echo '<h3>Recent export activity</h3><table class="ttos-table"><thead><tr><th>Time</th><th>Status</th><th>Message</th></tr></thead><tbody>';
+        foreach (array_reverse(array_slice($log, -5)) as $row) {
+            $status = (string) ($row['status'] ?? 'info');
+            $class = $status === 'success' ? 'ttos-good' : ($status === 'warning' ? 'ttos-warn' : 'ttos-bad');
+            echo '<tr><td>' . esc_html(date_i18n('d M Y H:i', (int) ($row['time'] ?? time()))) . '</td><td><span class="' . esc_attr($class) . '">' . esc_html(ucfirst($status)) . '</span></td><td>' . esc_html((string) ($row['message'] ?? '')) . '</td></tr>';
+        }
+        echo '</tbody></table>';
     }
 }

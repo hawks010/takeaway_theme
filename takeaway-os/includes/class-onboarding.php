@@ -7,7 +7,7 @@ final class TTOS_Onboarding {
         if (!current_user_can('ttos_manage_settings')) {
             wp_die('You do not have permission to apply the Takeaway OS profile.');
         }
-        $business = TTOS_Settings::get('business');
+        $business = TTOS_Settings::business_profile();
         $trading  = TTOS_Settings::get('trading');
 
         update_option('woocommerce_currency', 'GBP');
@@ -26,11 +26,7 @@ final class TTOS_Onboarding {
         update_option('woocommerce_show_marketplace_suggestions', 'no');
         update_option('woocommerce_allow_tracking', 'no');
 
-        if (!empty($business['address_1'])) update_option('woocommerce_store_address', sanitize_text_field($business['address_1']));
-        if (!empty($business['address_2'])) update_option('woocommerce_store_address_2', sanitize_text_field($business['address_2']));
-        if (!empty($business['town'])) update_option('woocommerce_store_city', sanitize_text_field($business['town']));
-        if (!empty($business['postcode'])) update_option('woocommerce_store_postcode', sanitize_text_field($business['postcode']));
-        update_option('woocommerce_store_country', 'GB');
+        TTOS_Settings::sync_business_runtime($business);
 
         // Owner-safe store type hints. WooCommerce may change these internally, but they help suppress onboarding noise.
         update_option('woocommerce_onboarding_profile', array(
@@ -48,11 +44,12 @@ final class TTOS_Onboarding {
             TTOS_Production::apply_starter_menu();
         }
         self::seed_shipping_methods($trading);
+        self::enable_cod_gateway();
     }
 
     private static function seed_terms(): void {
         if (taxonomy_exists('product_cat')) {
-            foreach (array('Burgers','Kebabs','Pizza','Chicken','Sides','Drinks','Desserts','Meal Deals') as $name) {
+            foreach (TTOS_Production::starter_pack_categories() as $name) {
                 if (!term_exists($name, 'product_cat')) {
                     wp_insert_term($name, 'product_cat');
                 }
@@ -91,6 +88,23 @@ final class TTOS_Onboarding {
                 'woocommerce_flat_rate_cost'  => wc_format_decimal($trading['delivery_fee'] ?? '1.50'),
             ));
             $methods[$instance_id]->process_admin_options();
+        }
+    }
+
+    private static function enable_cod_gateway(): void {
+        $existing = get_option('woocommerce_cod_settings', array());
+        if (!is_array($existing)) {
+            $existing = array();
+        }
+        // Only write if not already explicitly enabled.
+        if (($existing['enabled'] ?? '') !== 'yes') {
+            $existing['enabled']             = 'yes';
+            $existing['title']               = $existing['title'] ?? __('Cash on Delivery', 'takeaway-os');
+            $existing['description']         = $existing['description'] ?? __('Pay with cash when your order arrives.', 'takeaway-os');
+            $existing['instructions']        = $existing['instructions'] ?? __('Pay with cash when your order arrives.', 'takeaway-os');
+            $existing['enable_for_methods']  = $existing['enable_for_methods'] ?? array();
+            $existing['enable_for_virtual']  = $existing['enable_for_virtual'] ?? 'no';
+            update_option('woocommerce_cod_settings', $existing);
         }
     }
 

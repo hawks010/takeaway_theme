@@ -11,6 +11,7 @@ final class TTOS_Activator {
         self::create_pages();
         update_option('ttos_version', TTOS_VERSION, false);
         update_option('ttos_do_activation_redirect', '1', false);
+        update_option(TTOS_Client_Intake::STARTUP_PENDING, '1', false);
         flush_rewrite_rules();
     }
 
@@ -80,6 +81,7 @@ final class TTOS_Activator {
     private static function add_roles(): void {
         $owner_caps = array(
             'read'                  => true,
+            'edit_posts'            => true,
             'ttos_access'           => true,
             'ttos_manage'           => true,
             'ttos_view_orders'      => true,
@@ -91,6 +93,7 @@ final class TTOS_Activator {
         );
         $manager_caps = array(
             'read'                  => true,
+            'edit_posts'            => true,
             'ttos_access'           => true,
             'ttos_manage'           => true,
             'ttos_view_orders'      => true,
@@ -101,6 +104,7 @@ final class TTOS_Activator {
         );
         $kitchen_caps = array(
             'read'               => true,
+            'edit_posts'         => true,
             'ttos_access'        => true,
             'ttos_view_orders'   => true,
             'ttos_update_orders' => true,

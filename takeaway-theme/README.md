@@ -1,8 +1,8 @@
-# Takeaway Theme v0.3.0 (bundled)
+# Takeaway Theme v0.3.33 (bundled)
 
 Native front end for Takeaway OS. No page builder required or supported as a base.
 
-## New in v0.3.0
+## Current highlights in v0.3.33
 - Design-token CSS architecture (`tokens.css` -> `base.css` -> feature sheets). All colours/radii/shadows come from Takeaway OS Branding; legacy aliases keep old CSS working.
 - New header: logo, nav, live open/closed pill, phone, account, live basket count, order CTA, accessible mobile drawer (ESC, focus trap, scroll lock).
 - New dynamic footer: contact, grouped opening times, quick links, generated policy links, hygiene/Google/TripAdvisor trust row, admin-controlled built-by credit. Empty sections hide.
@@ -13,9 +13,20 @@ Native front end for Takeaway OS. No page builder required or supported as a bas
 
 ## Developer customisation
 - Child themes can override any `template-parts/*` file.
+- Use `../takeaway-theme-child-starter/` as the base for any client-specific work that must survive theme updates.
 - `tt_home_sections` filter reorders/removes homepage sections.
 - Token values come from the plugin (`style#takeaway-os-brand`); stylesheet fallbacks live in `assets/css/tokens.css`.
 - Template helpers: `tt_content()`, `tt_business_name()`, `tt_open_status()`, `tt_hours_summary()`, `tt_active_offers()`, `tt_stars()` (see `inc/template-helpers.php`).
 
 ## Bundled plugin
-`inc/bundled-plugins/takeaway-os.zip` (v1.3.0). The theme setup screen installs or updates it; data is preserved on update.
+`inc/bundled-plugins/takeaway-os.zip` (v1.3.11). The theme setup screen installs or updates it; data is preserved on update.
+
+## Commercial update rule
+
+Never customise a live client by editing the parent `takeaway-theme` directly.
+
+Use:
+
+- Takeaway OS / WooCommerce settings for business data and content
+- a child theme for client-specific templates and CSS
+- the parent theme only for product-wide fixes and improvements

@@ -68,10 +68,12 @@
         function openCart() {
             cartPreview.classList.add('open');
             basketBtn.setAttribute('aria-expanded', 'true');
+            document.documentElement.classList.add('tt-cart-open');
         }
         function closeCart() {
             cartPreview.classList.remove('open');
             basketBtn.setAttribute('aria-expanded', 'false');
+            document.documentElement.classList.remove('tt-cart-open');
         }
 
         basketBtn.addEventListener('click', function (e) {
@@ -278,6 +280,11 @@
 
     function openDrawer() {
         lastFocused = document.activeElement;
+        var openCartPreview = document.getElementById('tt-cart-preview');
+        var openBasketBtn = document.getElementById('tt-basket-btn');
+        if (openCartPreview) openCartPreview.classList.remove('open');
+        if (openBasketBtn) openBasketBtn.setAttribute('aria-expanded', 'false');
+        document.documentElement.classList.remove('tt-cart-open');
         drawer.hidden = false;
         toggle.setAttribute('aria-expanded', 'true');
         document.documentElement.classList.add('tt-drawer-open');

@@ -1,16 +1,16 @@
-# Graph Report - Takeaway theme  (2026-06-14)
+# Graph Report - Takeaway theme  (2026-06-16)
 
 ## Corpus Check
-- 65 files · ~836,690 words
+- 85 files · ~2,252,126 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 817 nodes · 981 edges · 73 communities (51 shown, 22 thin omitted)
-- Extraction: 86% EXTRACTED · 14% INFERRED · 0% AMBIGUOUS · INFERRED: 142 edges (avg confidence: 0.8)
+- 1067 nodes · 1237 edges · 93 communities (69 shown, 24 thin omitted)
+- Extraction: 87% EXTRACTED · 13% INFERRED · 0% AMBIGUOUS · INFERRED: 157 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `93456e85`
+- Built from commit: `d90e9769`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -60,43 +60,58 @@
 - [[_COMMUNITY_Community 43|Community 43]]
 - [[_COMMUNITY_Community 46|Community 46]]
 - [[_COMMUNITY_Community 48|Community 48]]
+- [[_COMMUNITY_Community 73|Community 73]]
+- [[_COMMUNITY_Community 74|Community 74]]
+- [[_COMMUNITY_Community 75|Community 75]]
+- [[_COMMUNITY_Community 76|Community 76]]
+- [[_COMMUNITY_Community 77|Community 77]]
+- [[_COMMUNITY_Community 78|Community 78]]
+- [[_COMMUNITY_Community 79|Community 79]]
+- [[_COMMUNITY_Community 80|Community 80]]
+- [[_COMMUNITY_Community 81|Community 81]]
+- [[_COMMUNITY_Community 82|Community 82]]
+- [[_COMMUNITY_Community 83|Community 83]]
+- [[_COMMUNITY_Community 84|Community 84]]
+- [[_COMMUNITY_Community 85|Community 85]]
+- [[_COMMUNITY_Community 86|Community 86]]
+- [[_COMMUNITY_Community 87|Community 87]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `TTOS_Features` - 88 edges
-2. `TTOS_Admin` - 82 edges
-3. `TTOS_Site_Content` - 65 edges
-4. `TTOS_WooCommerce` - 65 edges
-5. `TTOS_Settings` - 51 edges
-6. `TTOS_Setup_Health` - 47 edges
+2. `TTOS_Admin` - 84 edges
+3. `TTOS_WooCommerce` - 77 edges
+4. `TTOS_Site_Content` - 68 edges
+5. `TTOS_Settings` - 58 edges
+6. `TTOS_Setup_Health` - 49 edges
 7. `TTOS_Operations` - 46 edges
 8. `TTOS_Production` - 36 edges
 9. `TTOS_Page_Manager` - 33 edges
-10. `TTOS_Plugin_Checker` - 25 edges
+10. `Takeaway OS Progress` - 27 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `tt_trading()` --calls--> `TTOS_Settings`  [INFERRED]
   takeaway-theme/inc/template-helpers.php → takeaway-os/includes/class-settings.php
 - `tt_content()` --calls--> `ttos_get_site_content_value()`  [INFERRED]
   takeaway-theme/inc/template-helpers.php → takeaway-os/includes/class-site-content.php
+- `ttheme_account_allergen_options()` --calls--> `TTOS_WooCommerce`  [INFERRED]
+  takeaway-theme/inc/account.php → takeaway-os/includes/class-woocommerce.php
 - `tt_hours_summary()` --calls--> `ttos_get_opening_hours()`  [INFERRED]
   takeaway-theme/inc/template-helpers.php → takeaway-os/includes/class-site-content.php
 - `tt_open_status()` --calls--> `ttos_get_opening_hours()`  [INFERRED]
   takeaway-theme/inc/template-helpers.php → takeaway-os/includes/class-site-content.php
-- `tt_address_lines()` --calls--> `ttheme_business()`  [INFERRED]
-  takeaway-theme/inc/template-helpers.php → takeaway-theme/functions.php
 
 ## Import Cycles
 - None detected.
 
-## Communities (73 total, 22 thin omitted)
+## Communities (93 total, 24 thin omitted)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.14
 Nodes (21): cleanMessage(), dependenciesReady(), dependencyReady(), esc(), fieldName(), installRow(), orderFilters(), panelParts() (+13 more)
 
 ### Community 11 - "Community 11"
-Cohesion: 0.12
-Nodes (19): tt_active_offers(), tt_address_lines(), tt_business_name(), tt_content(), tt_cta_url(), tt_email(), tt_hours_summary(), tt_menu_url() (+11 more)
+Cohesion: 0.08
+Nodes (27): ttheme_account_allergen_options(), ttheme_account_booking_details(), ttheme_account_booking_enabled(), ttheme_account_handle_actions(), tt_contact_form_html(), ttheme_home_hero_image_id(), ttheme_preload_home_hero_image(), tt_active_offers() (+19 more)
 
 ### Community 13 - "Community 13"
 Cohesion: 0.24
@@ -182,25 +197,77 @@ Nodes (4): Bundled plugin, Developer customisation, New in v0.3.0, Takeaway Them
 Cohesion: 0.67
 Nodes (3): ttos_get_business_type(), ttos_get_site_content(), ttos_get_site_content_value()
 
+### Community 73 - "Community 73"
+Cohesion: 0.06
+Nodes (31): 0. Release Roadmap, 10. My Account Integration, 11. Email System, 12. WooCommerce Connections (v1.4.0), 13. File Structure (new files), 14. Out-of-Box Defaults, 15. Version Target, 1. Scope (+23 more)
+
+### Community 74 - "Community 74"
+Cohesion: 0.07
+Nodes (26): 1. SMTP — order emails will not send, 2. Stripe — payment gateway not live, 3. Hero content empty, 4. No social links, 5. Logo & Favicon, 6. WCAG AA contrast — primary colour, 7. Form input border contrast, Blockers Before Client Handover (+18 more)
+
+### Community 75 - "Community 75"
+Cohesion: 0.10
+Nodes (19): File Map, Phase 4 — Public Front End, Phase 5 — Product Systems Polish, Phase 6 — Final QA + Packaging, Plugin — `takeaway-os/`, Self-Review Notes, Task 10: Version Bump + Final Commit, Task 11: Package ZIPs (+11 more)
+
+### Community 76 - "Community 76"
+Cohesion: 0.12
+Nodes (17): Admin QA (Step 9), Backup Taken, Banner and Popup QA (Step 7), Code Fix Applied, Critical Check (Step 2), Duplicate Page Review (Step 4), Elementor Hijack Repair (Step 5), Public Page QA (Step 6) (+9 more)
+
+### Community 77 - "Community 77"
+Cohesion: 0.33
+Nodes (6): Backup, Deployed via rsync, Guardrails, Pending verification (do on staging in browser), Smoke test results, v1.3.0 Deploy — 2026-06-15
+
+### Community 78 - "Community 78"
+Cohesion: 0.11
+Nodes (18): 10. Compliance / Readiness Map, 11. Release Blockers (current, as of this audit), 12. Future Roadmap Items (explicitly out of scope — do not build), 13. Suggested Worker Assignments, 14. Implementation Tickets, 15. Acceptance Criteria (for this audit pass), 1. Current System Map, 2. Files / Classes by Responsibility (+10 more)
+
+### Community 81 - "Community 81"
+Cohesion: 0.17
+Nodes (11): 1. Business logic placement: PASS, 2. WooCommerce template overrides: PASS (zero exist), 3. Order data access: PASS (HPOS-safe, no meta hacks), 4. Raw database queries: ONE found, benign, 5. CRM duplication: PASS (intentionally separate, not duplicated), 6. Maintainability: WATCH (not a release blocker), 7. Update-safety (Page Manager content): PASS, 8. Code smells scan: no blockers found (+3 more)
+
+### Community 82 - "Community 82"
+Cohesion: 0.20
+Nodes (9): Basket preview (empty state), Design / UI Review — Worker 5 (Audit), Empty / placeholder states, Homepage, Menu page, Not yet visually confirmed (defer to Worker 7 / Release QA), Summary, Token / Consistency Check (source-level, not just visual) (+1 more)
+
+### Community 83 - "Community 83"
+Cohesion: 0.22
+Nodes (8): 1. Utility bar contact links not centered — FIXED, 2. Collect/Delivery toggle did nothing — FIXED, 3. Toggle's active pill had no visual highlight — FIXED, 4. "Proceed to checkout" button rendered WooCommerce's default purple — FIXED, 5. Orders cockpit header had a "massive gap" between title and controls — FIXED, Live Testing Addendum — Bugs Found by Direct User Interaction, Not independently re-verified, Out of scope, logged separately
+
+### Community 84 - "Community 84"
+Cohesion: 0.22
+Nodes (8): AJAX Handlers — full inventory, all four read in full, Capability Model, Honeypot / Rate-Limiting Coverage, Outstanding Item (carried, not a code defect), Secrets / Credentials Sweep, Security Review — Worker 3 (Audit), Summary, Uninstall / Data-Retention Safety — read in full (`uninstall.php`)
+
+### Community 85 - "Community 85"
+Cohesion: 0.32
+Nodes (4): ttheme_body_classes(), ttheme_brand(), ttheme_fallback_nav(), ttheme_page_url()
+
+### Community 86 - "Community 86"
+Cohesion: 0.25
+Nodes (7): Checkout Terms Visibility — Not Re-Verified This Session, Compliance / Readiness Register — Worker 6 (Audit), Do Later (v1.4+), Do Not Build Yet, Do Now (v1.3.x — already built, confirmed by source read), Gap — Needs a Decision, Not Yet Built, Summary
+
+### Community 87 - "Community 87"
+Cohesion: 0.29
+Nodes (6): Accessibility Review — Worker 4 (Audit), Contrast (already fixed this session — confirmed, not re-litigated here), Keyboard / Focus / ARIA — component-by-component (read in full from `theme.js`), Other Findings, Summary, Why this matters specifically for the basket preview
+
 ## Knowledge Gaps
-- **153 isolated node(s):** `summary`, `WP_Query`, `WP_Query`, `name`, `slug` (+148 more)
+- **290 isolated node(s):** `summary`, `WP_Query`, `WP_Query`, `name`, `slug` (+285 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **22 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **24 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `TTOS_Settings` connect `Community 8` to `Community 3`, `Community 5`, `Community 6`, `Community 7`, `Community 11`, `Community 14`, `Community 21`?**
-  _High betweenness centrality (0.144) - this node is a cross-community bridge._
-- **Why does `TTOS_Features` connect `Community 0` to `Community 1`, `Community 4`, `Community 5`, `Community 7`, `Community 8`, `Community 47`?**
-  _High betweenness centrality (0.104) - this node is a cross-community bridge._
-- **Why does `TTOS_Site_Content` connect `Community 2` to `Community 36`, `Community 6`, `Community 8`, `Community 11`, `Community 14`, `Community 21`, `Community 26`?**
-  _High betweenness centrality (0.102) - this node is a cross-community bridge._
+- **Why does `TTOS_WooCommerce` connect `Community 4` to `Community 1`, `Community 2`, `Community 3`, `Community 5`, `Community 6`, `Community 8`, `Community 9`, `Community 11`, `Community 12`, `Community 46`, `Community 79`, `Community 14`?**
+  _High betweenness centrality (0.105) - this node is a cross-community bridge._
+- **Why does `TTOS_Settings` connect `Community 8` to `Community 3`, `Community 5`, `Community 6`, `Community 7`, `Community 11`, `Community 14`, `Community 79`, `Community 21`?**
+  _High betweenness centrality (0.097) - this node is a cross-community bridge._
+- **Why does `TTOS_Features` connect `Community 0` to `Community 1`, `Community 4`, `Community 5`, `Community 7`, `Community 8`, `Community 79`, `Community 47`?**
+  _High betweenness centrality (0.081) - this node is a cross-community bridge._
 - **Are the 5 inferred relationships involving `TTOS_Features` (e.g. with `.apply_order_action()` and `.customer_profile_panel()`) actually correct?**
   _`TTOS_Features` has 5 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 8 inferred relationships involving `TTOS_Site_Content` (e.g. with `.migrate_site_content()` and `.config()`) actually correct?**
-  _`TTOS_Site_Content` has 8 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 43 inferred relationships involving `TTOS_WooCommerce` (e.g. with `.ajax_order_action()` and `.category_builder_panel()`) actually correct?**
-  _`TTOS_WooCommerce` has 43 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 38 inferred relationships involving `TTOS_Settings` (e.g. with `tt_trading()` and `.migrate_branding_tokens()`) actually correct?**
-  _`TTOS_Settings` has 38 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 44 inferred relationships involving `TTOS_WooCommerce` (e.g. with `ttheme_account_allergen_options()` and `.ajax_order_action()`) actually correct?**
+  _`TTOS_WooCommerce` has 44 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 11 inferred relationships involving `TTOS_Site_Content` (e.g. with `.migrate_site_content()` and `.config()`) actually correct?**
+  _`TTOS_Site_Content` has 11 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 43 inferred relationships involving `TTOS_Settings` (e.g. with `tt_trading()` and `.migrate_branding_tokens()`) actually correct?**
+  _`TTOS_Settings` has 43 INFERRED edges - model-reasoned connections that need verification._

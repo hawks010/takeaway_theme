@@ -29,32 +29,34 @@ final class TTOS_Settings {
                 'logo_id'       => 0,
                 'favicon_id'    => 0,
                 'hero_image_id' => 0,
-                'primary'       => '#c53000',
-                'accent'        => '#ffac00',
-                'bg'            => '#f9f4ee',
+                'primary'       => '#d83a16',
+                'accent'        => '#d99a22',
+                'bg'            => '#fbf4ea',
                 'surface'       => '#ffffff',
-                'surface_soft'  => '#f1eae0',
-                'text'          => '#1a1410',
-                'muted'         => '#6f655e',
-                'border'        => '#e8dfd4',
-                'success'       => '#157a35',
+                'surface_soft'  => '#f8efe4',
+                'text'          => '#1f1712',
+                'muted'         => '#75665c',
+                'border'        => '#e5d6c5',
+                'success'       => '#2f7d46',
                 'warning'       => '#8a5200',
-                'error'         => '#b33a3a',
-                'radius_sm'     => '10',
-                'radius_md'     => '16',
+                'error'         => '#b73525',
+                'radius_sm'     => '16',
+                'radius_md'     => '20',
                 'radius_lg'     => '24',
                 'shadow'        => 'soft',
                 'default_mode'  => 'light',
-                'header_style'  => 'solid',
-                'hero_style'    => 'angled',
+                'header_style'  => 'utility_header',
+                'hero_style'    => 'editorial_split',
                 'card_style'    => 'soft',
-                'footer_style'  => 'dark',
+                'footer_style'  => 'trust_led',
+                'font_heading'  => '',
+                'font_body'     => '',
                 // Legacy v0.2.x keys. Kept stored so old CSS aliases and
                 // saved client values keep working; new installs mirror the
                 // token values above.
-                'secondary'     => '#ffac00',
-                'dark'          => '#1a1410',
-                'cream'         => '#f9f4ee',
+                'secondary'     => '#d99a22',
+                'dark'          => '#1f1712',
+                'cream'         => '#fbf4ea',
                 'style_skin'    => 'charcoal',
             ),
             'trading' => array(
@@ -67,6 +69,7 @@ final class TTOS_Settings {
                 'delivery_postcodes'  => '',
                 'collection_enabled'  => '1',
                 'delivery_enabled'    => '1',
+                'service_charge'      => '0',
             ),
 
             'service_links' => array(
@@ -128,13 +131,140 @@ final class TTOS_Settings {
         update_option('ttos_settings', $settings, false);
     }
 
+    public static function business_profile(): array {
+        $business = self::get('business');
+        if (class_exists('TTOS_Site_Content')) {
+            $content = TTOS_Site_Content::get('business_info');
+            if (is_array($content)) {
+                $map = array(
+                    'restaurant_name' => 'business_name',
+                    'phone'           => 'phone',
+                    'email'           => 'email',
+                    'address_1'       => 'address_1',
+                    'address_2'       => 'address_2',
+                    'town'            => 'town',
+                    'postcode'        => 'postcode',
+                    'company_number'  => 'company_number',
+                    'vat_number'      => 'vat_number',
+                    'fsa_rating'      => 'hygiene_rating',
+                );
+                foreach ($map as $business_key => $content_key) {
+                    if (!empty($content[$content_key])) {
+                        $business[$business_key] = sanitize_text_field((string) $content[$content_key]);
+                    }
+                }
+            }
+        }
+        return $business;
+    }
+
+    public static function sync_business_runtime(array $business): void {
+        if (!empty($business['restaurant_name'])) {
+            update_option('blogname', sanitize_text_field((string) $business['restaurant_name']));
+        }
+        if (array_key_exists('tagline', $business)) {
+            update_option('blogdescription', sanitize_text_field((string) $business['tagline']));
+        }
+        if (!empty($business['email']) && is_email($business['email'])) {
+            update_option('admin_email', sanitize_email((string) $business['email']));
+        }
+        if (!empty($business['address_1'])) {
+            update_option('woocommerce_store_address', sanitize_text_field((string) $business['address_1']));
+        }
+        if (array_key_exists('address_2', $business)) {
+            update_option('woocommerce_store_address_2', sanitize_text_field((string) $business['address_2']));
+        }
+        if (!empty($business['town'])) {
+            update_option('woocommerce_store_city', sanitize_text_field((string) $business['town']));
+        }
+        if (!empty($business['postcode'])) {
+            update_option('woocommerce_store_postcode', sanitize_text_field((string) $business['postcode']));
+        }
+        update_option('woocommerce_store_country', 'GB');
+    }
+
+    public static function sync_business_to_site_content(array $business): void {
+        if (!class_exists('TTOS_Site_Content')) {
+            return;
+        }
+        $content = TTOS_Site_Content::get('business_info');
+        if (!is_array($content)) {
+            $content = array();
+        }
+        $map = array(
+            'restaurant_name' => 'business_name',
+            'phone'           => 'phone',
+            'email'           => 'email',
+            'address_1'       => 'address_1',
+            'address_2'       => 'address_2',
+            'town'            => 'town',
+            'postcode'        => 'postcode',
+            'company_number'  => 'company_number',
+            'vat_number'      => 'vat_number',
+            'fsa_rating'      => 'hygiene_rating',
+        );
+        foreach ($map as $business_key => $content_key) {
+            if (!array_key_exists($business_key, $business)) {
+                continue;
+            }
+            $content[$content_key] = sanitize_text_field((string) $business[$business_key]);
+        }
+        TTOS_Site_Content::update_section('business_info', $content);
+    }
+
+    public static function sync_business_from_site_content(array $content): void {
+        $business = self::get('business');
+        $map = array(
+            'business_name'   => 'restaurant_name',
+            'phone'           => 'phone',
+            'email'           => 'email',
+            'address_1'       => 'address_1',
+            'address_2'       => 'address_2',
+            'town'            => 'town',
+            'postcode'        => 'postcode',
+            'company_number'  => 'company_number',
+            'vat_number'      => 'vat_number',
+            'hygiene_rating'  => 'fsa_rating',
+        );
+        foreach ($map as $content_key => $business_key) {
+            if (!array_key_exists($content_key, $content)) {
+                continue;
+            }
+            $business[$business_key] = sanitize_text_field((string) $content[$content_key]);
+        }
+        self::update_section('business', $business);
+        self::sync_business_runtime($business);
+    }
+
     public static function modules(): array {
-        return self::get('modules');
+        $modules = self::get('modules');
+        foreach (self::production_locked_modules() as $slug) {
+            $modules[$slug] = false;
+        }
+        return $modules;
     }
 
     public static function module_enabled(string $slug): bool {
         $modules = self::modules();
         return !empty($modules[$slug]);
+    }
+
+    /**
+     * Modules below are intentionally forced off in v1.3.x production mode.
+     * Their settings may exist for future/admin work, but they should not be
+     * treated as live sellable features until separately signed off.
+     */
+    private static function production_locked_modules(): array {
+        return array(
+            'sms_updates',
+            'printer',
+            'allergen_filters',
+            'promo_engine',
+            'kds_pro',
+            'epos_connector',
+            'multi_location',
+            'qr_ordering',
+        );
     }
 
     /**
@@ -165,12 +295,39 @@ final class TTOS_Settings {
         $tokens['radius_sm'] = $radius($branding['radius_sm'] ?? '', $defaults['radius_sm']);
         $tokens['radius_md'] = $radius($branding['radius_md'] ?? '', $defaults['radius_md']);
         $tokens['radius_lg'] = $radius($branding['radius_lg'] ?? '', $defaults['radius_lg']);
+        $safe_font = static function (string $value): string {
+            return preg_replace('/[^a-zA-Z0-9 ,\-\'"]+/', '', $value);
+        };
+        $tokens['font_heading'] = $safe_font((string) ($branding['font_heading'] ?? ''));
+        $tokens['font_body']    = $safe_font((string) ($branding['font_body'] ?? ''));
+        $layout_choice = static function ($raw, array $allowed, array $legacy_map, string $default) use ($choice): string {
+            $value = sanitize_key((string) $raw);
+            if (isset($legacy_map[$value])) {
+                $value = $legacy_map[$value];
+            }
+            return $choice($value, $allowed, $default);
+        };
         $tokens['shadow']       = $choice($branding['shadow'] ?? '', array('none', 'soft', 'strong'), 'soft');
         $tokens['default_mode'] = $choice($branding['default_mode'] ?? '', array('light', 'dark', 'system'), 'light');
-        $tokens['header_style'] = $choice($branding['header_style'] ?? '', array('solid', 'transparent'), 'solid');
-        $tokens['hero_style']   = $choice($branding['hero_style'] ?? '', array('angled', 'minimal', 'photo'), 'angled');
+        $tokens['header_style'] = $layout_choice(
+            $branding['header_style'] ?? '',
+            array('utility_header', 'centered_brand'),
+            array('solid' => 'utility_header', 'transparent' => 'centered_brand'),
+            'utility_header'
+        );
+        $tokens['hero_style']   = $layout_choice(
+            $branding['hero_style'] ?? '',
+            array('editorial_split', 'cinematic_photo', 'product_mosaic'),
+            array('angled' => 'editorial_split', 'minimal' => 'editorial_split', 'photo' => 'cinematic_photo'),
+            'editorial_split'
+        );
         $tokens['card_style']   = $choice($branding['card_style'] ?? '', array('soft', 'outlined', 'flat'), 'soft');
-        $tokens['footer_style'] = $choice($branding['footer_style'] ?? '', array('dark', 'light'), 'dark');
+        $tokens['footer_style'] = $layout_choice(
+            $branding['footer_style'] ?? '',
+            array('trust_led', 'editorial'),
+            array('dark' => 'trust_led', 'light' => 'editorial'),
+            'trust_led'
+        );
         return $tokens;
     }
 
@@ -179,9 +336,9 @@ final class TTOS_Settings {
             return 'none';
         }
         if ($dark_mode) {
-            return $level === 'strong' ? '0 26px 70px rgba(0,0,0,.6)' : '0 16px 44px rgba(0,0,0,.45)';
+            return $level === 'strong' ? '0 18px 40px rgba(0,0,0,.4)' : '0 10px 24px rgba(0,0,0,.28)';
         }
-        return $level === 'strong' ? '0 26px 70px rgba(26,20,16,.16)' : '0 16px 44px rgba(26,20,16,.08)';
+        return $level === 'strong' ? '0 16px 34px rgba(31,23,18,.12)' : '0 8px 20px rgba(31,23,18,.08)';
     }
 
     /**
@@ -218,6 +375,8 @@ final class TTOS_Settings {
             . ';--tt-radius-md:' . $t['radius_md'] . 'px'
             . ';--tt-radius-lg:' . $t['radius_lg'] . 'px'
             . ';--tt-shadow:' . self::shadow_value($t['shadow'])
+            . ($t['font_heading'] !== '' ? ';--tt-font-heading:' . $t['font_heading'] : '')
+            . ($t['font_body']    !== '' ? ';--tt-font-body:'    . $t['font_body']    : '')
             // Legacy aliases for v0.2.x CSS. These stay pinned to the stored
             // legacy values in every mode so the old front end never flips
             // half-dark; new --tt-* consumers handle modes properly.

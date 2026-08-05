@@ -3,7 +3,7 @@
  * Plugin Name:       Takeaway OS
  * Plugin URI:        https://inkfire.co.uk
  * Description:       A clean takeaway management overlay for WordPress and WooCommerce: launch wizard, menu builder, order cockpit, CRM, modules and restaurant settings.
- * Version:           1.3.1
+ * Version:           1.3.11
  * Author:            Inkfire
  * Author URI:        https://inkfire.co.uk
  * Text Domain:       takeaway-os
@@ -13,7 +13,7 @@
 
 defined('ABSPATH') || exit;
 
-define('TTOS_VERSION', '1.3.1');
+define('TTOS_VERSION', '1.3.11');
 define('TTOS_FILE', __FILE__);
 define('TTOS_DIR', plugin_dir_path(__FILE__));
 define('TTOS_URL', plugin_dir_url(__FILE__));
@@ -21,6 +21,7 @@ define('TTOS_BASENAME', plugin_basename(__FILE__));
 
 $ttos_files = array(
     'includes/class-settings.php',
+    'includes/class-admin-shell.php',
     'includes/class-site-content.php',
     'includes/class-public-ui.php',
     'includes/class-page-manager.php',
@@ -33,7 +34,10 @@ $ttos_files = array(
     'includes/class-features.php',
     'includes/class-operations.php',
     'includes/class-hardening.php',
+    'includes/class-oauth-connectors.php',
+    'includes/class-intake-rest.php',
     'includes/class-production.php',
+    'includes/class-client-intake.php',
     'includes/class-admin.php',
     'includes/class-shortcodes.php',
 );
@@ -64,7 +68,9 @@ add_action('plugins_loaded', function () {
     TTOS_Features::hooks();
     TTOS_Operations::hooks();
     TTOS_Hardening::hooks();
+    TTOS_Intake_REST::hooks();
     TTOS_Production::hooks();
+    TTOS_Client_Intake::hooks();
     TTOS_Admin::hooks();
     TTOS_Shortcodes::hooks();
 });

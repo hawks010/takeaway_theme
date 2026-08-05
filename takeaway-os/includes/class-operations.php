@@ -13,6 +13,7 @@ final class TTOS_Operations {
         add_filter('body_class', array(__CLASS__, 'front_body_class'));
 
         add_filter('woocommerce_checkout_fields', array(__CLASS__, 'checkout_fields'));
+        add_filter('woocommerce_add_to_cart_validation', array(__CLASS__, 'validate_add_to_cart_window'), 5, 3);
         add_action('woocommerce_checkout_process', array(__CLASS__, 'validate_checkout'));
         add_action('woocommerce_checkout_create_order', array(__CLASS__, 'save_order_meta'), 20, 2);
         add_action('woocommerce_admin_order_data_after_billing_address', array(__CLASS__, 'admin_order_meta'));
@@ -36,6 +37,7 @@ final class TTOS_Operations {
                 'lead_time_delivery' => '35',
                 'lead_time_collection' => '20',
                 'max_days_ahead' => '2',
+                'preorder_enabled' => '0',
                 'delivery_label' => 'Delivery',
                 'collection_label' => 'Collection',
             ),
@@ -95,6 +97,7 @@ final class TTOS_Operations {
                 'lead_time_delivery' => (string) max(0, absint($raw['lead_time_delivery'] ?? 35)),
                 'lead_time_collection' => (string) max(0, absint($raw['lead_time_collection'] ?? 20)),
                 'max_days_ahead' => (string) max(0, absint($raw['max_days_ahead'] ?? 2)),
+                'preorder_enabled' => !empty($raw['preorder_enabled']) ? '1' : '0',
                 'delivery_label' => sanitize_text_field($raw['delivery_label'] ?? 'Delivery'),
                 'collection_label' => sanitize_text_field($raw['collection_label'] ?? 'Collection'),
             ));
@@ -135,7 +138,7 @@ final class TTOS_Operations {
     }
 
     public static function page_operations(): void {
-        self::shell_start('Operations', 'Checkout, fulfilment, handover mode and owner-safe behaviour. This is the boring bit that stops Friday night chaos.');
+        self::shell_start('Operations', 'Checkout, fulfilment, handover mode and owner-safe behaviour. This is the boring bit that stops Friday night chaos.', 'takeaway-os-operations');
         self::checkout_panel();
         self::handover_panel();
         self::status_panel();
@@ -144,34 +147,25 @@ final class TTOS_Operations {
     }
 
     public static function page_go_live(): void {
-        self::shell_start('Go Live', 'Final launch checklist, system status, logs and export links.');
+        self::shell_start('Go Live', 'Final launch checklist, system status, logs and export links.', 'takeaway-os-golive');
         self::go_live_panel();
         self::logs_panel();
         self::shell_end();
     }
 
-    private static function shell_start(string $title, string $subtitle = ''): void {
-        echo '<div class="ttos-wrap"><div class="ttos-shell"><div class="ttos-top"><div><p class="ttos-eyebrow">Takeaway OS</p><h1>' . esc_html($title) . '</h1>';
-        if ($subtitle) echo '<p>' . esc_html($subtitle) . '</p>';
-        echo '</div><a class="ttos-pill" href="' . esc_url(admin_url('admin.php?page=takeaway-os')) . '">Dashboard</a></div>';
-        self::nav();
+    private static function shell_start(string $title, string $subtitle = '', string $active = 'takeaway-os-operations'): void {
+        TTOS_Admin_Shell::render_start(array(
+            'title' => $title,
+            'subtitle' => $subtitle,
+            'active' => $active,
+        ));
         if (!empty($_GET['ttos_notice'])) echo '<div class="ttos-notice">' . esc_html(ucfirst(str_replace('-', ' ', sanitize_key($_GET['ttos_notice'])))) . '</div>';
     }
 
-    private static function shell_end(): void { echo '</div></div>'; }
+    private static function shell_end(): void { TTOS_Admin_Shell::render_end(); }
 
     private static function nav(): void {
-        $items = array(
-            'takeaway-os' => 'Dashboard', 'takeaway-os-launchpad' => 'Launchpad', 'takeaway-os-setup-health' => 'Setup Health', 'takeaway-os-menu' => 'Menu', 'takeaway-os-orders' => 'Orders', 'takeaway-os-kitchen' => 'Kitchen',
-            'takeaway-os-customers' => 'Customers', 'takeaway-os-reports' => 'Reports', 'takeaway-os-site-content' => 'Site Content', 'takeaway-os-features' => 'Features', 'takeaway-os-operations' => 'Operations', 'takeaway-os-golive' => 'Go Live', 'takeaway-os-modules' => 'Add-ons'
-        );
-        $current = isset($_GET['page']) ? sanitize_key($_GET['page']) : 'takeaway-os';
-        echo '<nav class="ttos-nav">';
-        foreach ($items as $slug => $label) {
-            if ($slug === 'takeaway-os-modules' && !current_user_can('ttos_modules')) continue;
-            echo '<a class="' . esc_attr($current === $slug ? 'active' : '') . '" href="' . esc_url(admin_url('admin.php?page=' . $slug)) . '">' . esc_html($label) . '</a>';
-        }
-        echo '</nav>';
+        TTOS_Admin_Shell::render_primary_nav(TTOS_Admin_Shell::current_page());
     }
 
     private static function checkout_panel(): void {
@@ -187,7 +181,8 @@ final class TTOS_Operations {
         self::field('Max days ahead', 'operations[checkout][max_days_ahead]', $s['max_days_ahead'], 'number');
         self::field('Delivery label', 'operations[checkout][delivery_label]', $s['delivery_label']);
         self::field('Collection label', 'operations[checkout][collection_label]', $s['collection_label']);
-        echo '</div><label class="ttos-check"><input type="checkbox" name="operations[checkout][force_choice]" value="1" ' . checked($s['force_choice'], '1', false) . '> Require customer to choose delivery or collection</label><button class="ttos-button">Save checkout flow</button></form></section>';
+        echo '</div><label class="ttos-check"><input type="checkbox" name="operations[checkout][force_choice]" value="1" ' . checked($s['force_choice'], '1', false) . '> Require customer to choose delivery or collection</label>';
+        echo '<label class="ttos-check"><input type="checkbox" name="operations[checkout][preorder_enabled]" value="1" ' . checked($s['preorder_enabled'], '1', false) . '> Allow customers to place preorders when the shop is currently closed</label><button class="ttos-button">Save checkout flow</button></form></section>';
     }
 
     private static function handover_panel(): void {
@@ -205,10 +200,11 @@ final class TTOS_Operations {
 
     private static function status_panel(): void {
         echo '<section class="ttos-card"><h2>Operational status</h2><div class="ttos-grid ttos-grid-4">';
+        $state = self::ordering_state();
         self::metric('WooCommerce', TTOS_WooCommerce::active() ? 'Active' : 'Missing');
         self::metric('Checkout pages', self::page_ready_count() . ' ready');
         self::metric('Client mode', self::get('handover','client_mode') === '1' ? 'On' : 'Off');
-        self::metric('Open status', self::is_open_now() ? 'Open' : 'Closed/unknown');
+        self::metric('Open status', $state['label']);
         echo '</div></section>';
     }
 
@@ -264,37 +260,56 @@ final class TTOS_Operations {
             'type' => 'select', 'label' => __('Delivery or collection', 'takeaway-os'), 'required' => $checkout['force_choice'] === '1',
             'options' => $options, 'default' => isset($options[$checkout['default_method']]) ? $checkout['default_method'] : array_key_first($options), 'priority' => 5,
         );
-        $time_options = self::time_slot_options($checkout);
-        if ($checkout['time_mode'] !== 'asap') {
-            $fields['order']['ttos_requested_time'] = array('type'=>'select','label'=>__('Requested time', 'takeaway-os'),'required'=>$checkout['time_mode']==='slot','options'=>$time_options,'priority'=>6);
+
+        $method = self::current_checkout_method(array_keys($options));
+        $state = self::ordering_state($method);
+        $time_options = self::time_slot_options($checkout, $method, $state);
+        $requires_preorder = !empty($state['preorder_required']);
+        if ($checkout['time_mode'] !== 'asap' || $requires_preorder) {
+            $fields['order']['ttos_requested_time'] = array(
+                'type'     => 'select',
+                'label'    => $requires_preorder ? __('Preorder time', 'takeaway-os') : __('Requested time', 'takeaway-os'),
+                'required' => $requires_preorder || $checkout['time_mode'] === 'slot',
+                'options'  => $time_options,
+                'priority' => 6,
+            );
         } else {
             $fields['order']['ttos_requested_time'] = array('type'=>'hidden','default'=>'asap','priority'=>6);
         }
         return $fields;
     }
 
-    private static function time_slot_options(array $checkout): array {
-        $options = array('asap' => 'ASAP');
-        if ($checkout['time_mode'] === 'slot') $options = array('' => 'Choose a time');
+    private static function time_slot_options(array $checkout, string $method, array $state): array {
+        $include_asap = $checkout['time_mode'] !== 'slot' && empty($state['preorder_required']);
+        $options = $include_asap ? array('asap' => 'ASAP') : array('' => __('Choose a time', 'takeaway-os'));
         $interval = max(5, (int) $checkout['slot_interval']);
         $days = max(0, (int) $checkout['max_days_ahead']);
-        $start = time() + (max((int) $checkout['lead_time_delivery'], (int) $checkout['lead_time_collection']) * MINUTE_IN_SECONDS);
+        $lead_key = $method === 'collection' ? 'lead_time_collection' : 'lead_time_delivery';
+        $start = current_time('timestamp') + (max(0, (int) $checkout[$lead_key]) * MINUTE_IN_SECONDS);
         $start = (int) ceil($start / ($interval * 60)) * ($interval * 60);
-        $end = strtotime('+' . $days . ' days 23:59:00');
+        $end = current_time('timestamp') + (($days + 1) * DAY_IN_SECONDS);
+        $has_windows = !empty(self::service_windows($method, 8));
         for ($ts = $start; $ts <= $end; $ts += $interval * 60) {
-            $key = gmdate('Y-m-d\TH:i', $ts);
-            $label = date_i18n('D j M, H:i', $ts);
+            if ($has_windows && !self::time_is_inside_service_window($ts, $method)) {
+                continue;
+            }
+            $key = wp_date('Y-m-d\TH:i', $ts, wp_timezone());
+            $label = wp_date('D j M, H:i', $ts, wp_timezone());
             $options[$key] = $label;
         }
-        return array_slice($options, 0, 120, true);
+        return array_slice($options, 0, 160, true);
     }
 
     public static function validate_checkout(): void {
         $trading = TTOS_Settings::get('trading');
         $method = sanitize_key(wp_unslash($_POST['ttos_fulfilment_method'] ?? ''));
         if ($method === '') return;
+        $state = self::ordering_state($method);
         if ($method === 'delivery' && $trading['delivery_enabled'] !== '1') wc_add_notice(__('Delivery is currently unavailable.', 'takeaway-os'), 'error');
         if ($method === 'collection' && $trading['collection_enabled'] !== '1') wc_add_notice(__('Collection is currently unavailable.', 'takeaway-os'), 'error');
+        if (empty($state['open']) && empty($state['preorder_enabled'])) {
+            wc_add_notice(self::closed_notice_message($state), 'error');
+        }
         if ($method === 'delivery' && function_exists('WC') && WC()->cart) {
             $min = (float) ($trading['min_order'] ?? 0);
             if ($min > 0 && (float) WC()->cart->get_subtotal() < $min) wc_add_notice(sprintf(__('Minimum delivery order is £%s.', 'takeaway-os'), number_format($min, 2)), 'error');
@@ -303,6 +318,16 @@ final class TTOS_Operations {
                 $pc = strtoupper(preg_replace('/\s+/', '', sanitize_text_field(wp_unslash($_POST['shipping_postcode'] ?? $_POST['billing_postcode'] ?? ''))));
                 $ok = false; foreach ($allowed as $prefix) if ($prefix !== '' && strpos($pc, $prefix) === 0) $ok = true;
                 if (!$ok) wc_add_notice(__('Sorry, this postcode is outside the current delivery area.', 'takeaway-os'), 'error');
+            }
+        }
+        $time = sanitize_text_field(wp_unslash($_POST['ttos_requested_time'] ?? 'asap'));
+        if (!empty($state['preorder_required']) && ($time === '' || $time === 'asap')) {
+            wc_add_notice(__('Please choose a preorder time before placing this order.', 'takeaway-os'), 'error');
+        }
+        if ($time !== '' && $time !== 'asap') {
+            $options = self::time_slot_options(self::get('checkout'), $method, $state);
+            if (!isset($options[$time])) {
+                wc_add_notice(__('That requested time is no longer available. Please choose another slot.', 'takeaway-os'), 'error');
             }
         }
     }
@@ -327,17 +352,26 @@ final class TTOS_Operations {
         $time = sanitize_text_field(wp_unslash($_POST['ttos_requested_time'] ?? 'asap'));
         if ($method) $order->update_meta_data('_ttos_fulfilment_method', $method);
         if ($time) $order->update_meta_data('_ttos_requested_time', $time);
+        if ($time !== '' && $time !== 'asap') {
+            $order->update_meta_data('_ttos_is_preorder', '1');
+            $order->update_meta_data('_ttos_preorder_for', $time);
+        } else {
+            $order->delete_meta_data('_ttos_is_preorder');
+            $order->delete_meta_data('_ttos_preorder_for');
+        }
     }
 
     public static function admin_order_meta($order): void {
         $method = $order->get_meta('_ttos_fulfilment_method'); $time = $order->get_meta('_ttos_requested_time');
-        if ($method || $time) echo '<p><strong>Takeaway:</strong><br>' . esc_html(ucfirst($method ?: '')) . ($time ? ' · ' . esc_html(self::format_time_value($time)) : '') . '</p>';
+        $preorder = $order->get_meta('_ttos_is_preorder');
+        if ($method || $time || $preorder) echo '<p><strong>Takeaway:</strong><br>' . esc_html(ucfirst($method ?: '')) . ($time ? ' · ' . esc_html(self::format_time_value($time)) : '') . ($preorder === '1' ? ' · ' . esc_html__('Pre-order', 'takeaway-os') : '') . '</p>';
     }
 
     public static function email_order_meta(array $fields, bool $sent_to_admin, $order): array {
         $method = $order->get_meta('_ttos_fulfilment_method'); $time = $order->get_meta('_ttos_requested_time');
         if ($method) $fields['ttos_fulfilment_method'] = array('label'=>'Delivery/collection', 'value'=>ucfirst($method));
         if ($time) $fields['ttos_requested_time'] = array('label'=>'Requested time', 'value'=>self::format_time_value($time));
+        if ($order->get_meta('_ttos_is_preorder') === '1') $fields['ttos_preorder'] = array('label'=>'Order type', 'value'=>__('Pre-order', 'takeaway-os'));
         return $fields;
     }
 
@@ -389,11 +423,99 @@ final class TTOS_Operations {
     }
 
     public static function shortcode_open_status(): string {
-        $open = self::is_open_now();
-        return '<span class="ttos-open-status ' . esc_attr($open ? 'is-open' : 'is-closed') . '">' . esc_html($open ? 'Open now' : 'Closed right now') . '</span>';
+        $state = self::ordering_state();
+        $class = !empty($state['open']) ? 'is-open' : (!empty($state['preorder_required']) || !empty($state['preorder_enabled']) ? 'is-preorder' : 'is-closed');
+        return '<span class="ttos-open-status ' . esc_attr($class) . '">' . esc_html($state['label']) . '</span>';
     }
 
-    private static function is_open_now(): bool { return true; }
+    public static function ordering_state(string $method = ''): array {
+        $checkout = self::get('checkout');
+        $hours = function_exists('ttos_get_opening_hours') ? ttos_get_opening_hours() : array();
+        $method = self::normalise_method($method !== '' ? $method : self::current_checkout_method());
+        $preorder_enabled = ($checkout['preorder_enabled'] ?? '0') === '1';
+        $state = array(
+            'method'            => $method,
+            'open'              => false,
+            'preorder_enabled'  => $preorder_enabled,
+            'preorder_required' => false,
+            'next_open_ts'      => 0,
+            'label'             => __('Closed right now', 'takeaway-os'),
+            'message'           => __('We are currently closed.', 'takeaway-os'),
+        );
+
+        if (($hours['temporary_closure'] ?? '0') === '1') {
+            $message = trim((string) ($hours['temporary_closure_message'] ?? ''));
+            if ($message !== '') {
+                $state['label'] = $message;
+                $state['message'] = $message;
+            }
+            return $state;
+        }
+
+        $override = sanitize_key((string) ($hours['override'] ?? 'normal'));
+        if ($override === 'force_open') {
+            $state['open'] = true;
+            $state['label'] = __('Open now', 'takeaway-os');
+            $state['message'] = __('We are currently accepting orders.', 'takeaway-os');
+            return $state;
+        }
+        if ($override === 'preorder') {
+            $state['preorder_enabled'] = true;
+        }
+        if ($override === 'force_closed') {
+            $state['label'] = __('Closed today', 'takeaway-os');
+            $state['message'] = __('We are not taking immediate orders right now.', 'takeaway-os');
+        }
+
+        $windows = self::service_windows($method, 8);
+        $now = current_time('timestamp');
+        foreach ($windows as $window) {
+            if ($now >= $window['start'] && $now < $window['end']) {
+                $state['open'] = true;
+                $state['label'] = sprintf(__('Open until %s', 'takeaway-os'), wp_date('H:i', $window['end'], wp_timezone()));
+                $state['message'] = __('We are currently accepting orders.', 'takeaway-os');
+                return $state;
+            }
+            if ($window['start'] > $now) {
+                $state['next_open_ts'] = (int) $window['start'];
+                break;
+            }
+        }
+
+        if ($state['next_open_ts'] > 0) {
+            $state['label'] = sprintf(__('Next opening: %s', 'takeaway-os'), wp_date('D j M, H:i', $state['next_open_ts'], wp_timezone()));
+            $state['message'] = sprintf(__('We reopen at %s.', 'takeaway-os'), wp_date('D j M, H:i', $state['next_open_ts'], wp_timezone()));
+        }
+
+        if (!$state['open'] && $state['preorder_enabled']) {
+            $state['preorder_required'] = true;
+            $state['label'] = __('Pre-order open', 'takeaway-os');
+            $state['message'] = __('We are closed for immediate orders, but preorders are available.', 'takeaway-os');
+        }
+
+        return $state;
+    }
+
+    public static function can_accept_menu_orders(): bool {
+        $state = self::ordering_state();
+        return !empty($state['open']) || !empty($state['preorder_enabled']);
+    }
+
+    public static function validate_add_to_cart_window(bool $passed, int $product_id, int $quantity): bool {
+        $state = self::ordering_state();
+        if (!empty($state['open']) || !empty($state['preorder_enabled'])) {
+            return $passed;
+        }
+        if (function_exists('wc_add_notice')) {
+            wc_add_notice(self::closed_notice_message($state), 'error');
+        }
+        return false;
+    }
+
+    private static function is_open_now(): bool {
+        $state = self::ordering_state();
+        return !empty($state['open']);
+    }
 
     private static function page_ready_count(): string {
         $count = 0;
@@ -423,4 +545,100 @@ final class TTOS_Operations {
     private static function metric(string $label, string $value): void { echo '<section class="ttos-metric"><span>' . esc_html($label) . '</span><strong>' . esc_html($value) . '</strong></section>'; }
     private static function field(string $label, string $name, $value = '', string $type = 'text'): void { echo '<label>' . esc_html($label) . '<input type="' . esc_attr($type) . '" name="' . esc_attr($name) . '" value="' . esc_attr((string) $value) . '"></label>'; }
     private static function select(string $label, string $name, string $value, array $options): void { echo '<label>' . esc_html($label) . '<select name="' . esc_attr($name) . '">'; foreach ($options as $k=>$v) echo '<option value="' . esc_attr($k) . '" ' . selected($value, $k, false) . '>' . esc_html($v) . '</option>'; echo '</select></label>'; }
+
+    private static function normalise_method(string $method): string {
+        return $method === 'collection' ? 'collection' : 'delivery';
+    }
+
+    private static function current_checkout_method(array $allowed = array()): string {
+        $method = '';
+        if (isset($_POST['ttos_fulfilment_method'])) {
+            $method = sanitize_key(wp_unslash($_POST['ttos_fulfilment_method']));
+        } elseif (function_exists('WC') && WC()->session) {
+            $method = sanitize_key((string) WC()->session->get('ttos_fulfilment_method', ''));
+        }
+        if ($method === '' && function_exists('ttos_get_opening_hours')) {
+            $hours = ttos_get_opening_hours();
+            $method = sanitize_key((string) ($hours['default_fulfilment'] ?? ''));
+        }
+        if ($method === '') {
+            $method = sanitize_key((string) self::get('checkout', 'default_method'));
+        }
+        $method = self::normalise_method($method);
+        if ($allowed && !in_array($method, $allowed, true)) {
+            return (string) reset($allowed);
+        }
+        if (function_exists('WC') && WC()->session) {
+            WC()->session->set('ttos_fulfilment_method', $method);
+        }
+        return $method;
+    }
+
+    private static function closed_notice_message(array $state): string {
+        if (!empty($state['next_open_ts'])) {
+            return sprintf(__('We are currently closed. Next opening time: %s.', 'takeaway-os'), wp_date('D j M, H:i', (int) $state['next_open_ts'], wp_timezone()));
+        }
+        return __('We are currently closed and not accepting orders right now.', 'takeaway-os');
+    }
+
+    private static function time_is_inside_service_window(int $timestamp, string $method): bool {
+        foreach (self::service_windows($method, 8) as $window) {
+            if ($timestamp >= $window['start'] && $timestamp < $window['end']) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static function service_windows(string $method, int $days_ahead = 8): array {
+        if (!function_exists('ttos_get_opening_hours')) {
+            return array();
+        }
+        $hours = ttos_get_opening_hours();
+        $days = is_array($hours['days'] ?? null) ? $hours['days'] : array();
+        $timezone = wp_timezone();
+        $base = new DateTimeImmutable('today', $timezone);
+        $windows = array();
+
+        for ($offset = -1; $offset <= $days_ahead; $offset++) {
+            $day = $base->modify(($offset >= 0 ? '+' : '') . $offset . ' day');
+            $key = strtolower($day->format('l'));
+            $row = is_array($days[$key] ?? null) ? $days[$key] : array();
+            if (($row['closed'] ?? '0') === '1') {
+                continue;
+            }
+            $open = '';
+            $close = '';
+            if ($method === 'collection' && !empty($row['collection_open']) && !empty($row['collection_close'])) {
+                $open = (string) $row['collection_open'];
+                $close = (string) $row['collection_close'];
+            } elseif ($method === 'delivery' && !empty($row['delivery_open']) && !empty($row['delivery_close'])) {
+                $open = (string) $row['delivery_open'];
+                $close = (string) $row['delivery_close'];
+            } else {
+                $open = (string) ($row['open'] ?? '');
+                $close = (string) ($row['close'] ?? '');
+            }
+            if ($open === '' || $close === '') {
+                continue;
+            }
+            $start = DateTimeImmutable::createFromFormat('Y-m-d H:i', $day->format('Y-m-d') . ' ' . $open, $timezone);
+            $end = DateTimeImmutable::createFromFormat('Y-m-d H:i', $day->format('Y-m-d') . ' ' . $close, $timezone);
+            if (!$start || !$end) {
+                continue;
+            }
+            if ($end <= $start) {
+                $end = $end->modify('+1 day');
+            }
+            $windows[] = array(
+                'start' => $start->getTimestamp(),
+                'end'   => $end->getTimestamp(),
+            );
+        }
+
+        usort($windows, function (array $a, array $b): int {
+            return $a['start'] <=> $b['start'];
+        });
+        return $windows;
+    }
 }

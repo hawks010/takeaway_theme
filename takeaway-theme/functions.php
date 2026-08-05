@@ -2,15 +2,21 @@
 
 defined('ABSPATH') || exit;
 
-define('TTHEME_VERSION', '0.3.7');
+define('TTHEME_VERSION', '0.3.34');
 define('TTHEME_DIR', get_template_directory());
 define('TTHEME_URL', get_template_directory_uri());
 
+require_once TTHEME_DIR . '/inc/theme-updater.php';
 require_once TTHEME_DIR . '/inc/setup.php';
 require_once TTHEME_DIR . '/inc/enqueue.php';
+require_once TTHEME_DIR . '/inc/performance.php';
 require_once TTHEME_DIR . '/inc/template-helpers.php';
 require_once TTHEME_DIR . '/inc/plugin-checklist.php';
 require_once TTHEME_DIR . '/inc/contact.php';
+require_once TTHEME_DIR . '/inc/account.php';
+require_once TTHEME_DIR . '/inc/amh-accessibility-toolkit.php';
+require_once TTHEME_DIR . '/inc/amh-accessibility-universal.php';
+require_once TTHEME_DIR . '/inc/back-to-top.php';
 
 // Live basket updates in the header via WooCommerce cart fragments.
 add_filter('woocommerce_add_to_cart_fragments', function (array $fragments): array {
@@ -26,6 +32,44 @@ add_filter('woocommerce_add_to_cart_fragments', function (array $fragments): arr
         . $inner . '</div>';
 
     return $fragments;
+});
+
+add_action('woocommerce_before_customer_login_form', function (): void {
+    $phone = tt_phone();
+    $email = tt_email();
+    $address = tt_address_lines();
+    $socials = tt_social_links();
+    ?>
+    <section class="tt-auth-shell" aria-label="<?php esc_attr_e('Customer account access', 'takeaway-theme'); ?>">
+        <aside class="tt-auth-brand">
+            <p class="tt-auth-kicker"><?php esc_html_e('Order direct', 'takeaway-theme'); ?></p>
+            <h2><?php esc_html_e('Your takeaway account', 'takeaway-theme'); ?></h2>
+            <p><?php esc_html_e('Save your details, track orders faster, and keep rewards in one place.', 'takeaway-theme'); ?></p>
+            <div class="tt-auth-contact">
+                <?php if ($phone) : ?>
+                    <a href="tel:<?php echo esc_attr(preg_replace('/[^0-9+]/', '', $phone)); ?>"><?php echo esc_html($phone); ?></a>
+                <?php endif; ?>
+                <?php if ($email) : ?>
+                    <a href="mailto:<?php echo esc_attr($email); ?>"><?php echo esc_html($email); ?></a>
+                <?php endif; ?>
+                <?php if ($address) : ?>
+                    <span><?php echo esc_html(implode(', ', $address)); ?></span>
+                <?php endif; ?>
+            </div>
+            <?php if ($socials) : ?>
+                <div class="tt-auth-socials" aria-label="<?php esc_attr_e('Social links', 'takeaway-theme'); ?>">
+                    <?php foreach ($socials as $label => $url) : ?>
+                        <a href="<?php echo esc_url($url); ?>" rel="noopener noreferrer" target="_blank"><?php echo esc_html($label); ?></a>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </aside>
+        <div class="tt-auth-forms">
+    <?php
+});
+
+add_action('woocommerce_after_customer_login_form', function (): void {
+    echo '</div></section>';
 });
 
 add_action('after_setup_theme', 'ttheme_setup');

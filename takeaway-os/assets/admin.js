@@ -67,7 +67,7 @@ jQuery(function($){
   }
 
   /* Plugin installer */
-  function rowIsActive($row){ return $.trim($row.find('.ttos-status').text()).toLowerCase() === 'active'; }
+  function rowIsActive($row){ return $row.find('.ttos-status').text().trim().toLowerCase() === 'active'; }
 
   function dependencyReady(key){
     const plugin = window.TTOSInstaller && TTOSInstaller.plugins && TTOSInstaller.plugins[key] ? TTOSInstaller.plugins[key] : null;
@@ -148,7 +148,7 @@ jQuery(function($){
     $rows.each(function(){
       const $row = $(this);
       chain = chain.then(function(){
-        setProgress($scope, done, total, 'Installing ' + $.trim($row.find('strong').first().text()) + '…');
+        setProgress($scope, done, total, 'Installing ' + $row.find('strong').first().text().trim() + '…');
         return installRow($row, $scope).always(function(){ done++; setProgress($scope, done, total, done + ' of ' + total + ' complete'); });
       });
     });

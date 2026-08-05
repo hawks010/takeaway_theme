@@ -12,7 +12,25 @@ final class TTOS_WooCommerce {
         add_filter('woocommerce_add_cart_item_data', array(__CLASS__, 'add_configured_cart_item_data'), 10, 3);
         add_filter('woocommerce_get_item_data', array(__CLASS__, 'display_configured_cart_item_data'), 10, 2);
         add_action('woocommerce_before_calculate_totals', array(__CLASS__, 'apply_configured_cart_prices'), 20);
+        add_action('woocommerce_add_to_cart', array(__CLASS__, 'maybe_add_modal_suggested_products'), 20, 6);
         add_action('woocommerce_checkout_create_order_line_item', array(__CLASS__, 'save_configured_order_item_meta'), 10, 4);
+        remove_action('woocommerce_cart_collaterals', 'woocommerce_cross_sell_display');
+        add_action('woocommerce_cart_collaterals', array(__CLASS__, 'cart_recommendations'), 5);
+        add_action('woocommerce_checkout_after_customer_details', array(__CLASS__, 'checkout_experience_panel'), 20);
+        add_action('woocommerce_thankyou', array(__CLASS__, 'thankyou_tracking_prompt'), 5);
+
+        // Cash on Delivery: ensure the gateway is registered and enabled.
+        add_filter('woocommerce_payment_gateways', array(__CLASS__, 'ensure_cod_gateway'));
+
+        // Service charge: percentage-based fee added to cart totals.
+        add_action('woocommerce_cart_calculate_fees', array(__CLASS__, 'apply_service_charge'));
+
+        // Order comments / special instructions: rename the built-in field and ensure it is visible.
+        add_filter('woocommerce_checkout_fields', array(__CLASS__, 'relabel_order_comments'), 20);
+
+        // Previous order count: show on admin order view and in order emails.
+        add_action('add_meta_boxes', array(__CLASS__, 'register_customer_history_meta_box'));
+        add_filter('woocommerce_email_order_meta_fields', array(__CLASS__, 'email_customer_order_count'), 30, 3);
     }
 
     public static function active(): bool {
@@ -411,7 +429,7 @@ final class TTOS_WooCommerce {
     }
 
     public static function validate_configured_add_to_cart(bool $passed, int $product_id, int $quantity): bool {
-        if (empty($_POST['ttos_configured_add'])) return $passed;
+        if (!self::is_configured_add_request_for_product($product_id)) return $passed;
         if (empty($_POST['ttos_config_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ttos_config_nonce'])), 'ttos_configure_product_' . $product_id)) return false;
         $posted = isset($_POST['ttos_options']) && is_array($_POST['ttos_options']) ? wp_unslash($_POST['ttos_options']) : array();
         $validated = self::validate_selected_options($product_id, $posted);
@@ -423,7 +441,7 @@ final class TTOS_WooCommerce {
     }
 
     public static function add_configured_cart_item_data(array $cart_item_data, int $product_id, int $variation_id): array {
-        if (empty($_POST['ttos_configured_add']) || empty($_POST['ttos_config_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ttos_config_nonce'])), 'ttos_configure_product_' . $product_id)) {
+        if (!self::is_configured_add_request_for_product($product_id) || empty($_POST['ttos_config_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ttos_config_nonce'])), 'ttos_configure_product_' . $product_id)) {
             return $cart_item_data;
         }
         $posted = isset($_POST['ttos_options']) && is_array($_POST['ttos_options']) ? wp_unslash($_POST['ttos_options']) : array();
@@ -437,7 +455,21 @@ final class TTOS_WooCommerce {
             $cart_item_data['ttos_extra_total'] = (float) $validated['extra_total'];
             $cart_item_data['ttos_unique_key'] = md5(wp_json_encode($validated['items']) . microtime(true));
         }
+        $suggested_ids = isset($_POST['ttos_suggested_products']) && is_array($_POST['ttos_suggested_products'])
+            ? array_values(array_unique(array_filter(array_map('absint', wp_unslash($_POST['ttos_suggested_products'])))))
+            : array();
+        if ($suggested_ids) {
+            $cart_item_data['ttos_suggested_products'] = $suggested_ids;
+        }
         return $cart_item_data;
+    }
+
+    private static function is_configured_add_request_for_product(int $product_id): bool {
+        if (empty($_POST['ttos_configured_add'])) {
+            return false;
+        }
+        $requested_product_id = isset($_POST['add-to-cart']) ? absint(wp_unslash($_POST['add-to-cart'])) : 0;
+        return $requested_product_id > 0 && $requested_product_id === $product_id;
     }
 
     public static function display_configured_cart_item_data(array $item_data, array $cart_item): array {
@@ -471,6 +503,663 @@ final class TTOS_WooCommerce {
             $price = !empty($option['price']) ? ' +' . wc_price((float) $option['price']) : '';
             if ($label !== '') $item->add_meta_data($group, $label . wp_strip_all_tags($price), true);
         }
+    }
+
+    public static function maybe_add_modal_suggested_products(string $cart_item_key, int $product_id, int $quantity, int $variation_id, array $variation, array $cart_item_data): void {
+        if (empty($cart_item_data['ttos_suggested_products']) || !function_exists('WC') || !WC()->cart) {
+            return;
+        }
+        foreach ((array) $cart_item_data['ttos_suggested_products'] as $suggested_id) {
+            $suggested_id = absint($suggested_id);
+            if (!$suggested_id || $suggested_id === $product_id || !self::is_quick_add_recommendable_product($suggested_id)) {
+                continue;
+            }
+            WC()->cart->add_to_cart($suggested_id, 1);
+        }
+    }
+
+    public static function cart_recommendations(): void {
+        self::render_recommendations('cart');
+    }
+
+    public static function checkout_experience_panel(): void {
+        if (!function_exists('is_checkout') || !is_checkout() || (function_exists('is_order_received_page') && is_order_received_page())) {
+            return;
+        }
+
+        $map_src = self::tracking_map_src();
+        $estimate = self::checkout_estimate_text();
+        echo '<section class="ttos-checkout-experience" aria-labelledby="ttos-checkout-experience-title">';
+        echo '<div class="ttos-checkout-map-card">';
+        echo '<div class="ttos-checkout-map-copy"><p class="ttos-panel-kicker">' . esc_html__('Tracking preview', 'takeaway-os') . '</p><h3 id="ttos-checkout-experience-title">' . esc_html__('Follow your food from kitchen to door', 'takeaway-os') . '</h3>';
+        echo '<p>' . esc_html($estimate) . '</p><ol class="ttos-tracking-steps"><li>' . esc_html__('Order received', 'takeaway-os') . '</li><li>' . esc_html__('Kitchen accepts', 'takeaway-os') . '</li><li>' . esc_html__('Preparing', 'takeaway-os') . '</li><li>' . esc_html__('Ready or out for delivery', 'takeaway-os') . '</li></ol></div>';
+        if ($map_src !== '') {
+            echo '<div class="ttos-checkout-map-frame"><iframe title="' . esc_attr__('Restaurant map preview', 'takeaway-os') . '" src="' . esc_url($map_src) . '" loading="lazy"></iframe></div>';
+        } else {
+            echo '<div class="ttos-checkout-map-frame ttos-checkout-map-frame--empty"><span>' . esc_html__('Map appears here once the restaurant address or coordinates are configured.', 'takeaway-os') . '</span></div>';
+        }
+        echo '</div>';
+        self::render_recommendations('checkout');
+        echo '</section>';
+    }
+
+    public static function thankyou_tracking_prompt($order_id): void {
+        if (!$order_id || !function_exists('wc_get_order')) {
+            return;
+        }
+        $order = wc_get_order(absint($order_id));
+        if (!$order) {
+            return;
+        }
+        $track_url = add_query_arg(array(
+            'ttos_order_id' => $order->get_id(),
+            'ttos_key'      => $order->get_order_key(),
+        ), self::tracker_page_url());
+
+        $estimate = self::estimate_for_order($order);
+        $method = sanitize_key((string) $order->get_meta('_ttos_fulfilment_method'));
+        $method_label = $method === 'collection' ? __('collection', 'takeaway-os') : __('delivery', 'takeaway-os');
+
+        echo '<section class="ttos-follow-tracking" aria-labelledby="ttos-follow-tracking-title">';
+        echo '<div><p class="ttos-panel-kicker">' . esc_html__('Payment complete', 'takeaway-os') . '</p><h2 id="ttos-follow-tracking-title">' . esc_html__('Want to follow your order?', 'takeaway-os') . '</h2>';
+        echo '<p>' . esc_html(sprintf(__('Estimated %1$s time: %2$s.', 'takeaway-os'), $method_label, $estimate)) . '</p></div>';
+        echo '<div class="ttos-follow-tracking-actions"><a class="ttos-order-btn" href="' . esc_url($track_url) . '">' . esc_html__('Follow tracking', 'takeaway-os') . '</a><span>' . esc_html__('Status updates open in the order tracker.', 'takeaway-os') . '</span></div>';
+        echo '</section>';
+    }
+
+    private static function render_recommendations(string $context): void {
+        $products = self::recommendation_products($context === 'checkout' ? 3 : 4);
+        if (!$products) {
+            return;
+        }
+
+        $target = $context === 'checkout' && function_exists('wc_get_checkout_url') ? wc_get_checkout_url() : (function_exists('wc_get_cart_url') ? wc_get_cart_url() : home_url('/basket/'));
+        $title = $context === 'checkout' ? __('Still hungry?', 'takeaway-os') : __('Complete the meal', 'takeaway-os');
+        $intro = $context === 'checkout'
+            ? __('Quick add-ons picked from what is already in your basket.', 'takeaway-os')
+            : __('Auto-picked sides and drinks that fit this order.', 'takeaway-os');
+        $id = 'ttos-smart-upsells-' . sanitize_html_class($context);
+
+        echo '<section class="ttos-smart-upsells ttos-smart-upsells--' . esc_attr($context) . '" aria-labelledby="' . esc_attr($id) . '">';
+        echo '<div class="ttos-smart-upsells-head"><p class="ttos-panel-kicker">' . esc_html__('Recommended', 'takeaway-os') . '</p><h2 id="' . esc_attr($id) . '">' . esc_html($title) . '</h2><p>' . esc_html($intro) . '</p></div>';
+        echo '<div class="ttos-smart-upsells-grid">';
+        foreach ($products as $product) {
+            $product_id = $product->get_id();
+            $url = add_query_arg('add-to-cart', $product_id, $target);
+            echo '<article class="ttos-smart-upsell">';
+            echo '<a class="ttos-smart-upsell-media" href="' . esc_url(get_permalink($product_id)) . '" tabindex="-1" aria-hidden="true">' . wp_kses_post($product->get_image('woocommerce_thumbnail')) . '</a>';
+            echo '<div class="ttos-smart-upsell-body"><h3>' . esc_html($product->get_name()) . '</h3><p>' . wp_kses_post($product->get_price_html()) . '</p></div>';
+            echo '<a class="ttos-smart-upsell-add" href="' . esc_url($url) . '">' . esc_html__('Add', 'takeaway-os') . '</a>';
+            echo '</article>';
+        }
+        echo '</div></section>';
+    }
+
+    public static function render_modal_recommendations(int $product_id): void {
+        $data = self::modal_recommendation_data($product_id, 4);
+        if (empty($data['products'])) {
+            return;
+        }
+        $id = 'ttos-modal-upsells-' . $product_id;
+
+        echo '<section class="ttos-smart-upsells ttos-modal-upsells" id="' . esc_attr($id) . '" aria-labelledby="' . esc_attr($id) . '-title" hidden>';
+        echo '<div class="ttos-smart-upsells-head"><p class="ttos-panel-kicker">' . esc_html__('Suggested extras', 'takeaway-os') . '</p><h2 id="' . esc_attr($id) . '-title">' . esc_html($data['title']) . '</h2><p>' . esc_html($data['intro']) . '</p></div>';
+        echo '<div class="ttos-smart-upsells-grid">';
+        foreach ($data['products'] as $row) {
+            $product = $row['product'];
+            if (!$product) {
+                continue;
+            }
+            $candidate_id = $product->get_id();
+            $reason = !empty($row['history_match'])
+                ? __('You have ordered this before.', 'takeaway-os')
+                : __('Popular with this meal.', 'takeaway-os');
+
+            echo '<label class="ttos-smart-upsell ttos-smart-upsell-pick">';
+            echo '<input class="ttos-smart-upsell-check" type="checkbox" name="ttos_suggested_products[]" value="' . esc_attr((string) $candidate_id) . '">';
+            echo '<span class="ttos-smart-upsell-media" aria-hidden="true">' . wp_kses_post($product->get_image('woocommerce_thumbnail')) . '</span>';
+            echo '<span class="ttos-smart-upsell-body"><h3>' . esc_html($product->get_name()) . '</h3><p>' . wp_kses_post($product->get_price_html()) . '</p><small>' . esc_html($reason) . '</small></span>';
+            echo '<span class="ttos-smart-upsell-toggle">' . esc_html__('Add', 'takeaway-os') . '</span>';
+            echo '</label>';
+        }
+        echo '</div><p class="ttos-smart-upsells-footnote">' . esc_html__('Selected extras are added as separate basket items when you add this meal.', 'takeaway-os') . '</p></section>';
+    }
+
+    private static function recommendation_products(int $limit = 4): array {
+        if (!function_exists('WC') || !WC()->cart || !function_exists('wc_get_products')) {
+            return array();
+        }
+
+        $cart_ids = array();
+        $cart_names = array();
+        $cart_terms = array();
+        $explicit = array();
+        foreach (WC()->cart->get_cart() as $cart_item) {
+            $product = $cart_item['data'] ?? null;
+            if (!$product || !is_object($product) || !method_exists($product, 'get_id')) {
+                continue;
+            }
+            $product_id = (int) $product->get_id();
+            $cart_ids[] = $product_id;
+            $cart_names[] = sanitize_title($product->get_name());
+            foreach (array_merge($product->get_cross_sell_ids(), $product->get_upsell_ids()) as $related_id) {
+                $explicit[(int) $related_id] = true;
+            }
+            $terms = wp_get_post_terms($product_id, 'product_cat', array('fields' => 'slugs'));
+            if (!is_wp_error($terms)) {
+                $cart_terms = array_merge($cart_terms, $terms);
+            }
+        }
+        $cart_ids = array_values(array_unique(array_filter($cart_ids)));
+        if (!$cart_ids) {
+            return array();
+        }
+        $cart_terms = array_values(array_unique(array_filter($cart_terms)));
+
+        $candidates = wc_get_products(array(
+            'status'       => 'publish',
+            'limit'        => 60,
+            'exclude'      => $cart_ids,
+            'stock_status' => 'instock',
+            'orderby'      => 'menu_order',
+            'order'        => 'ASC',
+        ));
+
+        $addon_terms = array('side', 'sides', 'drink', 'drinks', 'dessert', 'desserts', 'dip', 'dips', 'sauce', 'sauces', 'extras', 'meal-deals');
+        $scored = array();
+        $seen_names = array();
+        foreach ($candidates as $candidate) {
+            if (!$candidate || !$candidate->is_purchasable() || !$candidate->is_in_stock()) {
+                continue;
+            }
+            $name_key = sanitize_title($candidate->get_name());
+            if (in_array($name_key, $cart_names, true) || isset($seen_names[$name_key])) {
+                continue;
+            }
+            $seen_names[$name_key] = true;
+
+            $terms = wp_get_post_terms($candidate->get_id(), 'product_cat', array('fields' => 'slugs'));
+            $terms = is_wp_error($terms) ? array() : $terms;
+            $score = !empty($explicit[$candidate->get_id()]) ? 100 : 0;
+            if (array_intersect($terms, $addon_terms)) {
+                $score += 35;
+            }
+            if (array_intersect($terms, $cart_terms)) {
+                $score += 8;
+            }
+            if ((float) $candidate->get_price() > 0 && (float) $candidate->get_price() <= 5) {
+                $score += 6;
+            }
+            if ($score <= 0) {
+                $score = 1;
+            }
+            $scored[] = array('product' => $candidate, 'score' => $score);
+        }
+
+        usort($scored, function ($a, $b) {
+            if ($a['score'] === $b['score']) {
+                return strcasecmp($a['product']->get_name(), $b['product']->get_name());
+            }
+            return $b['score'] <=> $a['score'];
+        });
+
+        return array_map(function ($row) {
+            return $row['product'];
+        }, array_slice($scored, 0, max(1, $limit)));
+    }
+
+    private static function modal_recommendation_data(int $product_id, int $limit = 4): array {
+        $cache_key = $product_id . ':' . self::current_customer_email();
+        static $cache = array();
+        if (isset($cache[$cache_key])) {
+            return $cache[$cache_key];
+        }
+
+        if (!$product_id || !function_exists('wc_get_product')) {
+            return $cache[$cache_key] = array('products' => array(), 'title' => '', 'intro' => '');
+        }
+
+        $reference_product = wc_get_product($product_id);
+        if (!$reference_product) {
+            return $cache[$cache_key] = array('products' => array(), 'title' => '', 'intro' => '');
+        }
+
+        $exclude_ids = array_merge(array($product_id), self::cart_product_ids());
+        $reference_terms = self::product_term_slugs($product_id);
+        $explicit = array_fill_keys(array_map('absint', array_merge($reference_product->get_cross_sell_ids(), $reference_product->get_upsell_ids())), true);
+        $history = self::customer_product_history(self::current_customer_email());
+        $scored = array();
+
+        foreach (self::modal_candidate_products($exclude_ids) as $candidate) {
+            $candidate_id = $candidate->get_id();
+            $terms = self::product_term_slugs($candidate_id);
+            $score = !empty($explicit[$candidate_id]) ? 100 : 0;
+
+            if (array_intersect($terms, self::addon_term_slugs())) {
+                $score += 35;
+            }
+            if (array_intersect($terms, $reference_terms)) {
+                $score += 12;
+            }
+            $sales = absint(get_post_meta($candidate_id, 'total_sales', true));
+            if ($sales > 0) {
+                $score += min(40, (int) floor($sales / 3));
+            }
+            $history_match = !empty($history[$candidate_id]);
+            if ($history_match) {
+                $score += 120 + min(60, ((int) $history[$candidate_id]['qty']) * 18);
+                $score += !empty($history[$candidate_id]['recent']) ? 18 : 0;
+            }
+            if ((float) $candidate->get_price() > 0 && (float) $candidate->get_price() <= 5) {
+                $score += 8;
+            }
+            if ($score <= 0) {
+                $score = 1;
+            }
+
+            $scored[] = array(
+                'product' => $candidate,
+                'score' => $score,
+                'history_match' => $history_match,
+            );
+        }
+
+        usort($scored, function ($a, $b) {
+            if ($a['score'] === $b['score']) {
+                return strcasecmp($a['product']->get_name(), $b['product']->get_name());
+            }
+            return $b['score'] <=> $a['score'];
+        });
+
+        $products = array_slice($scored, 0, max(1, $limit));
+        $history_hits = count(array_filter($products, function ($row) {
+            return !empty($row['history_match']);
+        }));
+
+        return $cache[$cache_key] = array(
+            'products' => $products,
+            'title' => $history_hits
+                ? __('Based on your past orders', 'takeaway-os')
+                : __('Popular extras for this meal', 'takeaway-os'),
+            'intro' => $history_hits
+                ? __('We found quick add-ons you have ordered before and that still fit this meal.', 'takeaway-os')
+                : __('Top-selling sides, drinks and extras that pair well with this item.', 'takeaway-os'),
+        );
+    }
+
+    private static function modal_candidate_products(array $exclude_ids): array {
+        static $catalog = null;
+        if ($catalog === null) {
+            $catalog = function_exists('wc_get_products') ? wc_get_products(array(
+                'status'       => 'publish',
+                'limit'        => 80,
+                'stock_status' => 'instock',
+                'orderby'      => 'popularity',
+                'order'        => 'DESC',
+            )) : array();
+        }
+
+        $exclude_ids = array_fill_keys(array_map('absint', $exclude_ids), true);
+        return array_values(array_filter($catalog, function ($candidate) use ($exclude_ids) {
+            return $candidate
+                && !empty($candidate)
+                && !isset($exclude_ids[$candidate->get_id()])
+                && self::is_quick_add_recommendable_product($candidate->get_id(), $candidate);
+        }));
+    }
+
+    private static function is_quick_add_recommendable_product(int $product_id, $product = null): bool {
+        $product = $product ?: wc_get_product($product_id);
+        if (!$product || !$product->is_purchasable() || !$product->is_in_stock()) {
+            return false;
+        }
+        if (method_exists($product, 'is_type') && ($product->is_type('variable') || $product->is_type('grouped') || $product->is_type('external'))) {
+            return false;
+        }
+        return empty(self::get_option_groups($product_id));
+    }
+
+    private static function cart_product_ids(): array {
+        if (!function_exists('WC') || !WC()->cart) {
+            return array();
+        }
+        $ids = array();
+        foreach (WC()->cart->get_cart() as $cart_item) {
+            $ids[] = absint($cart_item['product_id'] ?? 0);
+        }
+        return array_values(array_unique(array_filter($ids)));
+    }
+
+    private static function product_term_slugs(int $product_id): array {
+        $terms = wp_get_post_terms($product_id, 'product_cat', array('fields' => 'slugs'));
+        return is_wp_error($terms) ? array() : array_values(array_unique(array_filter($terms)));
+    }
+
+    private static function addon_term_slugs(): array {
+        return array('side', 'sides', 'drink', 'drinks', 'dessert', 'desserts', 'dip', 'dips', 'sauce', 'sauces', 'extras', 'meal-deals');
+    }
+
+    private static function current_customer_email(): string {
+        static $email = null;
+        if ($email !== null) {
+            return $email;
+        }
+        $email = '';
+        if (is_user_logged_in()) {
+            $user = wp_get_current_user();
+            $email = sanitize_email((string) ($user->user_email ?? ''));
+        }
+        if ($email === '' && function_exists('WC') && WC()->customer) {
+            $email = sanitize_email((string) WC()->customer->get_billing_email());
+        }
+        return $email;
+    }
+
+    private static function customer_product_history(string $email): array {
+        static $cache = array();
+        if ($email === '') {
+            return array();
+        }
+        if (isset($cache[$email])) {
+            return $cache[$email];
+        }
+        if (!function_exists('wc_get_orders')) {
+            return $cache[$email] = array();
+        }
+
+        $orders = wc_get_orders(array(
+            'billing_email' => $email,
+            'status'        => array('wc-completed', 'wc-processing', 'wc-ttos-accepted', 'wc-ttos-prepping', 'wc-ttos-ready', 'wc-ttos-out'),
+            'limit'         => 25,
+            'orderby'       => 'date',
+            'order'         => 'DESC',
+            'return'        => 'objects',
+        ));
+        $history = array();
+        foreach ($orders as $index => $order) {
+            if (!$order || !method_exists($order, 'get_items')) {
+                continue;
+            }
+            foreach ($order->get_items('line_item') as $item) {
+                $candidate_id = absint($item->get_product_id());
+                if (!$candidate_id) {
+                    continue;
+                }
+                if (!isset($history[$candidate_id])) {
+                    $history[$candidate_id] = array('qty' => 0, 'recent' => false);
+                }
+                $history[$candidate_id]['qty'] += max(1, absint($item->get_quantity()));
+                if ($index < 5) {
+                    $history[$candidate_id]['recent'] = true;
+                }
+            }
+        }
+        return $cache[$email] = $history;
+    }
+
+    private static function checkout_estimate_text(): string {
+        $delivery = self::site_content('delivery_collection', 'delivery_estimate_text');
+        $collection = self::site_content('delivery_collection', 'collection_estimate_text');
+        $trading = class_exists('TTOS_Settings') ? TTOS_Settings::get('trading') : array();
+        if ($delivery === '' && !empty($trading['delivery_time'])) {
+            $delivery = sprintf(__('Delivery around %s minutes', 'takeaway-os'), $trading['delivery_time']);
+        }
+        if ($collection === '' && !empty($trading['prep_time'])) {
+            $collection = sprintf(__('Collection ready in around %s minutes', 'takeaway-os'), $trading['prep_time']);
+        }
+        $bits = array_filter(array($delivery, $collection));
+        return $bits ? implode(' · ', $bits) : __('Tracking opens once the kitchen receives your paid order.', 'takeaway-os');
+    }
+
+    private static function estimate_for_order($order): string {
+        $requested = (string) $order->get_meta('_ttos_requested_time');
+        if ($requested !== '' && $requested !== 'asap') {
+            $ts = strtotime($requested);
+            return $ts ? date_i18n('D j M H:i', $ts) : $requested;
+        }
+        $method = sanitize_key((string) $order->get_meta('_ttos_fulfilment_method'));
+        $trading = class_exists('TTOS_Settings') ? TTOS_Settings::get('trading') : array();
+        if ($method === 'collection') {
+            $mins = absint($trading['prep_time'] ?? 25);
+            return sprintf(_n('%d minute', '%d minutes', $mins, 'takeaway-os'), $mins);
+        }
+        $mins = absint($trading['delivery_time'] ?? 35);
+        return sprintf(_n('%d minute', '%d minutes', $mins, 'takeaway-os'), $mins);
+    }
+
+    private static function tracker_page_url(): string {
+        $page_id = absint(get_option('ttos_page_tracker', 0));
+        if ($page_id) {
+            $url = get_permalink($page_id);
+            if ($url) {
+                return (string) $url;
+            }
+        }
+        return home_url('/order-tracker/');
+    }
+
+    private static function tracking_map_src(): string {
+        $lat = self::site_content('contact_map', 'lat');
+        $lng = self::site_content('contact_map', 'lng');
+        if ($lat !== '' && $lng !== '') {
+            $lat_f = (float) $lat;
+            $lng_f = (float) $lng;
+            $bbox = sprintf('%F,%F,%F,%F', $lng_f - 0.004, $lat_f - 0.002, $lng_f + 0.004, $lat_f + 0.002);
+            return 'https://www.openstreetmap.org/export/embed.html?bbox=' . rawurlencode($bbox) . '&layer=mapnik&marker=' . rawurlencode($lat_f . ',' . $lng_f);
+        }
+        $address = self::business_address();
+        if ($address === '') {
+            return '';
+        }
+        return 'https://maps.google.com/maps?q=' . rawurlencode($address) . '&z=14&output=embed';
+    }
+
+    private static function business_address(): string {
+        $business = class_exists('TTOS_Site_Content') ? TTOS_Site_Content::get('business_info') : array();
+        if (!is_array($business)) {
+            $business = array();
+        }
+        $settings = class_exists('TTOS_Settings') ? TTOS_Settings::get('business') : array();
+        $parts = array();
+        foreach (array('address_1', 'address_2', 'town', 'county', 'postcode') as $key) {
+            $value = (string) (($business[$key] ?? '') ?: ($settings[$key] ?? ''));
+            if ($value !== '') {
+                $parts[] = $value;
+            }
+        }
+        return implode(', ', $parts);
+    }
+
+    private static function site_content(string $section, string $key): string {
+        if (!class_exists('TTOS_Site_Content')) {
+            return '';
+        }
+        $value = TTOS_Site_Content::get($section, $key, '');
+        return is_scalar($value) ? trim((string) $value) : '';
+    }
+
+    // -------------------------------------------------------------------------
+    // Cash on Delivery
+    // -------------------------------------------------------------------------
+
+    /**
+     * Ensure the WooCommerce COD gateway class is registered even when the
+     * built-in option is not yet set. The option-level default written by
+     * TTOS_Onboarding::apply_profile() is what actually enables it; this filter
+     * just guarantees the class is in the registered list so WooCommerce can see
+     * it on the checkout and in WC > Settings > Payments.
+     */
+    public static function ensure_cod_gateway(array $gateways): array {
+        if (!in_array('WC_Gateway_COD', $gateways, true)) {
+            $gateways[] = 'WC_Gateway_COD';
+        }
+        return $gateways;
+    }
+
+    // -------------------------------------------------------------------------
+    // Service charge
+    // -------------------------------------------------------------------------
+
+    /**
+     * Add a percentage-based service charge as a WooCommerce cart fee.
+     * The rate is stored as a percentage in ttos_settings[trading][service_charge].
+     * A value of 0 (or empty) means no fee is applied.
+     */
+    public static function apply_service_charge($cart): void {
+        if (is_admin() && !defined('DOING_AJAX')) {
+            return;
+        }
+        if (!$cart || !method_exists($cart, 'get_subtotal')) {
+            return;
+        }
+        $trading = class_exists('TTOS_Settings') ? TTOS_Settings::get('trading') : array();
+        $rate = (float) ($trading['service_charge'] ?? 0);
+        if ($rate <= 0) {
+            return;
+        }
+        $subtotal = (float) $cart->get_subtotal();
+        if ($subtotal <= 0) {
+            return;
+        }
+        $fee = round($subtotal * ($rate / 100), 2);
+        $cart->add_fee(
+            sprintf(__('Service charge (%s%%)', 'takeaway-os'), number_format($rate, 2)),
+            $fee,
+            false // not taxable by default; change to true if tax is required on the charge
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Order comments / special instructions
+    // -------------------------------------------------------------------------
+
+    /**
+     * Relabel the built-in WooCommerce order_comments field to "Special
+     * Instructions / Allergies" and ensure it is visible (WooCommerce hides it
+     * on some themes when there are no shipping methods).
+     */
+    public static function relabel_order_comments(array $fields): array {
+        if (!isset($fields['order']['order_comments'])) {
+            // Field absent — add it explicitly so it is always shown.
+            $fields['order']['order_comments'] = array(
+                'type'        => 'textarea',
+                'label'       => __('Special Instructions / Allergies', 'takeaway-os'),
+                'placeholder' => __('e.g. No onions, nut allergy, extra sauce…', 'takeaway-os'),
+                'required'    => false,
+                'class'       => array('notes'),
+                'priority'    => 90,
+            );
+        } else {
+            $fields['order']['order_comments']['label']       = __('Special Instructions / Allergies', 'takeaway-os');
+            $fields['order']['order_comments']['placeholder'] = __('e.g. No onions, nut allergy, extra sauce…', 'takeaway-os');
+        }
+        return $fields;
+    }
+
+    // -------------------------------------------------------------------------
+    // Previous order count (customer history)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Register a small meta box on the WooCommerce order edit screen showing how
+     * many previous paid orders the billing-email customer has placed. Uses HPOS-
+     * compatible wc_get_orders() — no WP_Query.
+     */
+    public static function register_customer_history_meta_box(): void {
+        // HPOS registers order screens under the 'woocommerce_page_wc-orders' hook
+        // as well as the legacy 'shop_order' post type.
+        foreach (array('shop_order', 'woocommerce_page_wc-orders') as $screen) {
+            add_meta_box(
+                'ttos_customer_history',
+                __('Customer history', 'takeaway-os'),
+                array(__CLASS__, 'render_customer_history_meta_box'),
+                $screen,
+                'side',
+                'default'
+            );
+        }
+    }
+
+    public static function render_customer_history_meta_box($post_or_order): void {
+        if (!function_exists('wc_get_order')) {
+            return;
+        }
+        // Accepts both a WC_Order (HPOS) and a WP_Post (legacy).
+        $order = ($post_or_order instanceof WC_Order)
+            ? $post_or_order
+            : wc_get_order(is_object($post_or_order) ? $post_or_order->ID : absint($post_or_order));
+        if (!$order) {
+            return;
+        }
+        $email = sanitize_email((string) $order->get_billing_email());
+        if ($email === '') {
+            echo '<p>' . esc_html__('No billing email on this order.', 'takeaway-os') . '</p>';
+            return;
+        }
+        $count = self::count_previous_orders($order->get_id(), $email);
+        echo '<p>';
+        echo wp_kses_post(
+            sprintf(
+                _n(
+                    'This customer has placed <strong>%d previous order</strong>.',
+                    'This customer has placed <strong>%d previous orders</strong>.',
+                    $count,
+                    'takeaway-os'
+                ),
+                $count
+            )
+        );
+        echo '</p>';
+        if ($count === 0) {
+            echo '<p class="description">' . esc_html__('First-time customer.', 'takeaway-os') . '</p>';
+        }
+    }
+
+    /**
+     * Append the previous order count to WooCommerce order confirmation emails.
+     * Only included in admin/kitchen emails (sent_to_admin === true).
+     */
+    public static function email_customer_order_count(array $fields, bool $sent_to_admin, $order): array {
+        if (!$sent_to_admin) {
+            return $fields;
+        }
+        if (!($order instanceof WC_Order)) {
+            return $fields;
+        }
+        $email = sanitize_email((string) $order->get_billing_email());
+        if ($email === '') {
+            return $fields;
+        }
+        $count = self::count_previous_orders($order->get_id(), $email);
+        $fields['ttos_customer_order_count'] = array(
+            'label' => __('Customer order history', 'takeaway-os'),
+            'value' => sprintf(
+                _n('%d previous order', '%d previous orders', $count, 'takeaway-os'),
+                $count
+            ),
+        );
+        return $fields;
+    }
+
+    /**
+     * Count completed/processing orders for a given email address, excluding the
+     * current order. Uses wc_get_orders() for HPOS compatibility.
+     */
+    private static function count_previous_orders(int $current_order_id, string $email): int {
+        if (!function_exists('wc_get_orders') || $email === '') {
+            return 0;
+        }
+        $orders = wc_get_orders(array(
+            'billing_email' => $email,
+            'status'        => array('wc-completed', 'wc-processing', 'wc-ttos-accepted', 'wc-ttos-prepping', 'wc-ttos-ready', 'wc-ttos-out'),
+            'limit'         => -1,
+            'return'        => 'ids',
+        ));
+        // Exclude the current order from the count.
+        $previous = array_filter((array) $orders, function ($id) use ($current_order_id) {
+            return (int) $id !== $current_order_id;
+        });
+        return count($previous);
     }
 
 }

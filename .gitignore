@@ -1,0 +1,18 @@
+.DS_Store
+**/.DS_Store
+
+# Local agent/runtime state
+.superpowers/
+
+# Local build artefacts
+takeaway-os-v*.zip
+takeaway-theme-v*-bundled.zip
+takeaway-v*-critical-check.txt
+takeaway-v*-production-readiness.txt
+
+# Graph/mapping output
+graphify-out/
+
+# Local browser/output scratch
+homepage_desktop
+test-artifacts/screenshots/

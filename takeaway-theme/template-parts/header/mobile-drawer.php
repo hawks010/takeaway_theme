@@ -8,6 +8,10 @@
 defined('ABSPATH') || exit;
 
 $phone = tt_phone();
+$email = tt_email();
+$address = tt_address_lines();
+$hours = tt_hours_summary();
+$socials = tt_social_links();
 $account_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('myaccount') : '';
 $delivery_url = ttheme_page_url('delivery', '/delivery-checker/');
 ?>
@@ -36,6 +40,34 @@ $delivery_url = ttheme_page_url('delivery', '/delivery-checker/');
                 <a href="tel:<?php echo esc_attr(preg_replace('/[^0-9+]/', '', $phone)); ?>"><?php echo esc_html(sprintf(__('Call %s', 'takeaway-theme'), $phone)); ?></a>
             <?php endif; ?>
         </div>
+        <?php if ($phone || $email || $address || $hours || $socials) : ?>
+        <div class="tt-drawer-contact" aria-label="<?php esc_attr_e('Restaurant contact details', 'takeaway-theme'); ?>">
+            <p class="tt-drawer-kicker"><?php esc_html_e('Restaurant details', 'takeaway-theme'); ?></p>
+            <?php if ($phone) : ?>
+                <a href="tel:<?php echo esc_attr(preg_replace('/[^0-9+]/', '', $phone)); ?>"><?php echo esc_html($phone); ?></a>
+            <?php endif; ?>
+            <?php if ($email) : ?>
+                <a href="mailto:<?php echo esc_attr($email); ?>"><?php echo esc_html($email); ?></a>
+            <?php endif; ?>
+            <?php if ($address) : ?>
+                <span><?php echo esc_html(implode(', ', $address)); ?></span>
+            <?php endif; ?>
+            <?php if ($hours) : ?>
+                <ul class="tt-drawer-hours">
+                    <?php foreach (array_slice($hours, 0, 3) as $row) : ?>
+                        <li><span><?php echo esc_html($row['label']); ?></span><strong><?php echo esc_html($row['value']); ?></strong></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+            <?php if ($socials) : ?>
+                <div class="tt-drawer-socials" aria-label="<?php esc_attr_e('Social links', 'takeaway-theme'); ?>">
+                    <?php foreach ($socials as $label => $url) : ?>
+                        <a href="<?php echo esc_url($url); ?>" rel="noopener noreferrer" target="_blank"><?php echo esc_html($label); ?></a>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
         <a class="tt-btn tt-drawer-order" href="<?php echo esc_url(tt_menu_url()); ?>"><?php esc_html_e('Order now', 'takeaway-theme'); ?></a>
     </div>
 </div>
