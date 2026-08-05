@@ -1,0 +1,249 @@
+Takeaway OS v1.3.11 / Takeaway Theme v0.3.33 — Production Readiness Report
+Generated: 2026-06-17 15:22:15 BST
+
+================================================================
+VERSION / PACKAGE TRUTH
+================================================================
+Source versions:
+  Theme:  0.3.33
+  Plugin: 1.3.11
+
+Staging versions:
+  Theme:  0.3.33
+  Plugin: 1.3.11
+  WooCommerce: 10.8.1
+  WooCommerce Stripe Gateway: 10.7.0
+  FluentSMTP: 2.2.95
+
+Bundled updater truth:
+  Bundled plugin zip exists at takeaway-theme/inc/bundled-plugins/takeaway-os.zip
+  Bundled manifest version: 1.3.11
+  Staging bundled status: active / installed 1.3.11 / bundled 1.3.11 / zip_ok true
+
+Package rules:
+  Plugin package root: takeaway-os/         PASS
+  Theme package root:  takeaway-theme/      PASS
+  __MACOSX present:                         NO
+  .DS_Store present:                        NO
+  .git present:                             NO
+  logs/backups/screenshots inside zips:     NO
+
+================================================================
+CLIENT PORTAL / ADMIN SHELL
+================================================================
+Result:
+  PASS FOR BETA / STAGING
+
+Current product-shell truth:
+  - shared admin shell is active
+  - primary nav persists on nested screens
+  - Site Content uses secondary nav instead of replacing the primary nav
+  - Features and Production keep section links as secondary nav
+  - client-facing ticket board label is now "Takeaway Tickets"
+
+Verified primary workflow labels:
+  Dashboard
+  Launchpad
+  Setup Health
+  Menu
+  Orders
+  Takeaway Tickets
+  Customers / CRM
+  Reports
+  Site Content
+  Delivery
+  Payments
+  Settings / Branding
+  Add-ons
+  Feature Builder
+  Operations
+  Go Live
+  Production Tools
+
+Role verification:
+  Administrator:
+    sees the full shell and restricted/admin-only tools
+  Takeaway Owner:
+    dashboard / site content / payments / tickets accessible
+    features / add-ons blocked
+  Takeaway Manager:
+    dashboard / menu / orders / tickets / customers accessible
+    settings / features blocked
+  Kitchen Staff:
+    dashboard / orders / tickets accessible
+    customers / reports / settings blocked
+
+Temp role-test users:
+  Removed after verification:
+    ttos_prod_admin
+    ttos_prod_owner
+    ttos_prod_manager
+    ttos_prod_kitchen
+
+================================================================
+TAKEAWAY TICKETS
+================================================================
+Result:
+  PASS FOR BETA / STAGING
+
+Verified:
+  - menu label: Takeaway Tickets
+  - page heading: Takeaway Tickets
+  - board heading: Live ticket board
+  - full-screen route available with ?ttos_view=fullscreen
+  - full-screen mode hides WordPress chrome
+  - order cards show payment state and payment method badges
+  - accepted orders show prep-time and due-time badges
+
+Proof order state used for verification:
+  Order ID: 500
+  Status: accepted
+  Payment: Bank transfer staging
+  Prep: 20 minutes
+
+Workflow evidence:
+  - order visible in Orders
+  - order visible in Takeaway Tickets
+  - status persistence confirmed
+  - prep-time persistence confirmed
+  - CRM visibility confirmed
+  - reports visibility confirmed
+
+Known limitation:
+  browser-click transport was flaky during one interaction, so one acceptance/prep state was confirmed via WP-CLI plus browser re-check
+
+================================================================
+CHECKOUT / PAYMENTS / EMAIL
+================================================================
+Checkout result:
+  PASS FOR STAGING
+
+Verified:
+  - branded homepage -> menu -> configurator -> basket -> checkout flow works
+  - configurable items persist options/extras/notes
+  - smart upsells add as separate line items
+  - BACS/manual staging order path works
+
+Payments result:
+  NOT PRODUCTION READY
+
+Truth:
+  - Stripe plugin is installed and active
+  - WooCommerce Stripe is still disabled on staging
+  - live card capture was not configured or verified
+  - manual/BACS gateway is staging-safe only
+
+Email result:
+  NOT PRODUCTION READY
+
+Truth:
+  - FluentSMTP plugin is active
+  - no real SMTP connection was configured or verified
+  - WooCommerce email deliverability remains unsigned-off
+
+================================================================
+ADD-ONS / MODULE LOCKING
+================================================================
+Result:
+  PASS FOR HONEST BETA CLASSIFICATION
+
+Current module truth:
+  CORE INCLUDED:
+    content_manager
+
+  PRO READY:
+    loyalty
+    stamp_cards
+    meal_deals
+    crm_pro
+    accounting
+    advanced_zones
+    inventory_lite
+    analytics_pro
+
+  PRO PARTIAL:
+    sms_updates
+    allergen_filters
+    promo_engine
+    kds_pro
+
+  ADMIN-ONLY STUB:
+    printer
+    epos_connector
+
+  FUTURE ROADMAP:
+    multi_location
+    qr_ordering
+
+Safety changes in place:
+  - non-production modules are forced off in settings normalization
+  - non-ready modules render disabled in Add-ons
+  - owner/manager roles remain blocked from module-unlock screens
+  - unfinished modules are not treated as Setup Health requirements
+
+================================================================
+CONTENT / BRANDING / ONBOARDING
+================================================================
+Content management result:
+  PASS FOR STAGING
+
+Verified:
+  - staging-safe Blueprint Kitchen profile is in place
+  - business/contact/opening/delivery text is editable from Takeaway OS surfaces
+  - placeholder social links were cleared
+  - service charge remains 0
+
+Cuisine-aware onboarding result:
+  PASS FOR LIMITED BETA MVP ONLY
+
+Truth:
+  - supported cuisine packs exist
+  - unknown or empty cuisine falls back to generic_takeaway
+  - generated content is marked to avoid unsafe overwrites
+  - current staging save path resolves to the generic takeaway pack
+  - safe to use as a limited starter-content helper
+  - not safe to market as a full automatic starter builder yet
+
+================================================================
+OPEN WARNINGS / BLOCKERS
+================================================================
+Setup Health snapshot:
+  54 pass / 15 warn / 1 fail-like / 70 total
+  progress: 77
+  core_ready: true
+
+Main open warnings:
+  - Stripe still disabled / test-only
+  - SMTP not configured
+  - logo missing
+  - favicon missing
+  - hygiene rating missing
+  - social links empty
+  - delivery and collection content still partial
+  - duplicate published Home / My Account pages need manual review
+  - colour-contrast warnings remain
+  - staging-only administrator accounts still present:
+      claude-admin
+      codex_staging_takeaway
+
+================================================================
+FINAL CALL
+================================================================
+Safe for local testing?
+  YES
+
+Safe for staging testing?
+  YES
+
+Safe for first controlled client beta?
+  YES, WITH WARNINGS
+
+Safe for paid production install?
+  NO
+
+Paid-production blockers:
+  - live Stripe/card payment sign-off
+  - SMTP/email sign-off
+  - remove or rotate lingering staging-only admin accounts
+  - replace staging/demo trust and branding content with final client data
+  - resolve or formally accept current accessibility/contrast warnings

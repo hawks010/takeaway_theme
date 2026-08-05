@@ -67,7 +67,7 @@ jQuery(function($){
   }
 
   /* Plugin installer */
-  function rowIsActive($row){ return $.trim($row.find('.ttos-status').text()).toLowerCase() === 'active'; }
+  function rowIsActive($row){ return $row.find('.ttos-status').text().trim().toLowerCase() === 'active'; }
 
   function dependencyReady(key){
     const plugin = window.TTOSInstaller && TTOSInstaller.plugins && TTOSInstaller.plugins[key] ? TTOSInstaller.plugins[key] : null;
@@ -148,7 +148,7 @@ jQuery(function($){
     $rows.each(function(){
       const $row = $(this);
       chain = chain.then(function(){
-        setProgress($scope, done, total, 'Installing ' + $.trim($row.find('strong').first().text()) + '…');
+        setProgress($scope, done, total, 'Installing ' + $row.find('strong').first().text().trim() + '…');
         return installRow($row, $scope).always(function(){ done++; setProgress($scope, done, total, done + ' of ' + total + ' complete'); });
       });
     });
@@ -311,6 +311,21 @@ jQuery(function($){
       return id + ':' + order;
     }).get();
     $(this).find('.ttos-product-order-field').val(pairs.join(','));
+  });
+
+  // Move-up / move-down fallback buttons for product sort order
+  $(document).on('click', '.ttos-move-up, .ttos-move-down', function(){
+    var $btn = $(this);
+    var $row = $btn.closest('.ttos-product-row');
+    var isUp = $btn.hasClass('ttos-move-up');
+    var $target = isUp ? $row.prev('.ttos-product-row') : $row.next('.ttos-product-row');
+    if (!$target.length) return;
+    var $a = $row.find('.ttos-sort-input');
+    var $b = $target.find('.ttos-sort-input');
+    var tmp = $a.val();
+    $a.val($b.val());
+    $b.val(tmp);
+    if (isUp) { $row.insertBefore($target); } else { $row.insertAfter($target); }
   });
 
   $('.ttos-sortable-categories').sortable({handle:'.ttos-drag', update:function(){}});

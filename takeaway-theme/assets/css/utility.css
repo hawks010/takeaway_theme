@@ -11,6 +11,28 @@
     padding: var(--tt-space-5);
     margin: 0 0 var(--tt-space-4);
 }
+
+/* === v0.3.20 Takeaway accessibility toolkit === */
+.tt-a11y{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));z-index:99980;display:grid;justify-items:end;gap:10px}
+.tt-a11y-toggle{width:58px;height:58px;border:0;border-radius:999px;background:var(--tt-primary);color:#fff;box-shadow:0 18px 42px color-mix(in srgb,var(--tt-primary) 32%,transparent);font:900 17px/1 inherit;cursor:pointer}
+.tt-a11y-panel{width:min(360px,calc(100vw - 32px));border-radius:25px;border:1px solid rgba(255,255,255,.12);background:color-mix(in srgb,var(--tt-text) 94%,#000);color:#fff;box-shadow:0 28px 70px rgba(0,0,0,.32);padding:18px}
+.tt-a11y-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.tt-a11y-head strong{font-size:21px;letter-spacing:-.03em}
+.tt-a11y-close{width:38px;height:38px;border:1px solid rgba(255,255,255,.15);border-radius:999px;background:rgba(255,255,255,.08);color:#fff;font:900 24px/1 inherit;cursor:pointer}
+.tt-a11y-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.tt-a11y-grid button{min-height:48px;border:1px solid rgba(255,255,255,.14);border-radius:20px;background:rgba(255,255,255,.08);color:#fff;font:850 13px/1.1 inherit;cursor:pointer}
+.tt-a11y-grid button[aria-pressed="true"],.tt-a11y-grid button:hover{background:var(--tt-primary);border-color:var(--tt-primary)}
+.tt-a11y-credit{margin:14px 0 0;color:rgba(255,255,255,.62);font-size:12px;font-weight:750}
+html.tt-a11y-large-text{font-size:112.5%}
+html.tt-a11y-contrast{filter:contrast(1.16) saturate(1.05)}
+html.tt-a11y-dyslexia body,html.tt-a11y-dyslexia body *:not(svg):not(path){font-family:Arial,Verdana,system-ui,sans-serif!important;letter-spacing:.015em;word-spacing:.055em}
+html.tt-a11y-motion *,html.tt-a11y-motion *::before,html.tt-a11y-motion *::after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}
+html.tt-a11y-spacing body{line-height:1.7}
+html.tt-a11y-spacing p,html.tt-a11y-spacing li{line-height:1.8}
+@media(max-width:620px){
+    .tt-a11y{right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+    .tt-a11y-panel{width:calc(100vw - 24px)}
+}
 .ttos-front-card h2 { margin-top: 0; font-size: var(--tt-text-xl); }
 
 /* --- Order tracker --- */
@@ -504,3 +526,68 @@
     color: var(--tt-surface);
     text-decoration: none;
 }
+
+/* === v0.3.17 global shape normalization === */
+:root{
+    --tt-radius-sm:25px;
+    --tt-radius-md:25px;
+    --tt-radius-lg:25px;
+}
+
+.tt-btn,
+.tt-order,
+.ttos-order-btn,
+button[type="submit"],
+input[type="submit"],
+.woocommerce button.button,
+.woocommerce a.button,
+.woocommerce input.button,
+.button,
+.back-to-menu{
+    border-radius:25px;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="number"],
+input[type="password"],
+input[type="search"],
+input[type="url"],
+textarea,
+select,
+.woocommerce input.input-text,
+.woocommerce textarea,
+.woocommerce select{
+    border-radius:25px;
+}
+
+.tt-acct-icon,
+.tt-drawer-toggle,
+.tt-modal-close,
+.ttos-modal-close,
+.ttos-popup-close,
+.ttos-banner-close,
+button[aria-label^="Close"],
+button[aria-label*="Close"]{
+    border-radius:999px;
+}
+
+/* === v0.3.33 page title redesign: subtle breadcrumb-style label === */
+/* Scoped to non-menu pages so archive-product.php pagehead is unaffected */
+.tt-pagehead:not(.tt-pagehead-menu) {
+    padding: var(--tt-space-4) 0;
+    background: var(--tt-bg);
+    border-bottom: 1px solid var(--tt-border);
+}
+.tt-pagehead:not(.tt-pagehead-menu) h1 {
+    margin: 0;
+    font-size: var(--tt-text-sm);
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--tt-muted);
+}
+
+/* === v0.3.33 typography: per-element font token application === */
+h1, h2, h3, h4, h5, h6 { font-family: var(--tt-font-heading, var(--tt-font)); }

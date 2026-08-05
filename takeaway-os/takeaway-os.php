@@ -3,7 +3,7 @@
  * Plugin Name:       Takeaway OS
  * Plugin URI:        https://inkfire.co.uk
  * Description:       A clean takeaway management overlay for WordPress and WooCommerce: launch wizard, menu builder, order cockpit, CRM, modules and restaurant settings.
- * Version:           1.3.1
+ * Version:           1.3.12
  * Author:            Inkfire
  * Author URI:        https://inkfire.co.uk
  * Text Domain:       takeaway-os
@@ -13,7 +13,7 @@
 
 defined('ABSPATH') || exit;
 
-define('TTOS_VERSION', '1.3.1');
+define('TTOS_VERSION', '1.3.12');
 define('TTOS_FILE', __FILE__);
 define('TTOS_DIR', plugin_dir_path(__FILE__));
 define('TTOS_URL', plugin_dir_url(__FILE__));
@@ -21,6 +21,7 @@ define('TTOS_BASENAME', plugin_basename(__FILE__));
 
 $ttos_files = array(
     'includes/class-settings.php',
+    'includes/class-admin-shell.php',
     'includes/class-site-content.php',
     'includes/class-public-ui.php',
     'includes/class-page-manager.php',
@@ -33,9 +34,18 @@ $ttos_files = array(
     'includes/class-features.php',
     'includes/class-operations.php',
     'includes/class-hardening.php',
+    'includes/class-oauth-connectors.php',
+    'includes/class-intake-rest.php',
     'includes/class-production.php',
+    'includes/class-client-intake.php',
     'includes/class-admin.php',
     'includes/class-shortcodes.php',
+    // Phase completions: import engine, retention REST, accounting bridge, dashboard REST, schema
+    'includes/class-import.php',
+    'includes/class-retention.php',
+    'includes/class-accounting.php',
+    'includes/class-dashboard-rest.php',
+    'includes/class-schema.php',
 );
 
 foreach ($ttos_files as $ttos_file) {
@@ -44,7 +54,6 @@ foreach ($ttos_files as $ttos_file) {
 
 register_activation_hook(TTOS_FILE, array('TTOS_Activator', 'activate'));
 register_deactivation_hook(TTOS_FILE, array('TTOS_Activator', 'deactivate'));
-
 
 add_action('before_woocommerce_init', function () {
     if (class_exists('\Automattic\WooCommerce\Utilities\FeaturesUtil')) {
@@ -64,7 +73,15 @@ add_action('plugins_loaded', function () {
     TTOS_Features::hooks();
     TTOS_Operations::hooks();
     TTOS_Hardening::hooks();
+    TTOS_Intake_REST::hooks();
     TTOS_Production::hooks();
+    TTOS_Client_Intake::hooks();
     TTOS_Admin::hooks();
     TTOS_Shortcodes::hooks();
+    // New: import, retention, accounting, dashboard REST, JSON-LD schema
+    TTOS_Import::hooks();
+    TTOS_Retention::hooks();
+    TTOS_Accounting::hooks();
+    TTOS_Dashboard_REST::hooks();
+    TTOS_Schema::hooks();
 });

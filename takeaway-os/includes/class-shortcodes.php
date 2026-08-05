@@ -21,8 +21,8 @@ final class TTOS_Shortcodes {
         // (TTOS_Public_UI), which fire regardless of page content or shortcodes.
         // Making this conditional on shortcode presence would break banner/popup
         // on pages that contain neither shortcode.
-        wp_enqueue_style('ttos-frontend', TTOS_URL . 'assets/frontend.css', array(), TTOS_VERSION);
-        wp_enqueue_script('ttos-frontend', TTOS_URL . 'assets/frontend.js', array(), TTOS_VERSION, true);
+        wp_enqueue_style('ttos-frontend', TTOS_URL . 'assets/frontend.css', array(), TTOS_VERSION . '-modal-upsells-4');
+        wp_enqueue_script('ttos-frontend', TTOS_URL . 'assets/frontend.js', array(), TTOS_VERSION . '-modal-upsells-4', true);
     }
 
     /** Site Content reader with plugin-internal safety. */
@@ -64,8 +64,23 @@ final class TTOS_Shortcodes {
             $cats[] = array('term' => $cat, 'query' => $query, 'empty' => !$has);
         }
 
+        $ordering_state = class_exists('TTOS_Operations') ? TTOS_Operations::ordering_state() : array();
+
         ob_start();
-        echo '<div class="ttos-menu-wrap">';
+        echo '<div class="ttos-menu-wrap" id="ttos-menu-start">';
+
+        echo '<section class="ttos-menu-ad-strip" aria-label="' . esc_attr__('Menu offers', 'takeaway-os') . '">';
+        $offers = array(
+            array(__('Tonight\'s favourites', 'takeaway-os'), __('Quick picks from the kitchen', 'takeaway-os'), __('Order now', 'takeaway-os')),
+            array(__('Complete the meal', 'takeaway-os'), __('Add sides and drinks in seconds', 'takeaway-os'), __('View add-ons', 'takeaway-os')),
+            array(__('Direct-only deals', 'takeaway-os'), __('Rewards and offers land here', 'takeaway-os'), __('See deals', 'takeaway-os')),
+        );
+        foreach ($offers as $offer) {
+            echo '<a class="ttos-menu-ad" href="' . esc_url(home_url('/meal-deals/')) . '"><span aria-hidden="true"></span><strong>' . esc_html($offer[0]) . '</strong><small>' . esc_html($offer[1]) . '</small><b>' . esc_html($offer[2]) . '</b></a>';
+        }
+        echo '</section>';
+
+        self::menu_ordering_notice($ordering_state);
 
         // Tools: search + filters.
         if ($show_search || $show_dietary || $show_allergens) {
@@ -97,6 +112,16 @@ final class TTOS_Shortcodes {
             echo '</div>';
         }
 
+        if (count($cats) > 1) {
+            echo '<button type="button" class="ttos-menu-filter-toggle" aria-expanded="true" aria-controls="ttos-menu-sidebar">' . esc_html__('Hide menu filter', 'takeaway-os') . '</button>';
+            echo '<div class="ttos-menu-layout is-filter-open" data-menu-layout>';
+            echo '<aside class="ttos-menu-sidebar" id="ttos-menu-sidebar" aria-label="' . esc_attr__('Menu section filter', 'takeaway-os') . '"><div class="ttos-menu-sidebar-inner"><p>' . esc_html__('Browse menu', 'takeaway-os') . '</p><nav class="ttos-menu-side-nav" aria-label="' . esc_attr__('Menu sections', 'takeaway-os') . '">';
+            foreach ($cats as $entry) {
+                echo '<a href="#ttos-cat-' . esc_attr($entry['term']->term_id) . '">' . esc_html($entry['term']->name) . '</a>';
+            }
+            echo '</nav></div></aside><div class="ttos-menu-main">';
+        }
+
         // Sticky category navigation.
         if (count($cats) > 1) {
             echo '<nav class="ttos-cat-nav" aria-label="' . esc_attr__('Menu categories', 'takeaway-os') . '"><div class="ttos-cat-nav-row">';
@@ -120,6 +145,9 @@ final class TTOS_Shortcodes {
         }
 
         if ($show_sticky) self::sticky_cart_bar();
+        if (count($cats) > 1) {
+            echo '</div></div>';
+        }
         echo '</div>';
         return ob_get_clean();
     }
@@ -215,28 +243,38 @@ final class TTOS_Shortcodes {
     }
 
     private static function add_to_basket_form(int $product_id): void {
+        if (class_exists('TTOS_Operations') && !TTOS_Operations::can_accept_menu_orders()) {
+            echo '<button type="button" class="ttos-order-btn is-disabled" disabled>' . esc_html__('We’re currently closed', 'takeaway-os') . '</button>';
+            return;
+        }
         $groups = TTOS_WooCommerce::get_option_groups($product_id);
         $modal_id = 'ttos-config-modal-' . $product_id . '-' . wp_rand(100, 999);
 
         if ($groups) {
             $title_id = esc_attr($modal_id) . '-title';
-            echo '<button type="button" class="ttos-order-btn ttos-open-config" data-modal="#' . esc_attr($modal_id) . '">Configure item</button>';
-            echo '<div class="ttos-modal" id="' . esc_attr($modal_id) . '" role="dialog" aria-modal="true" aria-labelledby="' . esc_attr($title_id) . '" aria-hidden="true"><div class="ttos-modal-backdrop" data-close-modal></div><div class="ttos-modal-panel"><button type="button" class="ttos-modal-close" data-close-modal>×</button>';
-            echo '<h3 id="' . esc_attr($title_id) . '">' . esc_html(get_the_title($product_id)) . '</h3><p class="ttos-muted">Choose options, add notes, then add to basket.</p>';
+            echo '<button type="button" class="ttos-order-btn ttos-open-config" data-modal="#' . esc_attr($modal_id) . '">' . esc_html__('Customise meal', 'takeaway-os') . '</button>';
+            echo '<div class="ttos-modal" id="' . esc_attr($modal_id) . '" role="dialog" aria-modal="true" aria-labelledby="' . esc_attr($title_id) . '" aria-hidden="true"><div class="ttos-modal-backdrop" data-close-modal></div><div class="ttos-modal-panel"><button type="button" class="ttos-modal-close" data-close-modal aria-label="' . esc_attr__('Close meal options', 'takeaway-os') . '">×</button>';
+            echo '<p class="ttos-modal-kicker">' . esc_html__('Make it yours', 'takeaway-os') . '</p><h3 id="' . esc_attr($title_id) . '">' . esc_html(get_the_title($product_id)) . '</h3><p class="ttos-muted">Choose how you want it, add a kitchen note, then add it to your basket.</p>';
         }
 
         $base_price = (float) get_post_meta($product_id, '_price', true);
         echo '<form class="ttos-config-form" method="post" data-base-price="' . esc_attr((string) $base_price) . '">';
         echo '<input type="hidden" name="add-to-cart" value="' . esc_attr((string) $product_id) . '">';
         echo '<input type="hidden" name="ttos_configured_add" value="1">';
-        echo '<label class="ttos-qty">Qty <input type="number" name="quantity" value="1" min="1" max="20"></label>';
         wp_nonce_field('ttos_configure_product_' . $product_id, 'ttos_config_nonce');
+        echo '<div class="ttos-config-main">';
         if ($groups) {
+            echo '<div class="ttos-config-fields">';
             foreach ($groups as $g_index => $group) {
                 if (!is_array($group) || empty($group['options'])) continue;
                 $type = ($group['type'] ?? 'multiple') === 'single' ? 'radio' : 'checkbox';
                 $name = $type === 'radio' ? 'ttos_options[' . esc_attr((string) $g_index) . ']' : 'ttos_options[' . esc_attr((string) $g_index) . '][]';
-                echo '<fieldset class="ttos-config-fieldset"><legend>' . esc_html($group['name'] ?? 'Options') . (!empty($group['required']) ? ' *' : '') . '</legend>';
+                $min = !empty($group['required']) ? max(1, absint($group['min'] ?? 1)) : absint($group['min'] ?? 0);
+                $max = absint($group['max'] ?? ($type === 'radio' ? 1 : 99));
+                if ($type === 'radio') {
+                    $max = 1;
+                }
+                echo '<fieldset class="ttos-config-fieldset" data-min="' . esc_attr((string) $min) . '" data-max="' . esc_attr((string) $max) . '" data-type="' . esc_attr($type) . '"><legend>' . esc_html($group['name'] ?? 'Options') . (!empty($group['required']) ? ' *' : '') . '</legend>';
                 if (!empty($group['min']) || !empty($group['max'])) {
                     echo '<small class="ttos-choice-rule">Choose ' . esc_html((string) ($group['min'] ?? 0)) . '–' . esc_html((string) ($group['max'] ?? ($type === 'radio' ? 1 : 99))) . '</small>';
                 }
@@ -248,14 +286,45 @@ final class TTOS_Shortcodes {
                 }
                 echo '</fieldset>';
             }
+            echo '</div>';
         }
-        echo '<label class="ttos-item-note">Notes <textarea name="ttos_item_note" rows="2" placeholder="No onion, sauce separate…"></textarea></label>';
-        echo '<div class="ttos-config-total"><span>Total from</span><strong></strong></div><button class="ttos-order-btn" type="submit">Add to basket</button>';
+        echo '<div class="ttos-config-side">';
+        echo '<label class="ttos-qty">Qty <input type="number" name="quantity" value="1" min="1" max="20"></label>';
+        echo '<label class="ttos-item-note">' . esc_html__('Kitchen note', 'takeaway-os') . ' <textarea name="ttos_item_note" rows="2" placeholder="' . esc_attr__('No onion, sauce separate...', 'takeaway-os') . '"></textarea></label>';
+        echo '<div class="ttos-config-total"><span>' . esc_html__('Item total', 'takeaway-os') . '</span><strong></strong></div><button class="ttos-order-btn" type="submit">' . esc_html__('Add to basket', 'takeaway-os') . '</button>';
+        echo '</div>';
+        echo '</div>';
+        if ($groups && class_exists('TTOS_WooCommerce')) {
+            TTOS_WooCommerce::render_modal_recommendations($product_id);
+        }
         echo '</form>';
 
         if ($groups) {
             echo '</div></div>';
         }
+    }
+
+    private static function menu_ordering_notice(array $state): void {
+        if (empty($state) || !empty($state['open'])) {
+            return;
+        }
+
+        $next = !empty($state['next_open_ts'])
+            ? sprintf(__('Next opening time: %s', 'takeaway-os'), wp_date('D j M, H:i', (int) $state['next_open_ts'], wp_timezone()))
+            : '';
+        $button_label = !empty($state['preorder_enabled']) ? __('Start preorder', 'takeaway-os') : __('View menu', 'takeaway-os');
+        $body = !empty($state['preorder_enabled'])
+            ? __('You can still plan ahead. Choose a preorder time and we’ll get everything ready when we reopen.', 'takeaway-os')
+            : __('We are not taking immediate orders right now. You can still browse the menu while we are closed.', 'takeaway-os');
+
+        echo '<section class="ttos-order-lock" aria-labelledby="ttos-order-lock-title">';
+        echo '<p class="ttos-panel-kicker">' . esc_html__('Ordering update', 'takeaway-os') . '</p><h2 id="ttos-order-lock-title">' . esc_html__('We’re currently closed', 'takeaway-os') . '</h2>';
+        echo '<p>' . esc_html($body) . '</p>';
+        if ($next !== '') {
+            echo '<p class="ttos-order-lock-next">' . esc_html($next) . '</p>';
+        }
+        echo '<a class="ttos-order-btn" href="#ttos-menu-start">' . esc_html($button_label) . '</a>';
+        echo '</section>';
     }
 
     /* ------------------------------------------------------------------ *
@@ -322,12 +391,45 @@ final class TTOS_Shortcodes {
         $message = '';
         if (!empty($_GET['ttos_order_id']) && TTOS_WooCommerce::active()) {
             $order = wc_get_order(absint($_GET['ttos_order_id']));
-            // IDOR guard: only show the order to the customer who placed it.
+            $order_key = isset($_GET['ttos_key']) ? sanitize_text_field(wp_unslash($_GET['ttos_key'])) : '';
+            // IDOR guard: show the order only to the logged-in owner or to a
+            // customer holding WooCommerce's unguessable order key from the
+            // thank-you page / email link.
             $order_customer = $order ? (int) $order->get_customer_id() : 0;
             $current_user   = get_current_user_id();
             $owns_order     = $order && $order_customer > 0 && $current_user === $order_customer;
-            if ($owns_order) {
-                $message = '<div class="ttos-front-card ttos-tracker-result" role="status"><h3>' . esc_html__('Order', 'takeaway-os') . ' #' . esc_html($order->get_id()) . '</h3><p class="ttos-tracker-status">' . esc_html(wc_get_order_status_name($order->get_status())) . '</p></div>';
+            $has_order_key  = $order && $order_key !== '' && hash_equals((string) $order->get_order_key(), $order_key);
+            if ($owns_order || $has_order_key) {
+                $method = sanitize_key((string) $order->get_meta('_ttos_fulfilment_method'));
+                $time = (string) $order->get_meta('_ttos_requested_time');
+                $trading = class_exists('TTOS_Settings') ? TTOS_Settings::get('trading') : array();
+                $estimate = '';
+                if ($time !== '' && $time !== 'asap') {
+                    $ts = strtotime($time);
+                    $estimate = $ts ? date_i18n('D j M H:i', $ts) : $time;
+                } elseif ($method === 'collection') {
+                    $estimate = sprintf(_n('%d minute', '%d minutes', absint($trading['prep_time'] ?? 25), 'takeaway-os'), absint($trading['prep_time'] ?? 25));
+                } else {
+                    $estimate = sprintf(_n('%d minute', '%d minutes', absint($trading['delivery_time'] ?? 35), 'takeaway-os'), absint($trading['delivery_time'] ?? 35));
+                }
+                $steps = array(
+                    'processing'     => __('Order received', 'takeaway-os'),
+                    'ttos-accepted'  => __('Accepted', 'takeaway-os'),
+                    'ttos-prepping'  => __('Preparing', 'takeaway-os'),
+                    'ttos-ready'     => $method === 'collection' ? __('Ready to collect', 'takeaway-os') : __('Ready', 'takeaway-os'),
+                    'ttos-out'       => __('Out for delivery', 'takeaway-os'),
+                    'completed'      => __('Complete', 'takeaway-os'),
+                );
+                $active_status = $order->get_status();
+                $seen_active = false;
+                $timeline = '';
+                foreach ($steps as $slug => $label) {
+                    $is_active = $slug === $active_status;
+                    if ($is_active) $seen_active = true;
+                    $class = $is_active ? ' is-active' : (!$seen_active ? ' is-done' : '');
+                    $timeline .= '<li class="' . esc_attr($class) . '">' . esc_html($label) . '</li>';
+                }
+                $message = '<div class="ttos-front-card ttos-tracker-result ttos-tracker-result--found" role="status"><p class="ttos-panel-kicker">' . esc_html__('Live order status', 'takeaway-os') . '</p><h3>' . esc_html__('Order', 'takeaway-os') . ' #' . esc_html($order->get_id()) . '</h3><p class="ttos-tracker-status">' . esc_html(wc_get_order_status_name($active_status)) . '</p><p class="ttos-tracker-estimate">' . esc_html(sprintf(__('Estimated time: %s', 'takeaway-os'), $estimate)) . '</p><ol class="ttos-tracker-timeline">' . $timeline . '</ol></div>';
             } elseif ($order && !$owns_order) {
                 $message = '<div class="ttos-front-card ttos-tracker-result" role="status">' . esc_html__('We could not find that order number. Check the number on your confirmation, or call us.', 'takeaway-os') . '</div>';
             } else {
@@ -494,7 +596,75 @@ final class TTOS_Shortcodes {
 
     public static function customer_portal(): string {
         if (!is_user_logged_in()) {
-            return '<div class="ttos-front-card"><h2>Your takeaway account</h2><p>Log in to view previous orders, saved addresses and rewards.</p>' . wp_login_form(array('echo' => false)) . '</div>';
+            $business = class_exists('TTOS_Site_Content') ? TTOS_Site_Content::get('business_info') : array();
+            $socials  = class_exists('TTOS_Site_Content') ? TTOS_Site_Content::get('social_links') : array();
+            $name     = (string) ($business['business_name'] ?? get_bloginfo('name'));
+            $phone    = (string) ($business['phone'] ?? '');
+            $email    = (string) ($business['email'] ?? '');
+            $address  = implode(', ', array_filter(array(
+                $business['address_1'] ?? '',
+                $business['address_2'] ?? '',
+                $business['town'] ?? '',
+                $business['county'] ?? '',
+                $business['postcode'] ?? '',
+            )));
+            $login = wp_login_form(array(
+                'echo'           => false,
+                'form_id'        => 'ttos-account-loginform',
+                'label_username' => __('Email or username', 'takeaway-os'),
+                'label_password' => __('Password', 'takeaway-os'),
+                'label_remember' => __('Keep me signed in', 'takeaway-os'),
+                'label_log_in'   => __('Log in', 'takeaway-os'),
+                'redirect'       => get_permalink(),
+            ));
+
+            ob_start();
+            echo '<section class="ttos-account-auth" aria-label="' . esc_attr__('Customer account access', 'takeaway-os') . '">';
+            echo '<aside class="ttos-account-auth-brand"><p class="ttos-panel-kicker">' . esc_html__('Order direct', 'takeaway-os') . '</p><h2>' . esc_html__('Your takeaway account', 'takeaway-os') . '</h2><p>' . esc_html__('Save details, check recent orders and get back to the food faster next time.', 'takeaway-os') . '</p>';
+            echo '<div class="ttos-account-auth-contact">';
+            if ($phone !== '') {
+                echo '<a href="tel:' . esc_attr(preg_replace('/[^0-9+]/', '', $phone)) . '">' . esc_html($phone) . '</a>';
+            }
+            if ($email !== '') {
+                echo '<a href="mailto:' . esc_attr($email) . '">' . esc_html($email) . '</a>';
+            }
+            if ($address !== '') {
+                echo '<span>' . esc_html($address) . '</span>';
+            }
+            echo '</div>';
+            if (is_array($socials) && $socials) {
+                echo '<div class="ttos-account-auth-socials" aria-label="' . esc_attr__('Social links', 'takeaway-os') . '">';
+                foreach ($socials as $label => $url) {
+                    if (!$url) continue;
+                    echo '<a href="' . esc_url((string) $url) . '" target="_blank" rel="noopener noreferrer">' . esc_html(ucfirst(str_replace(array('_', '-'), ' ', (string) $label))) . '</a>';
+                }
+                echo '</div>';
+            }
+            echo '<strong>' . esc_html($name) . '</strong></aside>';
+
+            echo '<div class="ttos-account-auth-forms">';
+            echo '<div class="ttos-account-auth-card"><p class="ttos-panel-kicker">' . esc_html__('Welcome back', 'takeaway-os') . '</p><h3>' . esc_html__('Log in', 'takeaway-os') . '</h3>' . $login . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_login_form returns core-generated form markup.
+            echo '<div class="ttos-account-auth-card"><p class="ttos-panel-kicker">' . esc_html__('New here?', 'takeaway-os') . '</p><h3>' . esc_html__('Create an account', 'takeaway-os') . '</h3>';
+            if (get_option('users_can_register')) {
+                echo '<form class="ttos-account-register" method="post" action="' . esc_url(site_url('wp-login.php?action=register', 'login_post')) . '">';
+                echo '<label>' . esc_html__('Username', 'takeaway-os') . '<input type="text" name="user_login" autocomplete="username" required></label>';
+                echo '<label>' . esc_html__('Email address', 'takeaway-os') . '<input type="email" name="user_email" autocomplete="email" required></label>';
+                echo '<input type="hidden" name="redirect_to" value="' . esc_url(get_permalink()) . '">';
+                echo '<button type="submit" class="ttos-order-btn">' . esc_html__('Create account', 'takeaway-os') . '</button>';
+                echo '<p>' . esc_html__('We will email your password setup link after registration.', 'takeaway-os') . '</p></form>';
+            } else {
+                echo '<p>' . esc_html__('Online registration is currently switched off. Call or email us and we can help with your account.', 'takeaway-os') . '</p>';
+                echo '<div class="ttos-account-auth-contact">';
+                if ($phone !== '') {
+                    echo '<a href="tel:' . esc_attr(preg_replace('/[^0-9+]/', '', $phone)) . '">' . esc_html__('Call the restaurant', 'takeaway-os') . '</a>';
+                }
+                if ($email !== '') {
+                    echo '<a href="mailto:' . esc_attr($email) . '">' . esc_html__('Email us', 'takeaway-os') . '</a>';
+                }
+                echo '</div>';
+            }
+            echo '</div></div></section>';
+            return ob_get_clean();
         }
         ob_start();
         echo '<div class="ttos-portal"><h2>My orders</h2>';
@@ -518,7 +688,7 @@ final class TTOS_Shortcodes {
         if (!current_user_can('ttos_view_orders') || !TTOS_WooCommerce::active()) return '';
         $orders = wc_get_orders(array('limit' => 15, 'status' => array('processing','ttos-accepted','ttos-prepping','ttos-ready')));
         ob_start();
-        echo '<div class="ttos-kitchen-screen"><h2>Kitchen screen</h2>';
+        echo '<div class="ttos-kitchen-screen"><h2>Takeaway Tickets</h2>';
         foreach ($orders as $order) {
             echo '<div class="ttos-kitchen-ticket"><h3>#' . esc_html($order->get_id()) . ' · ' . esc_html(wc_get_order_status_name($order->get_status())) . '</h3><ul>';
             foreach ($order->get_items() as $item) echo '<li>' . esc_html($item->get_quantity()) . ' × ' . esc_html($item->get_name()) . '</li>';

@@ -13,6 +13,8 @@ final class TTOS_Hardening {
     public static function hooks(): void {
         add_action('admin_init', array(__CLASS__, 'maybe_upgrade'), 2);
         add_action('admin_init', array(__CLASS__, 'protect_module_settings'), 3);
+        add_action('admin_init', array(__CLASS__, 'maybe_secure_import_dir'), 4);
+        add_action('admin_init', array(__CLASS__, 'maybe_protect_uploads'), 5);
     }
 
     public static function maybe_upgrade(): void {
@@ -30,7 +32,7 @@ final class TTOS_Hardening {
         foreach (array('takeaway_owner','takeaway_manager') as $role_name) {
             $role = get_role($role_name);
             if ($role) {
-                foreach ($caps as $cap) {
+                foreach (array_merge(array('edit_posts'), $caps) as $cap) {
                     $role->add_cap($cap);
                 }
                 $role->add_cap('upload_files');
@@ -39,7 +41,7 @@ final class TTOS_Hardening {
         foreach (array('takeaway_kitchen','takeaway_driver') as $role_name) {
             $role = get_role($role_name);
             if ($role) {
-                foreach (array('read','ttos_access','ttos_view_orders','ttos_update_orders') as $cap) {
+                foreach (array('read','edit_posts','ttos_access','ttos_view_orders','ttos_update_orders') as $cap) {
                     $role->add_cap($cap);
                 }
             }
@@ -90,6 +92,146 @@ final class TTOS_Hardening {
         $hash = (string) get_option('ttos_module_lock_hash', '');
         if ($hash !== '') {
             wp_die(esc_html__('Paid modules are locked for handover. Ask the site administrator to unlock them.', 'takeaway-os'));
+        }
+    }
+
+    public static function maybe_secure_import_dir(): void {
+        $dir = self::import_dir(false);
+        if (!empty($dir['path']) && is_dir($dir['path'])) {
+            self::write_import_dir_guards($dir['path']);
+            self::cleanup_stale_imports($dir['path']);
+        }
+    }
+
+    public static function import_dir(bool $create = true): array {
+        $upload = wp_upload_dir();
+        if (!empty($upload['error'])) {
+            return array();
+        }
+        $path = trailingslashit($upload['basedir']) . 'ttos-imports';
+        $url = trailingslashit($upload['baseurl']) . 'ttos-imports';
+        if ($create && !is_dir($path)) {
+            wp_mkdir_p($path);
+        }
+        if ($create && is_dir($path)) {
+            self::write_import_dir_guards($path);
+        }
+        return array(
+            'path' => $path,
+            'url'  => $url,
+        );
+    }
+
+    public static function stash_uploaded_file(array $file, array $allowed_extensions, int $max_bytes, string $prefix = 'ttos-import-') {
+        if (empty($file['tmp_name']) || empty($file['name'])) {
+            return new WP_Error('ttos_missing_upload', __('No upload was received.', 'takeaway-os'));
+        }
+        if (!isset($file['error']) || (int) $file['error'] !== UPLOAD_ERR_OK) {
+            return new WP_Error('ttos_upload_error', __('The uploaded file could not be processed.', 'takeaway-os'));
+        }
+        if (!is_uploaded_file($file['tmp_name'])) {
+            return new WP_Error('ttos_invalid_upload', __('The uploaded file is not valid.', 'takeaway-os'));
+        }
+        $size = isset($file['size']) ? (int) $file['size'] : 0;
+        if ($size <= 0 || $size > $max_bytes) {
+            return new WP_Error('ttos_upload_size', __('The uploaded file is empty or too large.', 'takeaway-os'));
+        }
+
+        $extension = strtolower((string) pathinfo((string) $file['name'], PATHINFO_EXTENSION));
+        if (!in_array($extension, $allowed_extensions, true)) {
+            return new WP_Error('ttos_upload_type', __('That file type is not allowed for this import.', 'takeaway-os'));
+        }
+
+        $dir = self::import_dir(true);
+        if (empty($dir['path']) || !is_dir($dir['path'])) {
+            return new WP_Error('ttos_import_dir', __('The secure import folder could not be created.', 'takeaway-os'));
+        }
+
+        $base_name = sanitize_file_name($prefix . gmdate('Ymd-His') . '-' . wp_generate_password(6, false, false) . '.' . $extension);
+        $target = trailingslashit($dir['path']) . wp_unique_filename($dir['path'], $base_name);
+        if (!move_uploaded_file($file['tmp_name'], $target)) {
+            return new WP_Error('ttos_upload_move', __('The uploaded file could not be stored securely.', 'takeaway-os'));
+        }
+        @chmod($target, 0600);
+
+        return array(
+            'path' => $target,
+            'url'  => trailingslashit($dir['url']) . basename($target),
+            'name' => basename($target),
+        );
+    }
+
+    public static function cleanup_import_file(string $path): void {
+        $dir = self::import_dir(false);
+        if (empty($dir['path']) || $path === '') {
+            return;
+        }
+        $real_dir = realpath($dir['path']);
+        $real_path = realpath($path);
+        if (!$real_dir || !$real_path || strpos($real_path, $real_dir) !== 0) {
+            return;
+        }
+        if (is_file($real_path)) {
+            wp_delete_file($real_path);
+        }
+    }
+
+    /**
+     * Protect all sensitive Takeaway OS upload directories with .htaccess.
+     * Called on activation, upgrade, and admin_init.
+     */
+    public static function maybe_protect_uploads(): void {
+        $upload = wp_upload_dir();
+        if (!empty($upload['error'])) {
+            return;
+        }
+        $base = trailingslashit($upload['basedir']);
+        $dirs = array('ttos-imports', 'ttos-exports');
+        foreach ($dirs as $dir_name) {
+            $dir = $base . $dir_name;
+            if (is_dir($dir)) {
+                self::write_import_dir_guards($dir);
+            }
+        }
+    }
+
+    private static function write_import_dir_guards(string $path): void {
+        if (!is_dir($path) || !is_writable($path)) {
+            return;
+        }
+        $index = trailingslashit($path) . 'index.php';
+        if (!file_exists($index)) {
+            file_put_contents($index, "<?php\n// Silence is golden.\n");
+        }
+        $htaccess = trailingslashit($path) . '.htaccess';
+        $rules = "Order deny,allow\nDeny from all\n";
+        if (!file_exists($htaccess) || trim((string) file_get_contents($htaccess)) !== trim($rules)) {
+            file_put_contents($htaccess, $rules);
+        }
+        $web_config = trailingslashit($path) . 'web.config';
+        $config = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<configuration>\n  <system.webServer>\n    <directoryBrowse enabled=\"false\" />\n    <security>\n      <authorization>\n        <remove users=\"*\" roles=\"\" verbs=\"\" />\n        <add accessType=\"Deny\" users=\"*\" />\n      </authorization>\n    </security>\n  </system.webServer>\n</configuration>\n";
+        if (!file_exists($web_config) || trim((string) file_get_contents($web_config)) !== trim($config)) {
+            file_put_contents($web_config, $config);
+        }
+    }
+
+    private static function cleanup_stale_imports(string $path): void {
+        $files = glob(trailingslashit($path) . '*');
+        if (!is_array($files)) {
+            return;
+        }
+        $cutoff = time() - DAY_IN_SECONDS;
+        foreach ($files as $file) {
+            if (!is_file($file)) {
+                continue;
+            }
+            $name = basename($file);
+            if (in_array($name, array('index.php', '.htaccess', 'web.config'), true)) {
+                continue;
+            }
+            if ((int) @filemtime($file) < $cutoff) {
+                wp_delete_file($file);
+            }
         }
     }
 

@@ -1,0 +1,168 @@
+Takeaway OS v1.3.11 / Takeaway Theme v0.3.33 — Critical Check Report
+Generated: 2026-06-17
+
+================================================================
+LOCAL CODE / PACKAGE CHECKS
+================================================================
+PHP lint:
+  CLEAN — all plugin and theme PHP files passed `php -l`
+
+Bundled plugin zip:
+  Path: takeaway-theme/inc/bundled-plugins/takeaway-os.zip
+  Root folder: takeaway-os/
+  Version inside zip: 1.3.11
+  Junk scan: CLEAN
+
+Release artifacts:
+  takeaway-os-v1.3.11.zip
+  takeaway-theme-v0.3.33-bundled.zip
+  takeaway-v1.3.11-production-readiness.txt
+
+Release zip checks:
+  Plugin zip root: takeaway-os/ ? YES
+  Theme zip root: takeaway-theme/ ? YES
+  __MACOSX present: NO
+  .DS_Store present: NO
+  .git present: NO
+  logs/screenshots/test artefacts present: NO
+
+================================================================
+STAGING TRUTH
+================================================================
+URL:
+  https://takeaway.thatdeveloper.co.uk
+
+Versions:
+  Theme:  0.3.33
+  Plugin: 1.3.11
+
+Bundled plugin status on staging:
+  state: active
+  message: Installed and active at 1.3.11.
+  bundled_version: 1.3.11
+  installed_version: 1.3.11
+  zip_ok: true
+
+Backup path:
+  /home/u363235284/backups/takeaway-betafix-20260617-042425
+
+================================================================
+FEATURE / BETA GATE STATUS
+================================================================
+Admin shell unification:
+  PASS — primary nav persists and reports screen confirms shared shell
+
+Cuisine-aware onboarding:
+  PASS FOR BETA MVP
+  - supported packs exist
+  - safe fallback to generic_takeaway exists
+  - generated content is marked
+  - current staging cuisine resolves to the generic takeaway path
+
+Duplicate starter/demo products:
+  PASS
+  - 9 duplicate generated products found
+  - duplicates moved to draft
+  - published generated products retained
+  - no hard deletes
+
+Placeholder content pass:
+  PASS FOR STAGING
+  - placeholder social URLs cleared
+  - service charge set to 0
+  - staging-safe demo business/contact details set
+
+================================================================
+ROLE VERIFICATION
+================================================================
+Owner:
+  PASS — dashboard, menu, orders, Takeaway Tickets, customers, reports, settings
+  PASS — blocked from restricted add-on/module screens
+
+Manager:
+  PASS — dashboard, menu, orders, Takeaway Tickets, customers, reports
+  PASS — blocked from settings/features/modules
+
+Kitchen:
+  PASS — dashboard, orders, Takeaway Tickets only
+  PASS — blocked from broader CRM/settings screens
+
+Temp browser test users:
+  REMOVED — ttos_prod_admin, ttos_prod_owner, ttos_prod_manager, ttos_prod_kitchen
+
+================================================================
+CHECKOUT / ORDER PROOF
+================================================================
+Proof order:
+  ID: 500
+  Status: accepted
+  Total: £15.50
+  Payment: Bank transfer staging
+  Customer: Codex Prooforder
+  Prep time: 20 minutes
+
+Verified in flow:
+  PASS — configured item options persisted
+  PASS — kitchen note persisted
+  PASS — suggested upsell item added separately
+  PASS — order visible in Orders
+  PASS — order visible in Takeaway Tickets
+  PASS — customer visible in CRM
+  PASS — reports analytics reflected the order in the test window
+  PASS — ticket board shows payment state, method, prep, and due-time badges
+
+Reports analytics sample:
+  orders: 1
+  gross: 15.5
+  payment: Bank transfer staging
+  status bucket: On hold
+
+================================================================
+SETUP HEALTH
+================================================================
+Summary:
+  54 pass / 15 warn / 1 fail-like check / 70 total
+  progress: 77
+  core_ready: true
+
+Expected remaining warnings:
+  - Stripe plugin active but WooCommerce Stripe disabled and test-mode only
+  - FluentSMTP active but no connection configured
+  - no hygiene rating
+  - no logo
+  - no favicon
+  - no social links configured
+  - Delivery & Collection details partial
+  - staging-only admin accounts still exist (claude-admin, codex_staging_takeaway)
+  - duplicate published Home / My Account pages
+  - brand/accessibility contrast warnings
+
+================================================================
+BROWSER NOTE
+================================================================
+Final reports-page browser pass:
+  PASS — header present
+  PASS — primary nav present
+  PASS — Reports page heading present
+  PASS — proof-order metrics visible
+
+Console warning seen:
+  JQMIGRATE: jQuery.fn.focus() event shorthand is deprecated
+
+================================================================
+FINAL RESULT
+================================================================
+PASS FOR:
+  - local testing
+  - staging testing
+  - first controlled client beta
+
+FAIL FOR:
+  - paid production install
+
+Paid production blockers:
+  - live Stripe sign-off
+  - SMTP/email sign-off
+  - staging-only admin account cleanup
+  - final client trust/branding setup
+  - accessibility colour decision

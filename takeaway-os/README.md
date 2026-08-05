@@ -1,8 +1,8 @@
-# Takeaway OS v1.3.0
+# Takeaway OS v1.3.11
 
-Restaurant operating overlay for WordPress + WooCommerce. Pairs with Takeaway Theme v0.3.0.
+Restaurant operating overlay for WordPress + WooCommerce. Pairs with Takeaway Theme v0.3.33.
 
-## New in v1.3.0
+## Current highlights in v1.3.11
 
 ### Branding design tokens
 - Branding now stores a full token set (primary, accent, bg, surface, surface-soft, text, muted, border, success/warning/error, radius sm/md/lg, shadow, light/dark/system mode, header/hero/card/footer styles).
@@ -33,11 +33,19 @@ Restaurant operating overlay for WordPress + WooCommerce. Pairs with Takeaway Th
 - Third-party admin notices are suppressed on Takeaway OS screens only.
 - Keyboard focus outlines and small-screen scrolling nav across the admin shell.
 
-## Update from 1.2.5
-1. Install/activate Takeaway Theme v0.3.0 (bundled). The theme setup screen detects the older installed plugin and offers "Update bundled Takeaway OS".
+## Update from older builds
+1. Install/activate Takeaway Theme v0.3.33 (bundled). The theme setup screen detects the older installed plugin and offers "Update bundled Takeaway OS".
 2. Settings and content are preserved; migrations add new keys only.
 3. After update, open Setup Health and run "Repair pages and menus" once to generate the new contact/policy pages.
 4. Review Site Content -> Policies before production.
+
+## Commercial update rule
+
+Takeaway OS updates should preserve database-backed client settings and content.
+
+That does not make direct code edits update-safe.
+
+Do not customise live client behaviour by editing `takeaway-os` on the server. Product logic changes should come back into source control and ship as a normal product release.
 
 ## Known limitations
 - Delivery checker is postcode-prefix based; full zone validation remains a checkout concern.

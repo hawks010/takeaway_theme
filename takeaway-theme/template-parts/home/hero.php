@@ -87,6 +87,25 @@ if ($show_booking_tab) {
 }
 
 $first_tab = !empty($tabs) ? $tabs[0] : null;
+
+$hero_products = array();
+if (!$image_id && post_type_exists('product')) {
+    $hero_query = get_posts(array(
+        'post_type' => 'product',
+        'post_status' => 'publish',
+        'numberposts' => 3,
+        'orderby' => 'date',
+        'order' => 'DESC',
+    ));
+    foreach ($hero_query as $product_post) {
+        $price = get_post_meta($product_post->ID, '_price', true);
+        $hero_products[] = array(
+            'title' => $product_post->post_title,
+            'price' => ($price !== '' && function_exists('wc_price')) ? wc_price((float) $price) : '',
+            'excerpt' => wp_trim_words($product_post->post_excerpt ?: $product_post->post_content, 8),
+        );
+    }
+}
 ?>
 <section class="tt-home-hero<?php echo $bg_url ? ' has-bg' : ''; ?>"<?php echo $bg_url ? ' style="--tt-hero-bg:url(' . esc_url($bg_url) . ')"' : ''; ?>>
     <div class="tt-wrap tt-home-hero-grid">
@@ -94,6 +113,10 @@ $first_tab = !empty($tabs) ? $tabs[0] : null;
             <p class="tt-eyebrow"><?php echo esc_html($eyebrow); ?></p>
             <h1><?php echo esc_html($title); ?></h1>
             <p class="tt-home-hero-sub"><?php echo esc_html($subtitle); ?></p>
+            <div class="tt-home-hero-actions">
+                <a class="tt-btn tt-home-primary-cta" href="<?php echo esc_url(tt_menu_url()); ?>"><?php esc_html_e('Order from the menu', 'takeaway-theme'); ?></a>
+                <a class="tt-btn ghost tt-home-secondary-cta" href="<?php echo esc_url(ttheme_page_url('delivery', '/delivery-checker/')); ?>"><?php esc_html_e('Check delivery area', 'takeaway-theme'); ?></a>
+            </div>
 
             <?php if (!empty($tabs)) : ?>
             <div class="tt-start-card">
@@ -132,11 +155,29 @@ $first_tab = !empty($tabs) ? $tabs[0] : null;
 
         <div class="tt-home-hero-visual">
             <?php
-            $hero_img = $image_id ? tt_image($image_id, 'large', 'tt-home-hero-img', sprintf(__('Food from %s', 'takeaway-theme'), tt_business_name())) : '';
+            $hero_label = sprintf(__('Food from %s', 'takeaway-theme'), tt_business_name());
+            $hero_img = $image_id ? tt_image($image_id, 'large', 'tt-home-hero-img', $hero_label) : '';
             if ($hero_img !== '') {
                 echo '<div class="tt-home-hero-imgwrap">' . $hero_img . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput
+            } elseif ($hero_products) {
+                echo '<div class="tt-home-hero-board" aria-label="' . esc_attr__('Today from the menu', 'takeaway-theme') . '">';
+                echo '<p class="tt-board-kicker">' . esc_html__('Cooked to order', 'takeaway-theme') . '</p>';
+                echo '<h2>' . esc_html__('Start with a favourite', 'takeaway-theme') . '</h2>';
+                echo '<div class="tt-board-items">';
+                foreach ($hero_products as $item) {
+                    echo '<a href="' . esc_url(tt_menu_url()) . '" class="tt-board-item">';
+                    echo '<span><strong>' . esc_html($item['title']) . '</strong>';
+                    if ($item['excerpt'] !== '') echo '<small>' . esc_html($item['excerpt']) . '</small>';
+                    echo '</span>';
+                    if ($item['price'] !== '') echo '<b>' . wp_kses_post($item['price']) . '</b>';
+                    echo '</a>';
+                }
+                echo '</div>';
+                echo '<a class="tt-board-link" href="' . esc_url(tt_menu_url()) . '">' . esc_html__('Browse the full menu', 'takeaway-theme') . '</a>';
+                echo '</div>';
             } else {
-                echo '<div class="tt-home-hero-placeholder" aria-hidden="true"><span class="tt-blob tt-blob-1"></span><span class="tt-blob tt-blob-2"></span><span class="tt-blob tt-blob-3"></span></div>';
+                $hero_placeholder_text = trim($title . ' ' . $eyebrow . ' ' . (string) ttheme_business('cuisine', ''));
+                echo '<div class="tt-home-hero-placeholder">' . tt_food_placeholder($hero_placeholder_text, '', $hero_label) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput
             }
             ?>
         </div><!-- /.tt-home-hero-visual -->

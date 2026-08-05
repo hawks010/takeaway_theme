@@ -187,6 +187,9 @@ final class TTOS_Site_Content {
         $stored['version'] = self::CONTENT_VERSION;
         $stored[$section] = $values;
         update_option(self::OPTION, $stored, false);
+        if ($section === 'business_info' && class_exists('TTOS_Settings')) {
+            TTOS_Settings::sync_business_from_site_content($values);
+        }
     }
 
     /**
@@ -684,15 +687,11 @@ final class TTOS_Site_Content {
         $current = sanitize_key(wp_unslash($_GET['tab'] ?? 'homepage'));
         if (!isset($tabs[$current])) $current = 'homepage';
 
-        self::shell_start('Site Content', 'Structured content for the public website. The layout is protected; the content is editable. Templates pick these fields up as the new front end rolls out.');
-
-        echo '<nav class="ttos-subtabs" aria-label="Site content sections">';
-        foreach ($tabs as $key => $label) {
-            $class = $key === $current ? 'active' : '';
-            $url = add_query_arg(array('page' => 'takeaway-os-site-content', 'tab' => $key), admin_url('admin.php'));
-            echo '<a class="' . esc_attr($class) . '" ' . ($key === $current ? 'aria-current="page" ' : '') . 'href="' . esc_url($url) . '">' . esc_html($label) . '</a>';
-        }
-        echo '</nav>';
+        self::shell_start(
+            'Site Content',
+            'Structured content for the public website. The layout is protected; the content is editable. Templates pick these fields up as the new front end rolls out.',
+            self::secondary_nav_items($tabs, $current)
+        );
 
         $renderer = 'tab_' . $current;
         if (method_exists(__CLASS__, $renderer)) {
@@ -701,14 +700,32 @@ final class TTOS_Site_Content {
         self::shell_end();
     }
 
-    private static function shell_start(string $title, string $subtitle): void {
-        echo '<div class="ttos-wrap"><div class="ttos-shell">';
-        echo '<p class="ttos-eyebrow">TAKEAWAY OS</p><h1>' . esc_html($title) . '</h1><p class="ttos-muted">' . esc_html($subtitle) . '</p>';
+    private static function shell_start(string $title, string $subtitle, array $secondary_nav = array()): void {
+        TTOS_Admin_Shell::render_start(array(
+            'title' => $title,
+            'subtitle' => $subtitle,
+            'active' => 'takeaway-os-site-content',
+            'secondary_nav' => $secondary_nav,
+            'secondary_nav_label' => 'Sections',
+            'secondary_nav_aria_label' => 'Site Content sections',
+        ));
         self::notices();
     }
 
     private static function shell_end(): void {
-        echo '</div></div>';
+        TTOS_Admin_Shell::render_end();
+    }
+
+    private static function secondary_nav_items(array $tabs, string $current): array {
+        $items = array();
+        foreach ($tabs as $key => $label) {
+            $items[] = array(
+                'label' => $label,
+                'url' => add_query_arg(array('page' => 'takeaway-os-site-content', 'tab' => $key), admin_url('admin.php')),
+                'active' => $key === $current,
+            );
+        }
+        return $items;
     }
 
     private static function notices(): void {

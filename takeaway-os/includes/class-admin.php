@@ -5,6 +5,7 @@ defined('ABSPATH') || exit;
 final class TTOS_Admin {
     public static function hooks(): void {
         add_action('admin_menu', array(__CLASS__, 'menu'));
+        add_action('admin_menu', array(__CLASS__, 'order_submenu'), 999);
         add_action('admin_enqueue_scripts', array(__CLASS__, 'assets'));
         add_action('admin_init', array(__CLASS__, 'activation_redirect'), 1);
         add_action('admin_init', array(__CLASS__, 'handle_posts'));
@@ -12,6 +13,7 @@ final class TTOS_Admin {
         add_action('admin_bar_menu', array(__CLASS__, 'admin_bar'), 100);
         add_action('wp_ajax_ttos_order_board', array(__CLASS__, 'ajax_order_board'));
         add_action('wp_ajax_ttos_order_action', array(__CLASS__, 'ajax_order_action'));
+        add_action('admin_post_ttos_export_customer_profiles_csv', array(__CLASS__, 'export_customer_profiles_csv'));
         add_action('in_admin_header', array(__CLASS__, 'suppress_foreign_notices'), 1000);
         add_action('admin_head', array(__CLASS__, 'suppress_foreign_notices_css'));
     }
@@ -47,15 +49,62 @@ final class TTOS_Admin {
     public static function menu(): void {
         add_menu_page('Takeaway OS', 'Takeaway OS', 'ttos_access', 'takeaway-os', array(__CLASS__, 'page_dashboard'), 'dashicons-store', 3);
         add_submenu_page('takeaway-os', 'Launchpad', 'Launchpad', 'ttos_manage_settings', 'takeaway-os-launchpad', array(__CLASS__, 'page_launchpad'));
-        add_submenu_page('takeaway-os', 'Menu Builder', 'Menu Builder', 'ttos_manage_menu', 'takeaway-os-menu', array(__CLASS__, 'page_menu_builder'));
+        add_submenu_page('takeaway-os', 'Menu Builder', 'Menu', 'ttos_manage_menu', 'takeaway-os-menu', array(__CLASS__, 'page_menu_builder'));
         add_submenu_page('takeaway-os', 'Orders', 'Orders', 'ttos_view_orders', 'takeaway-os-orders', array(__CLASS__, 'page_orders'));
-        add_submenu_page('takeaway-os', 'Kitchen Screen', 'Kitchen Screen', 'ttos_view_orders', 'takeaway-os-kitchen', array(__CLASS__, 'page_kitchen'));
-        add_submenu_page('takeaway-os', 'Customers', 'Customers', 'ttos_view_reports', 'takeaway-os-customers', array(__CLASS__, 'page_customers'));
+        add_submenu_page('takeaway-os', 'Takeaway Tickets', 'Takeaway Tickets', 'ttos_view_orders', 'takeaway-os-kitchen', array(__CLASS__, 'page_kitchen'));
+        add_submenu_page('takeaway-os', 'Customers / CRM', 'Customers / CRM', 'ttos_view_reports', 'takeaway-os-customers', array(__CLASS__, 'page_customers'));
         add_submenu_page('takeaway-os', 'Reports', 'Reports', 'ttos_view_reports', 'takeaway-os-reports', array(__CLASS__, 'page_reports'));
-        add_submenu_page('takeaway-os', 'Business Settings', 'Business Settings', 'ttos_manage_settings', 'takeaway-os-settings', array(__CLASS__, 'page_settings'));
+        add_submenu_page('takeaway-os', 'Settings / Branding', 'Settings / Branding', 'ttos_manage_settings', 'takeaway-os-settings', array(__CLASS__, 'page_settings'));
         add_submenu_page('takeaway-os', 'Payments', 'Payments', 'ttos_manage_settings', 'takeaway-os-payments', array(__CLASS__, 'page_payments'));
         add_submenu_page('takeaway-os', 'Delivery', 'Delivery', 'ttos_manage_settings', 'takeaway-os-delivery', array(__CLASS__, 'page_delivery'));
         add_submenu_page('takeaway-os', 'Add-ons', 'Add-ons', 'ttos_modules', 'takeaway-os-modules', array(__CLASS__, 'page_modules'));
+    }
+
+    public static function order_submenu(): void {
+        global $submenu;
+        if (empty($submenu['takeaway-os']) || !is_array($submenu['takeaway-os'])) {
+            return;
+        }
+
+        $desired = array(
+            'takeaway-os',
+            'takeaway-os-launchpad',
+            'takeaway-os-setup-health',
+            'takeaway-os-menu',
+            'takeaway-os-orders',
+            'takeaway-os-kitchen',
+            'takeaway-os-customers',
+            'takeaway-os-reports',
+            'takeaway-os-site-content',
+            'takeaway-os-client-intake',
+            'takeaway-os-delivery',
+            'takeaway-os-payments',
+            'takeaway-os-settings',
+            'takeaway-os-modules',
+            'takeaway-os-features',
+            'takeaway-os-operations',
+            'takeaway-os-golive',
+            'takeaway-os-production',
+        );
+
+        $existing = array();
+        foreach ($submenu['takeaway-os'] as $item) {
+            if (!empty($item[2])) {
+                $existing[$item[2]] = $item;
+            }
+        }
+
+        $ordered = array();
+        foreach ($desired as $slug) {
+            if (isset($existing[$slug])) {
+                $ordered[] = $existing[$slug];
+                unset($existing[$slug]);
+            }
+        }
+        foreach ($existing as $item) {
+            $ordered[] = $item;
+        }
+        $submenu['takeaway-os'] = $ordered;
     }
 
     public static function assets(string $hook): void {
@@ -63,9 +112,9 @@ final class TTOS_Admin {
             return;
         }
         wp_enqueue_media();
-        wp_enqueue_style('ttos-admin', TTOS_URL . 'assets/admin.css', array(), TTOS_VERSION);
+        wp_enqueue_style('ttos-admin', TTOS_URL . 'assets/admin.css', array(), TTOS_VERSION . '-admin-shell-4');
         wp_enqueue_script('jquery-ui-sortable');
-        wp_enqueue_script('ttos-admin', TTOS_URL . 'assets/admin.js', array('jquery', 'jquery-ui-sortable'), TTOS_VERSION, true);
+        wp_enqueue_script('ttos-admin', TTOS_URL . 'assets/admin.js', array('jquery', 'jquery-ui-sortable'), TTOS_VERSION . '-admin-shell-4', true);
         wp_localize_script('ttos-admin', 'TTOSInstaller', array(
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce'   => wp_create_nonce('ttos_plugin_installer'),
@@ -99,7 +148,7 @@ final class TTOS_Admin {
         }
         global $pagenow;
         $page = isset($_GET['page']) ? sanitize_key($_GET['page']) : '';
-        $allowed_pages = array('takeaway-os','takeaway-os-launchpad','takeaway-os-setup-health','takeaway-os-menu','takeaway-os-orders','takeaway-os-kitchen','takeaway-os-customers','takeaway-os-reports','takeaway-os-settings','takeaway-os-payments','takeaway-os-delivery','takeaway-os-features','takeaway-os-operations','takeaway-os-golive','takeaway-os-modules','takeaway-os-production');
+        $allowed_pages = array('takeaway-os','takeaway-os-launchpad','takeaway-os-setup-health','takeaway-os-menu','takeaway-os-orders','takeaway-os-kitchen','takeaway-os-customers','takeaway-os-reports','takeaway-os-site-content','takeaway-os-client-intake','takeaway-os-settings','takeaway-os-payments','takeaway-os-delivery','takeaway-os-features','takeaway-os-operations','takeaway-os-golive','takeaway-os-modules','takeaway-os-production');
         if ($pagenow === 'admin.php' && in_array($page, $allowed_pages, true)) {
             return;
         }
@@ -126,9 +175,8 @@ final class TTOS_Admin {
         if ($action === 'save_business' && current_user_can('ttos_manage_settings')) {
             $business = array_map('sanitize_text_field', wp_unslash($_POST['business'] ?? array()));
             TTOS_Settings::update_section('business', $business);
-            if (!empty($business['restaurant_name'])) update_option('blogname', $business['restaurant_name']);
-            if (isset($business['tagline'])) update_option('blogdescription', $business['tagline']);
-            if (!empty($business['email']) && is_email($business['email'])) update_option('admin_email', $business['email']);
+            TTOS_Settings::sync_business_runtime($business);
+            TTOS_Settings::sync_business_to_site_content($business);
             self::redirect_notice('settings-saved');
         }
 
@@ -169,6 +217,11 @@ final class TTOS_Admin {
             foreach (array('show_header_phone', 'show_header_email', 'show_header_socials') as $key) {
                 $branding[$key] = !empty($raw[$key]) ? '1' : '0';
             }
+            // Font overrides — strip to safe CSS font-family characters.
+            foreach (array('font_heading', 'font_body') as $key) {
+                if (!array_key_exists($key, $raw)) continue;
+                $branding[$key] = preg_replace('/[^a-zA-Z0-9 ,\-\'"]+/', '', (string) $raw[$key]);
+            }
             TTOS_Settings::update_section('branding', $branding);
             self::redirect_notice('branding-saved');
         }
@@ -177,7 +230,7 @@ final class TTOS_Admin {
             $raw = wp_unslash($_POST['trading'] ?? array());
             if (!is_array($raw)) { $raw = array(); }
             // Monetary/numeric fields require scalar values — reject nested arrays and non-numeric input.
-            $numeric_fields = array('min_order', 'delivery_fee', 'free_delivery_over', 'delivery_radius', 'prep_time', 'delivery_time');
+            $numeric_fields = array('min_order', 'delivery_fee', 'free_delivery_over', 'delivery_radius', 'prep_time', 'delivery_time', 'service_charge');
             $trading = array();
             foreach ($raw as $key => $value) {
                 if (!is_scalar($value)) continue;
@@ -339,8 +392,10 @@ final class TTOS_Admin {
                 self::redirect_notice('modules-locked', 'takeaway-os-modules','takeaway-os-production');
             }
             $modules = array();
+            $catalog = self::module_catalog();
             foreach (TTOS_Settings::defaults()['modules'] as $slug => $default) {
-                $modules[$slug] = !empty($_POST['modules'][$slug]);
+                $toggleable = !empty($catalog[$slug]['toggleable']);
+                $modules[$slug] = $toggleable ? !empty($_POST['modules'][$slug]) : false;
             }
             TTOS_Settings::update_section('modules', $modules);
             self::redirect_notice('modules-saved');
@@ -372,7 +427,12 @@ final class TTOS_Admin {
             $email = sanitize_email(wp_unslash($_POST['customer_email'] ?? ''));
             if ($email) {
                 $profiles = self::customer_profiles();
-                $profiles[strtolower($email)] = array(
+                $key = strtolower($email);
+                $existing = is_array($profiles[$key] ?? null) ? $profiles[$key] : array();
+                $profiles[$key] = array(
+                    'name'           => sanitize_text_field(wp_unslash($_POST['customer_name'] ?? ($existing['name'] ?? ''))),
+                    'phone'          => sanitize_text_field(wp_unslash($_POST['customer_phone'] ?? ($existing['phone'] ?? ''))),
+                    'postcode'       => sanitize_text_field(wp_unslash($_POST['customer_postcode'] ?? ($existing['postcode'] ?? ''))),
                     'tags'           => sanitize_text_field(wp_unslash($_POST['customer_tags'] ?? '')),
                     'internal_notes' => sanitize_textarea_field(wp_unslash($_POST['customer_notes'] ?? '')),
                     'marketing_ok'   => !empty($_POST['marketing_ok']) ? '1' : '0',
@@ -383,6 +443,25 @@ final class TTOS_Admin {
             }
             wp_safe_redirect(add_query_arg(array('page' => 'takeaway-os-customers', 'customer' => rawurlencode($email), 'ttos_notice' => 'customer-saved'), admin_url('admin.php')));
             exit;
+        }
+
+        if ($action === 'import_customer_profiles' && current_user_can('ttos_view_reports')) {
+            $result = self::import_customer_profiles();
+            if (is_wp_error($result)) {
+                self::flash_notice('error', $result->get_error_message());
+            } else {
+                self::flash_notice(
+                    !empty($result['warnings']) ? 'warning' : 'success',
+                    sprintf(
+                        __('Imported %1$d customer profile(s): %2$d created, %3$d updated, %4$d skipped.', 'takeaway-os'),
+                        (int) $result['processed'],
+                        (int) $result['created'],
+                        (int) $result['updated'],
+                        (int) $result['skipped']
+                    )
+                );
+            }
+            self::redirect_notice('customer-imported', 'takeaway-os-customers');
         }
 
         if ($action === 'adjust_customer_loyalty' && current_user_can('ttos_view_reports')) {
@@ -483,18 +562,24 @@ final class TTOS_Admin {
     }
 
     private static function shell_start(string $title, string $subtitle = ''): void {
-        echo '<div class="ttos-wrap"><div class="ttos-shell"><div class="ttos-top"><div><p class="ttos-eyebrow">Takeaway Theme</p><h1>' . esc_html($title) . '</h1>';
-        if ($subtitle) echo '<p>' . esc_html($subtitle) . '</p>';
-        echo '</div><a class="ttos-pill" href="' . esc_url(home_url('/')) . '" target="_blank">View site ↗</a></div>';
+        TTOS_Admin_Shell::render_start(array(
+            'title' => $title,
+            'subtitle' => $subtitle,
+            'active' => TTOS_Admin_Shell::current_page(),
+        ));
         self::notices();
-        self::nav();
     }
 
     private static function shell_end(): void {
-        echo '</div></div>';
+        TTOS_Admin_Shell::render_end();
     }
 
     private static function notices(): void {
+        $flash = self::consume_flash_notice();
+        if (is_array($flash) && !empty($flash['message'])) {
+            echo '<div class="ttos-notice is-' . esc_attr((string) ($flash['type'] ?? 'success')) . '">' . esc_html((string) $flash['message']) . '</div>';
+            return;
+        }
         if (empty($_GET['ttos_notice'])) return;
         $notice = sanitize_key($_GET['ttos_notice']);
         $messages = array(
@@ -508,86 +593,321 @@ final class TTOS_Admin {
             'modules-locked'       => array('type' => 'error',   'text' => __('That module key is invalid.', 'takeaway-os')),
             'modules-unlocked'     => array('type' => 'success', 'text' => __('Add-ons unlocked.', 'takeaway-os')),
             'campaign-created'     => array('type' => 'success', 'text' => __('Campaign created.', 'takeaway-os')),
+            'customer-imported'    => array('type' => 'success', 'text' => __('Customer import finished.', 'takeaway-os')),
             'key-invalid'          => array('type' => 'error',   'text' => __('Invalid licence key.', 'takeaway-os')),
+            'startup-invalid'      => array('type' => 'error',   'text' => __('Add a site name and a valid client email before sending the first content form.', 'takeaway-os')),
+            'startup-reset'        => array('type' => 'success', 'text' => __('Developer startup has been reset. Open Launchpad to run it again for the next build.', 'takeaway-os')),
         );
         $m = $messages[$notice] ?? array('type' => 'success', 'text' => __('Saved.', 'takeaway-os'));
         echo '<div class="ttos-notice is-' . esc_attr($m['type']) . '">' . esc_html($m['text']) . '</div>';
     }
 
-    private static function nav(): void {
-        $items = array(
-            'takeaway-os' => 'Dashboard',
-            'takeaway-os-launchpad' => 'Launchpad',
-            'takeaway-os-setup-health' => 'Setup Health',
-            'takeaway-os-menu' => 'Menu',
-            'takeaway-os-orders' => 'Orders',
-            'takeaway-os-kitchen' => 'Kitchen',
-            'takeaway-os-customers' => 'Customers',
-            'takeaway-os-reports' => 'Reports',
-            'takeaway-os-features' => 'Features',
-            'takeaway-os-site-content' => 'Site Content',
-            'takeaway-os-settings' => 'Settings',
-            'takeaway-os-payments' => 'Payments',
-            'takeaway-os-delivery' => 'Delivery',
-            'takeaway-os-modules' => 'Add-ons',
-            'takeaway-os-production' => 'Production',
+    private static function flash_notice(string $type, string $message): void {
+        set_transient(
+            'ttos_admin_notice_' . get_current_user_id(),
+            array(
+                'type'    => sanitize_key($type),
+                'message' => sanitize_text_field($message),
+            ),
+            5 * MINUTE_IN_SECONDS
         );
-        $current = isset($_GET['page']) ? sanitize_key($_GET['page']) : 'takeaway-os';
-        echo '<nav class="ttos-nav">';
-        foreach ($items as $slug => $label) {
-            if (($slug === 'takeaway-os-modules' || $slug === 'takeaway-os-features') && !current_user_can('ttos_modules')) continue;
-            $class = $current === $slug ? 'active' : '';
-            echo '<a class="' . esc_attr($class) . '" href="' . esc_url(admin_url('admin.php?page=' . $slug)) . '">' . esc_html($label) . '</a>';
+    }
+
+    private static function consume_flash_notice(): ?array {
+        $key = 'ttos_admin_notice_' . get_current_user_id();
+        $notice = get_transient($key);
+        if (!is_array($notice)) {
+            return null;
         }
-        echo '</nav>';
+        delete_transient($key);
+        return $notice;
+    }
+
+    private static function nav(): void {
+        TTOS_Admin_Shell::render_primary_nav(TTOS_Admin_Shell::current_page());
     }
 
     public static function page_dashboard(): void {
-        self::shell_start('Restaurant cockpit', 'Orders, money, menu availability and system health in one clean dashboard.');
-        $stats = TTOS_Analytics::snapshot();
-        echo '<div class="ttos-grid ttos-grid-4">';
-        self::metric('Orders today', $stats['today_orders']);
-        self::metric('Revenue today', self::money($stats['today_revenue']));
-        self::metric('7-day revenue', self::money($stats['week_revenue']));
-        self::metric('Average order', self::money($stats['aov']));
-        echo '</div>';
-        if (class_exists('TTOS_Hardening')) {
-            $summary = TTOS_Hardening::check_summary();
-            $status_class = $summary['critical'] ? 'ttos-bad' : ($summary['warnings'] ? 'ttos-warn' : 'ttos-good');
-            echo '<section class="ttos-card"><h2>Critical status</h2><p><span class="' . esc_attr($status_class) . '">' . esc_html($summary['label']) . '</span></p><p class="ttos-muted">' . esc_html($summary['message']) . '</p><p><a class="ttos-mini" href="' . esc_url(admin_url('admin.php?page=takeaway-os-golive')) . '">Open full system check</a></p></section>';
-        }
+        self::shell_start('Owner CRM dashboard', 'Revenue, repeat-customer health and quick actions for service, marketing and growth.');
+        $dashboard = self::dashboard_snapshot();
+        $today = $dashboard['today']['summary'];
+        $week = $dashboard['week']['summary'];
+        $month = $dashboard['month']['summary'];
 
-        $page_summary = TTOS_Page_Manager::summary();
-        $page_counts = $page_summary['counts'];
-        echo '<section class="ttos-card"><h2>Public pages</h2><p><strong>' . esc_html((string) ($page_counts['ready'] ?? 0)) . '/' . esc_html((string) ($page_counts['total'] ?? 0)) . '</strong> Takeaway pages ready.</p>';
-        if (!empty($page_counts['problem_count'])) {
-            echo '<p class="ttos-muted">Some required pages are missing or still contain old site content.</p><p><a class="ttos-button" href="' . esc_url(admin_url('admin.php?page=takeaway-os-setup-health')) . '">Open Setup Health</a></p>';
-        } else {
-            echo '<p class="ttos-good">Menu, basket, checkout and customer pages are wired.</p>';
+        echo '<section class="ttos-card ttos-dashboard-hero"><div class="ttos-dashboard-hero-grid"><div class="ttos-dashboard-hero-copy">';
+        echo '<p class="ttos-eyebrow">Restaurant pulse</p><h2>Turn direct orders into repeat customers</h2><p class="ttos-muted">This home screen blends sales, customer memory and owner next steps, so staff do not have to bounce across WooCommerce and WordPress to understand how the restaurant is performing.</p>';
+        echo '<div class="ttos-big-number"><strong>' . esc_html(self::money($today['gross'])) . '</strong><span>Today · ' . esc_html((string) $today['orders']) . ' orders · AOV ' . esc_html(self::money($today['aov'])) . '</span></div>';
+        echo '<div class="ttos-dashboard-chip-row">';
+        self::dashboard_chip('New customers 30d', (string) $dashboard['new_customers_30']);
+        self::dashboard_chip('Repeat customers 30d', (string) $dashboard['repeat_customers_30']);
+        self::dashboard_chip('Marketing ready', (string) $dashboard['segment_counts']['marketing']);
+        self::dashboard_chip('Ordering', !empty($dashboard['ordering_state']['label']) ? (string) $dashboard['ordering_state']['label'] : 'Unknown');
+        echo '</div></div>';
+        echo '<div class="ttos-dashboard-actions"><span class="ttos-section-header">Quick links</span>';
+        foreach (self::dashboard_quick_links() as $link) {
+            echo '<a class="ttos-dashboard-action" href="' . esc_url($link['url']) . '"><strong>' . esc_html($link['label']) . '</strong><small>' . esc_html($link['description']) . '</small></a>';
         }
-        echo '</section>';
+        echo '</div></div></section>';
+
+        echo '<div class="ttos-grid ttos-grid-4">';
+        self::metric('7-day revenue', self::money($week['gross']));
+        self::metric('30-day revenue', self::money($month['gross']));
+        self::metric('Customers 30d', (string) $month['unique_customers']);
+        self::metric('Average order', self::money($month['aov']));
+        echo '</div>';
+        echo '<div class="ttos-grid ttos-grid-4">';
+        self::metric('New customers 30d', (string) $dashboard['new_customers_30']);
+        self::metric('Repeat customers 30d', (string) $dashboard['repeat_customers_30']);
+        self::metric('Dormant customers', (string) $dashboard['segment_counts']['dormant']);
+        self::metric('Marketing ready', (string) $dashboard['segment_counts']['marketing']);
+        echo '</div>';
 
         echo '<div class="ttos-grid ttos-grid-2">';
-        echo '<section class="ttos-card"><h2>System checklist</h2>';
-        foreach (TTOS_Plugin_Checker::plugins() as $plugin) {
-            self::plugin_row($plugin);
-        }
+        echo '<section class="ttos-card"><div class="ttos-card-head"><div><h2>Revenue tracker</h2><p class="ttos-muted">Last 30 days of sales, customer activity and direct-order value.</p></div><p class="ttos-dashboard-card-link"><a class="ttos-mini" href="' . esc_url(admin_url('admin.php?page=takeaway-os-reports')) . '">Open reports</a></p></div>';
+        self::dashboard_revenue_chart($dashboard['month']['days']);
+        echo '<div class="ttos-dashboard-inline-stats">';
+        self::dashboard_inline_stat('Net sales', self::money($month['net']));
+        self::dashboard_inline_stat('Direct-order savings est.', self::money($month['direct_savings_estimate']));
+        self::dashboard_inline_stat('Card', self::money($month['card']));
+        self::dashboard_inline_stat('Cash', self::money($month['cash']));
+        echo '</div></section>';
+
+        echo '<section class="ttos-card"><div class="ttos-card-head"><div><h2>Owner watchlist</h2><p class="ttos-muted">The fast checks that stop service, setup or follow-up issues from being missed.</p></div><p class="ttos-dashboard-open-state">' . self::dashboard_ordering_badge($dashboard['ordering_state']) . '</p></div>';
+        self::dashboard_watchlist($dashboard);
+        echo '</section></div>';
+
+        echo '<div class="ttos-grid ttos-grid-2">';
+        echo '<section class="ttos-card"><div class="ttos-card-head"><div><h2>Recent customers</h2><p class="ttos-muted">Keep an eye on new diners, return visits and who might need a follow-up.</p></div><p class="ttos-dashboard-card-link"><a class="ttos-mini" href="' . esc_url(admin_url('admin.php?page=takeaway-os-customers')) . '">Open CRM</a></p></div>';
+        self::dashboard_recent_customers($dashboard['recent_customers']);
         echo '</section>';
 
-        echo '<section class="ttos-card"><h2>Top sellers this week</h2>';
-        if (!$stats['top_items']) {
-            echo '<p class="ttos-muted">No order data yet. Once orders arrive, this panel wakes up.</p>';
-        } else {
-            echo '<ol class="ttos-list">';
-            foreach ($stats['top_items'] as $name => $qty) echo '<li><span>' . esc_html($name) . '</span><strong>' . esc_html($qty) . '</strong></li>';
-            echo '</ol>';
+        echo '<section class="ttos-card"><div class="ttos-card-head"><div><h2>Recent orders</h2><p class="ttos-muted">The latest order flow, payment mix and fulfilment activity.</p></div><p class="ttos-dashboard-card-link"><a class="ttos-mini" href="' . esc_url(admin_url('admin.php?page=takeaway-os-orders')) . '">Open orders</a></p></div>';
+        self::dashboard_recent_orders($dashboard['recent_orders']);
+        echo '</section></div>';
+
+        echo '<div class="ttos-grid ttos-grid-3">';
+        echo '<section class="ttos-card"><div class="ttos-card-head"><div><h2>Customer segments</h2><p class="ttos-muted">Jump straight into the lists most likely to need action.</p></div><p class="ttos-dashboard-card-link"><a class="ttos-mini" href="' . esc_url(admin_url('admin.php?page=takeaway-os-customers&segment=marketing')) . '">Build campaign</a></p></div>';
+        self::dashboard_segments($dashboard['segment_counts']);
+        echo '</section>';
+
+        echo '<section class="ttos-card"><div class="ttos-card-head"><div><h2>Top sellers this month</h2><p class="ttos-muted">Popular lines worth protecting, bundling or upselling.</p></div><p class="ttos-dashboard-card-link"><a class="ttos-mini" href="' . esc_url(admin_url('admin.php?page=takeaway-os-menu')) . '">Open menu</a></p></div>';
+        self::dashboard_top_items($dashboard['month']['top_items']);
+        echo '</section>';
+
+        echo '<section class="ttos-card"><div class="ttos-card-head"><div><h2>System checklist</h2><p class="ttos-muted">Foundation plugins that keep checkout, payments and comms running.</p></div><p class="ttos-dashboard-card-link"><a class="ttos-mini" href="' . esc_url(admin_url('admin.php?page=takeaway-os-launchpad')) . '">Open launchpad</a></p></div>';
+        foreach (TTOS_Plugin_Checker::plugins() as $plugin) {
+            self::plugin_row($plugin);
         }
         echo '</section></div>';
         self::shell_end();
     }
 
+    private static function dashboard_snapshot(): array {
+        $today_range = TTOS_Analytics::range('today');
+        $week_range = TTOS_Analytics::range('7days');
+        $month_range = TTOS_Analytics::range('30days');
+        $today = TTOS_Analytics::report($today_range['start'], $today_range['end']);
+        $week = TTOS_Analytics::report($week_range['start'], $week_range['end']);
+        $month = TTOS_Analytics::report($month_range['start'], $month_range['end']);
+        $customers = TTOS_WooCommerce::active() ? self::customer_snapshot_enhanced(500) : array();
+        $segment_counts = self::customer_segment_counts($customers);
+        $month_start = (int) $month_range['start'];
+        $new_customers = 0;
+        $repeat_customers = 0;
+
+        foreach ($customers as $customer) {
+            $first_ts = (int) ($customer['first_ts'] ?? 0);
+            $last_ts = (int) ($customer['last_ts'] ?? 0);
+            $orders = (int) ($customer['orders'] ?? 0);
+            if ($first_ts >= $month_start) {
+                $new_customers++;
+            }
+            if ($last_ts >= $month_start && $orders >= 2) {
+                $repeat_customers++;
+            }
+        }
+
+        $recent_customers = array_slice($customers, 0, 6, true);
+        $page_summary = class_exists('TTOS_Page_Manager') ? TTOS_Page_Manager::summary() : array('counts' => array());
+        $hardening = class_exists('TTOS_Hardening') ? TTOS_Hardening::check_summary() : array();
+        $ordering_state = class_exists('TTOS_Operations') ? TTOS_Operations::ordering_state() : array();
+
+        return array(
+            'today' => $today,
+            'week' => $week,
+            'month' => $month,
+            'segment_counts' => $segment_counts,
+            'new_customers_30' => $new_customers,
+            'repeat_customers_30' => $repeat_customers,
+            'recent_customers' => $recent_customers,
+            'recent_orders' => $month['recent_orders'],
+            'page_summary' => $page_summary,
+            'hardening' => $hardening,
+            'ordering_state' => $ordering_state,
+        );
+    }
+
+    private static function dashboard_quick_links(): array {
+        return array(
+            array(
+                'label' => 'Orders',
+                'description' => 'Live service board and prep flow.',
+                'url' => admin_url('admin.php?page=takeaway-os-orders'),
+            ),
+            array(
+                'label' => 'Customers / CRM',
+                'description' => 'Profiles, notes, loyalty and campaigns.',
+                'url' => admin_url('admin.php?page=takeaway-os-customers'),
+            ),
+            array(
+                'label' => 'Reports',
+                'description' => 'Revenue, payment split and daily close.',
+                'url' => admin_url('admin.php?page=takeaway-os-reports'),
+            ),
+            array(
+                'label' => 'Menu',
+                'description' => 'Update products, pricing and combos.',
+                'url' => admin_url('admin.php?page=takeaway-os-menu'),
+            ),
+            array(
+                'label' => 'Site content',
+                'description' => 'Edit homepage, offers and policies.',
+                'url' => admin_url('admin.php?page=takeaway-os-site-content'),
+            ),
+            array(
+                'label' => 'Setup Health',
+                'description' => 'Check page wiring and repair setup.',
+                'url' => admin_url('admin.php?page=takeaway-os-setup-health'),
+            ),
+        );
+    }
+
+    private static function dashboard_chip(string $label, string $value): void {
+        echo '<span class="ttos-dashboard-chip"><small>' . esc_html($label) . '</small><strong>' . esc_html($value) . '</strong></span>';
+    }
+
+    private static function dashboard_inline_stat(string $label, string $value): void {
+        echo '<div class="ttos-dashboard-inline-stat"><span>' . esc_html($label) . '</span><strong>' . esc_html($value) . '</strong></div>';
+    }
+
+    private static function dashboard_revenue_chart(array $days): void {
+        if (!$days) {
+            echo '<p class="ttos-muted">No order data yet. Once direct orders start landing, this revenue tracker will fill itself in.</p>';
+            return;
+        }
+
+        $max = 0.0;
+        foreach ($days as $row) {
+            $max = max($max, (float) ($row['gross'] ?? 0));
+        }
+
+        echo '<div class="ttos-dashboard-chart" role="img" aria-label="Revenue for the last 30 days">';
+        $index = 0;
+        foreach ($days as $day => $row) {
+            $gross = (float) ($row['gross'] ?? 0);
+            $orders = (int) ($row['orders'] ?? 0);
+            $height = $max > 0 ? max(10, (int) round(($gross / $max) * 148)) : 10;
+            $label = !empty($row['label']) ? (string) $row['label'] : (string) $day;
+            $tick = $index % 5 === 0 ? wp_date('j M', strtotime((string) $day)) : '';
+            echo '<span class="ttos-dashboard-chart-bar" title="' . esc_attr($label . ' · ' . self::money($gross) . ' · ' . $orders . ' orders') . '"><i style="height:' . esc_attr((string) $height) . 'px"></i><small>' . esc_html($tick) . '</small></span>';
+            $index++;
+        }
+        echo '</div>';
+    }
+
+    private static function dashboard_watchlist(array $dashboard): void {
+        $hardening = $dashboard['hardening'];
+        $pages = $dashboard['page_summary']['counts'] ?? array();
+        $status_class = !empty($hardening['critical']) ? 'ttos-bad' : (!empty($hardening['warnings']) ? 'ttos-warn' : 'ttos-good');
+
+        echo '<div class="ttos-dashboard-watchlist">';
+        if ($hardening) {
+            echo '<div class="ttos-dashboard-watch-item"><strong>System readiness</strong><span class="' . esc_attr($status_class) . '">' . esc_html((string) ($hardening['label'] ?? 'Unknown')) . '</span><p class="ttos-muted">' . esc_html((string) ($hardening['message'] ?? '')) . '</p><a class="ttos-mini" href="' . esc_url(admin_url('admin.php?page=takeaway-os-golive')) . '">Open system check</a></div>';
+        }
+        echo '<div class="ttos-dashboard-watch-item"><strong>Public pages</strong><span>' . esc_html((string) ($pages['ready'] ?? 0)) . '/' . esc_html((string) ($pages['total'] ?? 0)) . ' ready</span><p class="ttos-muted">' . (!empty($pages['problem_count']) ? 'Some required pages are still missing, blank or still using old content.' : 'Menu, basket, checkout and account pages are wired into Takeaway OS.') . '</p><a class="ttos-mini" href="' . esc_url(admin_url('admin.php?page=takeaway-os-setup-health')) . '">Open Setup Health</a></div>';
+        echo '<div class="ttos-dashboard-watch-item"><strong>Customer follow-up</strong><span>' . esc_html((string) $dashboard['segment_counts']['dormant']) . ' dormant</span><p class="ttos-muted">Dormant and marketing-ready diners are the easiest direct-order win-back audience.</p><a class="ttos-mini" href="' . esc_url(admin_url('admin.php?page=takeaway-os-customers&segment=dormant')) . '">Open dormant customers</a></div>';
+        echo '</div>';
+    }
+
+    private static function dashboard_ordering_badge(array $state): string {
+        $label = !empty($state['label']) ? (string) $state['label'] : 'Ordering status unknown';
+        $status = !empty($state['open']) ? ' is-open' : ' is-closed';
+        return '<span class="ttos-open-status' . esc_attr($status) . '">' . esc_html($label) . '</span>';
+    }
+
+    private static function dashboard_recent_customers(array $customers): void {
+        if (!$customers) {
+            echo '<p class="ttos-muted">No customer history yet. Once orders start landing, this panel will show the latest diners and their status.</p>';
+            return;
+        }
+
+        echo '<div class="ttos-dashboard-list">';
+        foreach ($customers as $email => $customer) {
+            $name = (string) ($customer['name'] ?: 'Guest customer');
+            $meta = trim(($customer['last'] ?: 'No orders yet') . ' · ' . self::money((float) ($customer['total'] ?? 0)));
+            $url = add_query_arg(array('page' => 'takeaway-os-customers', 'customer' => rawurlencode((string) $email)), admin_url('admin.php'));
+            echo '<div class="ttos-dashboard-list-item"><div><strong>' . esc_html($name) . '</strong><small>' . esc_html((string) $email) . '</small><p class="ttos-muted">' . esc_html($meta) . '</p></div><div class="ttos-dashboard-list-side">' . self::customer_status_badge((string) ($customer['status'] ?? 'new')) . '<a class="ttos-mini" href="' . esc_url($url) . '">Open</a></div></div>';
+        }
+        echo '</div>';
+    }
+
+    private static function dashboard_recent_orders(array $orders): void {
+        if (!$orders) {
+            echo '<p class="ttos-muted">No recent orders yet.</p>';
+            return;
+        }
+
+        echo '<div class="ttos-dashboard-list">';
+        foreach (array_slice($orders, 0, 6) as $order) {
+            if (!$order || !method_exists($order, 'get_id')) {
+                continue;
+            }
+            $customer = trim((string) $order->get_formatted_billing_full_name());
+            if ($customer === '') {
+                $customer = (string) ($order->get_billing_email() ?: 'Guest customer');
+            }
+            $fulfilment = (string) ($order->get_meta('_ttos_fulfilment_method') ?: $order->get_meta('_ttos_fulfilment_type') ?: '');
+            $fulfilment = $fulfilment ? ucfirst(strtolower($fulfilment)) : 'Order';
+            $date = $order->get_date_created();
+            $placed = $date ? $date->date_i18n('d M · H:i') : '';
+            echo '<div class="ttos-dashboard-list-item"><div><strong>#' . esc_html((string) $order->get_id()) . ' · ' . esc_html($customer) . '</strong><small>' . esc_html($fulfilment . ($placed ? ' · ' . $placed : '')) . '</small><p class="ttos-muted">' . esc_html(wc_get_order_status_name($order->get_status())) . '</p></div><div class="ttos-dashboard-list-side"><span class="ttos-module-state">' . esc_html(self::money((float) $order->get_total())) . '</span><a class="ttos-mini" href="' . esc_url(admin_url('admin.php?page=takeaway-os-orders')) . '">Open</a></div></div>';
+        }
+        echo '</div>';
+    }
+
+    private static function dashboard_segments(array $counts): void {
+        $segments = array(
+            'vip' => 'VIP customers',
+            'regular' => 'Regulars',
+            'new' => 'New customers',
+            'dormant' => 'Dormant',
+            'marketing' => 'Marketing OK',
+        );
+
+        echo '<div class="ttos-dashboard-segments">';
+        foreach ($segments as $segment => $label) {
+            $url = admin_url('admin.php?page=takeaway-os-customers&segment=' . rawurlencode($segment));
+            echo '<a class="ttos-dashboard-segment" href="' . esc_url($url) . '"><span>' . esc_html($label) . '</span><strong>' . esc_html((string) ($counts[$segment] ?? 0)) . '</strong></a>';
+        }
+        echo '</div>';
+    }
+
+    private static function dashboard_top_items(array $items): void {
+        if (!$items) {
+            echo '<p class="ttos-muted">No menu sales yet. As orders come in, this panel will surface the products worth bundling and protecting.</p>';
+            return;
+        }
+
+        echo '<ol class="ttos-list">';
+        foreach (array_slice($items, 0, 6) as $item) {
+            echo '<li><span><strong>' . esc_html((string) ($item['name'] ?? 'Item')) . '</strong><br><small class="ttos-muted">' . esc_html(self::money((float) ($item['gross'] ?? 0))) . ' revenue</small></span><strong>' . esc_html((string) ((int) ($item['qty'] ?? 0))) . ' sold</strong></li>';
+        }
+        echo '</ol>';
+    }
+
     public static function page_launchpad(): void {
         self::shell_start('Launchpad', 'Set up the whole restaurant from one place. After the wizard, the tabs become the normal edit screens.');
+        TTOS_Client_Intake::render_startup_panel();
         self::setup_alerts_panel();
         $required_done = TTOS_Plugin_Checker::required_complete();
         echo '<div class="ttos-wizard" data-required-complete="' . esc_attr($required_done ? '1' : '0') . '">';
@@ -847,6 +1167,13 @@ final class TTOS_Admin {
         echo '</div>';
         echo '<p class="ttos-muted">Dark and system modes apply to the new token-driven templates as they roll out; current pages stay light until then.</p>';
 
+        echo '<h3 class="ttos-brand-subhead">Typography</h3>';
+        echo '<p class="ttos-muted">Override fonts for headings and body text. Leave blank to use the theme default. Enter any CSS font-family stack — e.g. <code>Georgia, serif</code> or a Google Font name like <code>Playfair Display</code>.</p>';
+        echo '<div class="ttos-grid ttos-grid-2">';
+        self::field('Heading font (H1–H6)', 'branding[font_heading]', $tokens['font_heading'] ?? '');
+        self::field('Body font (paragraphs & UI)', 'branding[font_body]', $tokens['font_body'] ?? '');
+        echo '</div>';
+
         echo '<h3 class="ttos-brand-subhead">Header contact strip</h3>';
         echo '<p class="ttos-muted">Control which contact details and icons appear in the utility bar above the main navigation.</p>';
         echo '<div class="ttos-grid ttos-grid-3">';
@@ -883,6 +1210,7 @@ final class TTOS_Admin {
         self::field('Delivery radius (miles)', 'trading[delivery_radius]', $trading['delivery_radius']);
         self::field('Prep time (mins)', 'trading[prep_time]', $trading['prep_time']);
         self::field('Delivery promise (mins)', 'trading[delivery_time]', $trading['delivery_time']);
+        self::field('Service charge (%)', 'trading[service_charge]', $trading['service_charge'] ?? '0', 'number');
         echo '</div><label>Delivery postcode notes<textarea name="trading[delivery_postcodes]" rows="5">' . esc_textarea($trading['delivery_postcodes']) . '</textarea></label>';
         echo '<label class="ttos-check"><input type="checkbox" name="trading[delivery_enabled]" value="1" ' . checked($trading['delivery_enabled'], '1', false) . '> Delivery enabled</label>';
         echo '<label class="ttos-check"><input type="checkbox" name="trading[collection_enabled]" value="1" ' . checked($trading['collection_enabled'], '1', false) . '> Collection enabled</label>';
@@ -1045,7 +1373,7 @@ final class TTOS_Admin {
     }
 
     public static function page_settings(): void {
-        self::shell_start('Business settings', 'The essentials owners should be allowed to edit without seeing WordPress internals.');
+        self::shell_start('Settings / Branding', 'The essentials owners should be allowed to edit without seeing WordPress internals.');
         $business = TTOS_Settings::get('business');
         echo '<div class="ttos-grid ttos-grid-2"><section class="ttos-card"><h2>Business details</h2><form method="post">';
         wp_nonce_field('ttos_save_business');
@@ -1066,6 +1394,7 @@ final class TTOS_Admin {
         // Branding uses the shared token-aware form (also used by Launchpad)
         // and gets the full width — the colour grid and preview need it.
         self::branding_form('takeaway-os-settings', 'branding');
+        TTOS_Client_Intake::render_settings_panel();
 
         if (current_user_can('manage_options')) {
             $retention = TTOS_Settings::get('data_retention');
@@ -1098,6 +1427,7 @@ final class TTOS_Admin {
         self::field('Delivery radius (miles)', 'trading[delivery_radius]', $trading['delivery_radius']);
         self::field('Prep time (mins)', 'trading[prep_time]', $trading['prep_time']);
         self::field('Delivery promise (mins)', 'trading[delivery_time]', $trading['delivery_time']);
+        self::field('Service charge (%)', 'trading[service_charge]', $trading['service_charge'] ?? '0', 'number');
         echo '</div>';
         echo '<label>Delivery postcode notes<textarea name="trading[delivery_postcodes]" rows="5">' . esc_textarea($trading['delivery_postcodes']) . '</textarea></label>';
         echo '<label class="ttos-check"><input type="checkbox" name="trading[delivery_enabled]" value="1" ' . checked($trading['delivery_enabled'], '1', false) . '> Delivery enabled</label>';
@@ -1107,22 +1437,26 @@ final class TTOS_Admin {
     }
 
     public static function page_payments(): void {
-        self::shell_start('Payments', 'Kazan does not reinvent payment compliance. WooCommerce gateways do the heavy lifting.');
+        self::shell_start('Payments', 'Gateway status lives here. Raw WooCommerce gateway configuration stays restricted to full administrators.');
         echo '<section class="ttos-card"><h2>Gateway checklist</h2>';
         foreach (array('woocommerce','stripe') as $key) self::plugin_row(TTOS_Plugin_Checker::plugins()[$key], true);
-        echo '<div class="ttos-callout"><strong>Recommended:</strong> configure card payments inside WooCommerce, then owners can monitor the status here without wandering into the full WordPress maze.</div>';
-        echo '<p><a class="ttos-button" href="' . esc_url(admin_url('admin.php?page=wc-settings&tab=checkout')) . '">Open WooCommerce payment settings</a></p>';
+        echo '<div class="ttos-callout"><strong>Recommended:</strong> use this screen for readiness checks and owner-safe status. Live gateway setup, keys, and advanced WooCommerce payment config should be handled by a full administrator.</div>';
+        if (current_user_can('manage_options')) {
+            echo '<p><a class="ttos-button" href="' . esc_url(admin_url('admin.php?page=wc-settings&tab=checkout')) . '">Open WooCommerce payment settings</a></p>';
+        } else {
+            echo '<p class="ttos-muted">Gateway configuration is administrator-only. Owners can monitor readiness here without leaving the Takeaway OS portal.</p>';
+        }
         echo '</section>';
         self::shell_end();
     }
 
     public static function page_modules(): void {
-        self::shell_start('Add-ons', 'Hidden Inkfire switchboard. Paid features can be switched on/off, then locked before handover.');
+        self::shell_start('Add-ons', 'Admin-only switchboard for paid modules. Anything unfinished is clearly marked and kept out of client hands.');
         $locked = self::module_lock_exists();
         $unlocked = self::modules_unlocked();
 
         if ($locked && !$unlocked) {
-            echo '<section class="ttos-card ttos-lock-card"><p class="ttos-eyebrow">Protected</p><h2>Add-ons are locked</h2><p class="ttos-muted">Enter the Inkfire module key to change paid feature access. Restaurant owners can use the enabled features, but they cannot switch unpaid add-ons back on.</p><form method="post">';
+            echo '<section class="ttos-card ttos-lock-card"><p class="ttos-eyebrow">Protected</p><h2>Add-ons are locked</h2><p class="ttos-muted">Enter the module key to change paid feature access. Restaurant owners can use enabled features, but they cannot unlock unfinished or unpaid modules.</p><form method="post">';
             wp_nonce_field('ttos_unlock_modules');
             echo '<input type="hidden" name="ttos_action" value="unlock_modules">';
             self::field('Module key', 'module_key', '', 'password');
@@ -1132,13 +1466,17 @@ final class TTOS_Admin {
         }
 
         $modules = TTOS_Settings::modules();
-        $prices = self::module_prices();
+        $catalog = self::module_catalog();
         echo '<div class="ttos-grid ttos-grid-2"><section class="ttos-card"><h2>Paid feature switchboard</h2><p class="ttos-muted">Only enabled modules are shown to the client-facing CRM. Use this as your quote/build toggle panel.</p><form method="post">';
         wp_nonce_field('ttos_save_modules');
         echo '<input type="hidden" name="ttos_action" value="save_modules"><div class="ttos-modules">';
-        foreach ($prices as $slug => $info) {
+        foreach ($catalog as $slug => $info) {
             $enabled = !empty($modules[$slug]);
-            echo '<label class="ttos-module ' . esc_attr($enabled ? 'is-enabled' : 'is-disabled') . '"><input type="checkbox" name="modules[' . esc_attr($slug) . ']" value="1" ' . checked($enabled, true, false) . '><i class="ttos-switch" aria-hidden="true"><em></em></i><span><strong>' . esc_html($info[0]) . '</strong><small>' . esc_html($info[1]) . '</small></span><b>' . esc_html($info[2]) . '</b><u class="ttos-module-state">' . esc_html($enabled ? 'Enabled' : 'Off') . '</u></label>';
+            $toggleable = !empty($info['toggleable']);
+            $state_label = $enabled ? 'Enabled' : ($toggleable ? 'Off' : 'Locked');
+            echo '<label class="ttos-module ' . esc_attr($enabled ? 'is-enabled' : 'is-disabled') . '">';
+            echo '<input type="checkbox" name="modules[' . esc_attr($slug) . ']" value="1" ' . checked($enabled, true, false) . ' ' . disabled($toggleable, false, false) . '>';
+            echo '<i class="ttos-switch" aria-hidden="true"><em></em></i><span><strong>' . esc_html($info['name']) . '</strong><small>' . esc_html($info['description']) . '</small><small>' . esc_html($info['note']) . '</small></span><b>' . esc_html($info['price']) . '</b><u class="ttos-module-state">' . esc_html($state_label . ' · ' . $info['status']) . '</u></label>';
         }
         echo '</div><button class="ttos-button">Save add-ons</button></form></section>';
 
@@ -1158,7 +1496,7 @@ final class TTOS_Admin {
             wp_nonce_field('ttos_lock_modules');
             echo '<input type="hidden" name="ttos_action" value="lock_modules"><button class="ttos-button ttos-button-dark">Lock add-ons now</button></form>';
         }
-        echo '<div class="ttos-callout"><strong>Recommended handover:</strong> give clients the Takeaway Owner role, not full Administrator. Admin can always edit files/plugins, so the role model is part of the lock.</div></section></div>';
+        echo '<div class="ttos-callout"><strong>Recommended handover:</strong> give clients the Takeaway Owner role, not full Administrator. Full administrators can always edit files/plugins, so the role model is part of the lock.</div></section></div>';
         self::shell_end();
     }
 
@@ -1227,7 +1565,7 @@ final class TTOS_Admin {
             $opts = TTOS_WooCommerce::get_option_groups($id);
             $featured = get_post_meta($id, '_featured', true) === 'yes';
             echo '<tr class="ttos-product-row" data-product-id="' . esc_attr((string) $id) . '"><td><input type="checkbox" class="ttos-product-select" value="' . esc_attr((string) $id) . '" aria-label="Select ' . esc_attr(get_the_title()) . '"></td>';
-            echo '<td><input type="number" class="ttos-sort-input" value="' . esc_attr((string) $menu_order) . '" aria-label="Sort order"></td>';
+            echo '<td class="ttos-sort-cell"><input type="number" class="ttos-sort-input" value="' . esc_attr((string) $menu_order) . '" aria-label="Sort order"><button type="button" class="ttos-mini ttos-move-up" aria-label="Move up">&uarr;</button><button type="button" class="ttos-mini ttos-move-down" aria-label="Move down">&darr;</button></td>';
             echo '<td><strong>' . esc_html(get_the_title()) . '</strong><br><small>ID ' . esc_html((string) $id) . ' · ' . esc_html(count($opts)) . ' config group(s)' . ($featured ? ' · Featured' : '') . '</small></td><td>' . esc_html(self::money($price)) . '</td><td>' . esc_html(!is_wp_error($diet) && $diet ? implode(', ', $diet) : '—') . '</td><td>' . ($stock === 'outofstock' ? '<span class="ttos-bad">Sold out</span>' : '<span class="ttos-good">Available</span>') . (get_post_status($id) === 'draft' ? '<br><span class="ttos-warn">Hidden</span>' : '') . '</td><td><div class="ttos-table-actions"><a class="ttos-mini" href="' . esc_url($edit_url) . '">Edit</a>';
             foreach (array('available' => 'Available', 'soldout' => 'Sold out', get_post_status($id) === 'draft' ? 'show' : 'hide' => get_post_status($id) === 'draft' ? 'Show' : 'Hide') as $status => $label) {
                 echo '<form method="post" class="ttos-inline-form">'; wp_nonce_field('ttos_quick_product_status');
@@ -1253,10 +1591,13 @@ final class TTOS_Admin {
     }
 
     public static function page_kitchen(): void {
-        self::shell_start('Kitchen Screen', 'Tablet-first kitchen display: big order cards, prep timers, sound alerts and one-tap status changes.');
+        self::shell_start('Takeaway Tickets', 'Live kitchen ticket board with big order cards, prep timers, sound alerts and one-tap status changes.');
         if (!TTOS_WooCommerce::active()) {
-            echo '<section class="ttos-card"><p>WooCommerce is required for the kitchen screen.</p></section>';
+            echo '<section class="ttos-card"><p>WooCommerce is required for the Takeaway Tickets board.</p></section>';
             self::shell_end(); return;
+        }
+        if (self::tickets_fullscreen()) {
+            echo '<style>#wpadminbar,#adminmenumain,#wpfooter,.ttos-primary-nav,.ttos-admin-header{display:none!important;}#wpcontent,#wpbody-content{margin:0!important;padding:0!important;} .ttos-wrap{padding:0!important;max-width:none!important;} .ttos-shell{border:none!important;border-radius:0!important;box-shadow:none!important;min-height:100vh;} .ttos-kitchen-mode{padding:20px;}</style>';
         }
         echo '<div class="ttos-kitchen-mode">';
         self::order_cockpit_toolbar('kitchen');
@@ -1266,12 +1607,15 @@ final class TTOS_Admin {
     }
 
     private static function order_cockpit_toolbar(string $context = 'orders'): void {
-        echo '<section class="ttos-card ttos-order-cockpit-head"><div><h2>' . ($context === 'kitchen' ? 'Kitchen display' : 'Live order cockpit') . '</h2><p class="ttos-muted">New orders ping, prep timers warn, and every action logs into Operations. Friday night, but with fewer paper comets.</p></div>';
+        echo '<section class="ttos-card ttos-order-cockpit-head"><div><h2>' . ($context === 'kitchen' ? 'Live ticket board' : 'Live order cockpit') . '</h2><p class="ttos-muted">New orders ping, prep timers warn, and every action logs into Operations. Friday night, but with fewer paper comets.</p></div>';
         echo '<div class="ttos-order-tools">';
         echo '<label class="ttos-check ttos-autorefresh"><input type="checkbox" class="ttos-order-autorefresh" checked> Auto-refresh</label>';
         echo '<label class="ttos-check"><input type="checkbox" class="ttos-order-sound" checked> Sound alert</label>';
         echo '<label>Fulfilment<select class="ttos-order-filter" data-filter="method"><option value="all">All</option><option value="delivery">Delivery</option><option value="collection">Collection</option></select></label>';
         echo '<label>Timing<select class="ttos-order-filter" data-filter="timing"><option value="all">All</option><option value="asap">ASAP</option><option value="scheduled">Scheduled</option></select></label>';
+        if ($context === 'kitchen') {
+            echo '<a class="ttos-mini" href="' . esc_url(admin_url('admin.php?page=takeaway-os-kitchen&ttos_view=fullscreen')) . '" target="_blank" rel="noreferrer noopener">Open full-screen</a>';
+        }
         echo '<button type="button" class="ttos-mini ttos-test-alert">Test ping</button>';
         echo '<a class="ttos-mini" href="' . esc_url(admin_url('admin.php?page=takeaway-os-golive#logs')) . '">Logs</a>';
         echo '</div></section>';
@@ -1400,13 +1744,14 @@ final class TTOS_Admin {
         $requested = (string) $order->get_meta('_ttos_requested_time');
         $prep = (int) $order->get_meta('_ttos_prep_minutes');
         $due_ts = (int) $order->get_meta('_ttos_due_ts');
+        $is_preorder = $order->get_meta('_ttos_is_preorder') === '1';
         $late = self::order_is_late($order);
         $newish = in_array($status, array('pending','processing','on-hold'), true) && $minutes <= 5;
         $classes = array('ttos-order-card', 'status-' . $status, 'method-' . $fulfilment);
         if ($late) $classes[] = 'is-late';
         if ($newish) $classes[] = 'is-new';
         echo '<article class="' . esc_attr(implode(' ', $classes)) . '" data-order-id="' . esc_attr((string) $order->get_id()) . '"><header><div><strong>#' . esc_html((string) $order->get_id()) . '</strong><small>' . esc_html($created ? $created->date_i18n('H:i') : '') . ' · ' . esc_html((string) $minutes) . 'm ago</small></div><b>' . wp_kses_post($order->get_formatted_order_total()) . '</b></header>';
-        echo '<div class="ttos-order-badges"><span class="ttos-fulfilment ' . esc_attr($fulfilment) . '">' . esc_html(ucfirst($fulfilment)) . '</span><span>' . esc_html(self::format_requested_time($requested)) . '</span><span>' . esc_html(wc_get_order_status_name($status)) . '</span>' . ($prep ? '<span>Prep ' . esc_html((string) $prep) . 'm</span>' : '') . ($due_ts ? '<span class="' . esc_attr($late ? 'ttos-bad' : 'ttos-good') . '">' . esc_html(self::due_label($due_ts)) . '</span>' : '') . '</div>';
+        echo '<div class="ttos-order-badges"><span class="ttos-fulfilment ' . esc_attr($fulfilment) . '">' . esc_html(ucfirst($fulfilment)) . '</span><span>' . esc_html(self::format_requested_time($requested)) . '</span>' . ($is_preorder ? '<span class="ttos-good">Pre-order</span>' : '') . '<span>' . esc_html(wc_get_order_status_name($status)) . '</span><span>' . esc_html(self::payment_status_label($order)) . '</span><span>' . esc_html($order->get_payment_method_title() ?: 'Payment pending') . '</span>' . ($prep ? '<span>Prep ' . esc_html((string) $prep) . 'm</span>' : '') . ($due_ts ? '<span class="' . esc_attr($late ? 'ttos-bad' : 'ttos-good') . '">' . esc_html(self::due_label($due_ts)) . '</span>' : '') . '</div>';
         echo '<p class="ttos-order-customer">' . esc_html($order->get_formatted_billing_full_name() ?: 'Guest customer') . '<br><small>' . esc_html($order->get_billing_phone()) . ($order->get_billing_email() ? ' · ' . esc_html($order->get_billing_email()) : '') . '</small></p>';
         if ($fulfilment === 'delivery') {
             $address = $order->get_formatted_shipping_address() ?: $order->get_formatted_billing_address();
@@ -1491,6 +1836,14 @@ final class TTOS_Admin {
         return 'Late ' . ceil(abs($diff) / 60) . 'm';
     }
 
+    private static function payment_status_label($order): string {
+        return $order->is_paid() ? 'Paid' : 'Unpaid';
+    }
+
+    private static function tickets_fullscreen(): bool {
+        return isset($_GET['ttos_view']) && sanitize_key(wp_unslash($_GET['ttos_view'])) === 'fullscreen';
+    }
+
     private static function log_operation(string $type, string $message): void {
         $log = get_option('ttos_operations_log', array());
         if (!is_array($log)) $log = array();
@@ -1499,7 +1852,7 @@ final class TTOS_Admin {
     }
 
     public static function page_customers(): void {
-        self::shell_start('Customers, loyalty and campaigns', 'CRM Pro layer: profiles, segments, notes, loyalty adjustments and direct-order campaigns.');
+        self::shell_start('Customers / CRM', 'CRM layer: profiles, segments, notes, loyalty adjustments and direct-order campaigns.');
         if (!TTOS_WooCommerce::active()) {
             echo '<section class="ttos-card"><p>WooCommerce is required for customer reports.</p></section>';
             self::shell_end();
@@ -1523,6 +1876,7 @@ final class TTOS_Admin {
             self::customer_profile_panel(strtolower($selected_email), $customers[strtolower($selected_email)]);
         }
 
+        self::customer_import_panel();
         self::campaign_builder_panel();
 
         echo '<section class="ttos-card"><div class="ttos-order-cockpit-head"><div><h2>Customer segments</h2><p class="ttos-muted">Filter the list, open a customer profile, then add notes, loyalty adjustments or a targeted reward.</p></div>';
@@ -1603,6 +1957,9 @@ final class TTOS_Admin {
         }
         foreach ($customers as $email => &$c) {
             $profile = $profiles[$email] ?? array();
+            $c['name'] = trim((string) ($c['name'] ?: ($profile['name'] ?? '')));
+            $c['phone'] = (string) ($c['phone'] ?: ($profile['phone'] ?? ''));
+            $c['postcode'] = (string) ($c['postcode'] ?: ($profile['postcode'] ?? ''));
             $c['tags'] = (string) ($profile['tags'] ?? '');
             $c['internal_notes'] = (string) ($profile['internal_notes'] ?? '');
             $c['marketing_ok'] = (string) ($profile['marketing_ok'] ?? '0');
@@ -1616,6 +1973,30 @@ final class TTOS_Admin {
             else $c['status'] = 'new';
         }
         unset($c);
+        foreach ($profiles as $email => $profile) {
+            $email = strtolower(sanitize_email((string) $email));
+            if ($email === '' || isset($customers[$email])) {
+                continue;
+            }
+            $customers[$email] = array(
+                'name' => sanitize_text_field((string) ($profile['name'] ?? '')),
+                'phone' => sanitize_text_field((string) ($profile['phone'] ?? '')),
+                'postcode' => sanitize_text_field((string) ($profile['postcode'] ?? '')),
+                'orders' => 0,
+                'total' => 0.0,
+                'aov' => 0.0,
+                'last' => '',
+                'last_ts' => 0,
+                'first_ts' => 0,
+                'status' => 'new',
+                'tags' => (string) ($profile['tags'] ?? ''),
+                'internal_notes' => (string) ($profile['internal_notes'] ?? ''),
+                'marketing_ok' => (string) ($profile['marketing_ok'] ?? '0'),
+                'birthday' => (string) ($profile['birthday'] ?? ''),
+                'items' => array(),
+                'order_ids' => array(),
+            );
+        }
         uasort($customers, function($a, $b){ return $b['last_ts'] <=> $a['last_ts']; });
         return $customers;
     }
@@ -1682,6 +2063,9 @@ final class TTOS_Admin {
         echo '<div><h3>CRM notes</h3><form method="post">';
         wp_nonce_field('ttos_save_customer_profile');
         echo '<input type="hidden" name="ttos_action" value="save_customer_profile"><input type="hidden" name="customer_email" value="' . esc_attr($email) . '">';
+        self::field('Name', 'customer_name', $customer['name']);
+        self::field('Phone', 'customer_phone', $customer['phone']);
+        self::field('Postcode', 'customer_postcode', $customer['postcode']);
         self::field('Tags', 'customer_tags', $customer['tags']);
         self::field('Birthday / useful date', 'birthday', $customer['birthday']);
         echo '<label>Internal notes<textarea name="customer_notes" rows="5">' . esc_textarea($customer['internal_notes']) . '</textarea></label>';
@@ -1706,6 +2090,15 @@ final class TTOS_Admin {
         self::field('Discount amount', 'campaign_amount', '5', 'number');
         self::field('Expires in days', 'campaign_expires_days', '14', 'number');
         echo '<label>Action<span class="ttos-muted" style="display:block;margin-top:6px">Coupon will be customer-email restricted.</span><button class="ttos-button" ' . disabled(!$enabled, true, false) . '>Create campaign coupon</button></label></form></section>';
+    }
+
+    private static function customer_import_panel(): void {
+        $export_url = wp_nonce_url(admin_url('admin-post.php?action=ttos_export_customer_profiles_csv'), 'ttos_export_customer_profiles_csv');
+        echo '<section class="ttos-card"><h2>Customer import / export</h2><p class="ttos-muted">Upload CRM leads or existing takeaway customers into the same profile store used by tags, notes and marketing preferences. Order history is still read from WooCommerce.</p>';
+        echo '<div class="ttos-grid ttos-grid-2"><div><h3>Import customer CSV</h3><p class="ttos-muted">Required header: <code>email</code>. Optional headers: <code>name</code>, <code>phone</code>, <code>postcode</code>, <code>tags</code>, <code>internal_notes</code>, <code>marketing_ok</code>, <code>birthday</code>.</p><form method="post" enctype="multipart/form-data">';
+        wp_nonce_field('ttos_import_customer_profiles');
+        echo '<input type="hidden" name="ttos_action" value="import_customer_profiles"><input type="file" name="customer_csv" accept=".csv,text/csv"><button class="ttos-button">Import customer CSV</button></form></div>';
+        echo '<div><h3>Export customer CRM CSV</h3><p class="ttos-muted">Downloads the current CRM snapshot, including imported profiles, marketing flags and WooCommerce order totals for round-tripping.</p><p><a class="ttos-button" href="' . esc_url($export_url) . '">Export customer CRM CSV</a></p></div></div></section>';
     }
 
     private static function campaign_history_panel(): void {
@@ -1734,6 +2127,132 @@ final class TTOS_Admin {
             update_post_meta($id, 'date_expires', time() + max(1, $expires_days) * DAY_IN_SECONDS);
         }
         return $code;
+    }
+
+    private static function import_customer_profiles() {
+        $upload = TTOS_Hardening::stash_uploaded_file($_FILES['customer_csv'] ?? array(), array('csv'), 2 * 1024 * 1024, 'customer-import-');
+        if (is_wp_error($upload)) {
+            return $upload;
+        }
+
+        $profiles = self::customer_profiles();
+        $summary = array('processed' => 0, 'created' => 0, 'updated' => 0, 'skipped' => 0);
+        $warnings = array();
+        $handle = fopen($upload['path'], 'r');
+        if (!$handle) {
+            TTOS_Hardening::cleanup_import_file($upload['path']);
+            return new WP_Error('ttos_customer_import_open', __('The uploaded customer CSV could not be opened.', 'takeaway-os'));
+        }
+
+        try {
+            $headers = fgetcsv($handle);
+            if (!$headers) {
+                return new WP_Error('ttos_customer_import_headers', __('The customer CSV is empty or missing its header row.', 'takeaway-os'));
+            }
+            $headers = array_map(array(__CLASS__, 'normalise_csv_header'), $headers);
+            if (!in_array('email', $headers, true)) {
+                return new WP_Error('ttos_customer_import_email', __('The customer CSV must include an "email" column.', 'takeaway-os'));
+            }
+
+            while (($row = fgetcsv($handle)) !== false) {
+                if (!is_array($row) || self::csv_row_blank($row)) {
+                    continue;
+                }
+                $data = array();
+                foreach ($headers as $index => $key) {
+                    if ($key === '') {
+                        continue;
+                    }
+                    $data[$key] = isset($row[$index]) ? trim((string) $row[$index]) : '';
+                }
+
+                $email = strtolower(sanitize_email((string) ($data['email'] ?? '')));
+                if ($email === '' || !is_email($email)) {
+                    $warnings[] = __('A row was skipped because the email address was missing or invalid.', 'takeaway-os');
+                    $summary['skipped']++;
+                    continue;
+                }
+
+                $existing = is_array($profiles[$email] ?? null) ? $profiles[$email] : array();
+                $profiles[$email] = array(
+                    'name'           => sanitize_text_field((string) ($data['name'] ?? ($existing['name'] ?? ''))),
+                    'phone'          => sanitize_text_field((string) ($data['phone'] ?? ($existing['phone'] ?? ''))),
+                    'postcode'       => sanitize_text_field((string) ($data['postcode'] ?? ($existing['postcode'] ?? ''))),
+                    'tags'           => sanitize_text_field((string) ($data['tags'] ?? ($existing['tags'] ?? ''))),
+                    'internal_notes' => sanitize_textarea_field((string) ($data['internal_notes'] ?? ($existing['internal_notes'] ?? ''))),
+                    'marketing_ok'   => self::csv_bool((string) ($data['marketing_ok'] ?? ($existing['marketing_ok'] ?? '0'))) ? '1' : '0',
+                    'birthday'       => sanitize_text_field((string) ($data['birthday'] ?? ($existing['birthday'] ?? ''))),
+                    'updated'        => time(),
+                );
+                $summary['processed']++;
+                if ($existing) {
+                    $summary['updated']++;
+                } else {
+                    $summary['created']++;
+                }
+            }
+        } finally {
+            fclose($handle);
+            TTOS_Hardening::cleanup_import_file($upload['path']);
+        }
+
+        if (!$summary['processed']) {
+            return new WP_Error('ttos_customer_import_empty', __('No customer profiles were imported from that CSV.', 'takeaway-os'));
+        }
+
+        update_option('ttos_customer_profiles', $profiles, false);
+        if ($warnings) {
+            $summary['warnings'] = $warnings;
+        }
+        return $summary;
+    }
+
+    public static function export_customer_profiles_csv(): void {
+        if (!current_user_can('ttos_view_reports') || !check_admin_referer('ttos_export_customer_profiles_csv')) {
+            wp_die('Not allowed.');
+        }
+        nocache_headers();
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=takeaway-customer-crm-' . gmdate('Y-m-d') . '.csv');
+        $out = fopen('php://output', 'w');
+        fputcsv($out, array('email','name','phone','postcode','tags','internal_notes','marketing_ok','birthday','orders','lifetime_value','last_order','status'));
+        foreach (self::customer_snapshot_enhanced(500) as $email => $customer) {
+            fputcsv($out, array(
+                $email,
+                $customer['name'],
+                $customer['phone'],
+                $customer['postcode'],
+                $customer['tags'],
+                $customer['internal_notes'],
+                $customer['marketing_ok'],
+                $customer['birthday'],
+                $customer['orders'],
+                wc_format_decimal((float) $customer['total'], 2),
+                $customer['last'],
+                $customer['status'],
+            ));
+        }
+        fclose($out);
+        exit;
+    }
+
+    private static function normalise_csv_header(string $header): string {
+        $header = strtolower(trim($header));
+        $header = preg_replace('/[^a-z0-9]+/', '_', $header);
+        return trim((string) $header, '_');
+    }
+
+    private static function csv_row_blank(array $row): bool {
+        foreach ($row as $value) {
+            if (trim((string) $value) !== '') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static function csv_bool(string $value): bool {
+        return in_array(strtolower(trim($value)), array('1', 'yes', 'true', 'y', 'on'), true);
     }
 
     public static function page_reports(): void {
@@ -1888,25 +2407,25 @@ final class TTOS_Admin {
         echo '</div>';
     }
 
-    private static function module_prices(): array {
+    public static function module_catalog(): array {
         return array(
-            'loyalty' => array('Loyalty points', 'Earn/redeem points on direct orders.', '£250'),
-            'stamp_cards' => array('Stamp cards', 'Five stamps, free item, simple repeat engine.', '£200'),
-            'meal_deals' => array('Meal deal builder', 'Main + side + drink guided bundles.', '£350'),
-            'sms_updates' => array('SMS updates', 'Order accepted/preparing/ready messages.', '£150 + SMS'),
-            'printer' => array('Printer connector', 'Kitchen printer/relay setup.', '£250'),
-            'crm_pro' => array('CRM Pro', 'Dormant customers, top spenders and campaigns.', '£350'),
-            'accounting' => array('Accounting export', 'Daily close, CSV, Xero/QuickBooks later.', '£300'),
-            'advanced_zones' => array('Advanced delivery zones', 'Fees/minimums by postcode area.', '£250'),
-            'allergen_filters' => array('Allergen filtering', 'Customer-facing filters and warnings.', '£250'),
-            'inventory_lite' => array('Inventory Lite', 'Sold-out toggles, limited item counts and daily availability.', '£250'),
-            'analytics_pro' => array('Analytics Pro', 'Best sellers, quiet hours, margin hints and owner reports.', '£350'),
-            'promo_engine' => array('Promo engine', 'Timed discounts, first-order offers and direct-order campaigns.', '£300'),
-            'content_manager' => array('Content manager', 'Owner-safe homepage sections, images and offer blocks.', '£250'),
-            'kds_pro' => array('Kitchen Display Pro', 'Large-screen kitchen board, filters and prep timers.', '£350'),
-            'epos_connector' => array('EPOS connector', 'Square/ICRTouch/webhook mapping.', '£500+'),
-            'multi_location' => array('Multi-location', 'Separate stores, hours, zones and menus.', '£750+'),
-            'qr_ordering' => array('QR table ordering', 'Eat-in table flow.', '£500'),
+            'loyalty' => array('name' => 'Loyalty points', 'description' => 'Earn/redeem points on direct orders.', 'price' => '£250', 'status' => 'PRO READY', 'note' => 'Safe to enable for production.', 'toggleable' => true),
+            'stamp_cards' => array('name' => 'Stamp cards', 'description' => 'Five stamps, free item, simple repeat engine.', 'price' => '£200', 'status' => 'PRO READY', 'note' => 'Safe to enable for production.', 'toggleable' => true),
+            'meal_deals' => array('name' => 'Meal deal builder', 'description' => 'Main + side + drink guided bundles.', 'price' => '£350', 'status' => 'PRO READY', 'note' => 'Safe to enable for production.', 'toggleable' => true),
+            'sms_updates' => array('name' => 'SMS updates', 'description' => 'Order accepted/preparing/ready messages.', 'price' => '£150 + SMS', 'status' => 'PRO PARTIAL', 'note' => 'Configuration surface exists, but delivery must be verified before sale.', 'toggleable' => false),
+            'printer' => array('name' => 'Printer connector', 'description' => 'Kitchen printer/relay setup.', 'price' => '£250', 'status' => 'ADMIN-ONLY STUB', 'note' => 'Integration settings exist for future use. Not live by default.', 'toggleable' => false),
+            'crm_pro' => array('name' => 'CRM Pro', 'description' => 'Dormant customers, top spenders and campaigns.', 'price' => '£350', 'status' => 'PRO READY', 'note' => 'Safe to enable for production.', 'toggleable' => true),
+            'accounting' => array('name' => 'Accounting export', 'description' => 'Daily close, CSV, Xero/QuickBooks later.', 'price' => '£300', 'status' => 'PRO READY', 'note' => 'CSV export is production-ready; third-party integrations remain future work.', 'toggleable' => true),
+            'advanced_zones' => array('name' => 'Advanced delivery zones', 'description' => 'Fees/minimums by postcode area.', 'price' => '£250', 'status' => 'PRO READY', 'note' => 'Safe to enable for production.', 'toggleable' => true),
+            'allergen_filters' => array('name' => 'Allergen filtering', 'description' => 'Customer-facing filters and warnings.', 'price' => '£250', 'status' => 'PRO PARTIAL', 'note' => 'Allergen data is mapped, but the public filter layer is not a finished paid surface.', 'toggleable' => false),
+            'inventory_lite' => array('name' => 'Inventory Lite', 'description' => 'Sold-out toggles, limited item counts and daily availability.', 'price' => '£250', 'status' => 'PRO READY', 'note' => 'Safe to enable for production.', 'toggleable' => true),
+            'analytics_pro' => array('name' => 'Analytics Pro', 'description' => 'Best sellers, quiet hours, margin hints and owner reports.', 'price' => '£350', 'status' => 'PRO READY', 'note' => 'Safe to enable for production.', 'toggleable' => true),
+            'promo_engine' => array('name' => 'Promo engine', 'description' => 'Timed discounts, first-order offers and direct-order campaigns.', 'price' => '£300', 'status' => 'PRO PARTIAL', 'note' => 'Manual campaigns and basic win-back automation are live; broader timed-promo automation still needs finishing.', 'toggleable' => false),
+            'content_manager' => array('name' => 'Content manager', 'description' => 'Owner-safe homepage sections, images and offer blocks.', 'price' => '£250', 'status' => 'CORE INCLUDED', 'note' => 'This behaviour is now part of the core CRM/site content experience.', 'toggleable' => true),
+            'kds_pro' => array('name' => 'Kitchen Display Pro', 'description' => 'Large-screen kitchen board, filters and prep timers.', 'price' => '£350', 'status' => 'PRO PARTIAL', 'note' => 'Core tickets are live; enhanced KDS packaging should stay disabled until separated cleanly.', 'toggleable' => false),
+            'epos_connector' => array('name' => 'EPOS connector', 'description' => 'Square/ICRTouch/webhook mapping.', 'price' => '£500+', 'status' => 'ADMIN-ONLY STUB', 'note' => 'Integration settings exist for future use. Not active until configured and verified.', 'toggleable' => false),
+            'multi_location' => array('name' => 'Multi-location', 'description' => 'Separate stores, hours, zones and menus.', 'price' => '£750+', 'status' => 'FUTURE ROADMAP', 'note' => 'Not a live production feature in v1.3.x.', 'toggleable' => false),
+            'qr_ordering' => array('name' => 'QR table ordering', 'description' => 'Eat-in table flow.', 'price' => '£500', 'status' => 'FUTURE ROADMAP', 'note' => 'Not a live production feature in v1.3.x.', 'toggleable' => false),
         );
     }
 

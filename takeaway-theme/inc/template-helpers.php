@@ -69,6 +69,14 @@ function tt_cta_url(string $target): string {
  * Returns ['state' => 'open'|'closed'|'unknown', 'label' => string].
  */
 function tt_open_status(): array {
+    if (class_exists('TTOS_Operations') && method_exists('TTOS_Operations', 'ordering_state')) {
+        $state = TTOS_Operations::ordering_state();
+        $mode = !empty($state['open']) ? 'open' : (!empty($state['preorder_enabled']) ? 'preorder' : 'closed');
+        return array(
+            'state' => $mode,
+            'label' => (string) ($state['label'] ?? ''),
+        );
+    }
     if (!function_exists('ttos_get_opening_hours')) {
         return array('state' => 'unknown', 'label' => '');
     }
@@ -157,13 +165,136 @@ function tt_hours_summary(): array {
 
 /** Attachment image with alt fallback; empty string when missing. */
 function tt_image(int $attachment_id, string $size = 'large', string $class = '', string $alt_fallback = ''): string {
-    if (!$attachment_id || get_post_type($attachment_id) !== 'attachment') return '';
+    if (!$attachment_id || get_post_type($attachment_id) !== 'attachment') {
+        return tt_food_placeholder_from_context($class, $alt_fallback);
+    }
     $alt = trim((string) get_post_meta($attachment_id, '_wp_attachment_image_alt', true));
-    return wp_get_attachment_image($attachment_id, $size, false, array(
+    $attrs = array(
         'class' => $class,
         'alt'   => $alt !== '' ? $alt : $alt_fallback,
         'loading' => 'lazy',
-    ));
+    );
+    if (strpos($class, 'tt-home-hero-img') !== false) {
+        $attrs['loading'] = 'eager';
+        $attrs['fetchpriority'] = 'high';
+        $attrs['decoding'] = 'async';
+        $attrs['sizes'] = '(min-width: 901px) 48vw, 92vw';
+    }
+    return wp_get_attachment_image($attachment_id, $size, false, $attrs);
+}
+
+/** Theme-owned media contexts that should render a food placeholder when empty. */
+function tt_food_placeholder_from_context(string $class = '', string $label = ''): string {
+    $contexts = array(
+        'tt-home-hero-img',
+        'tt-featured-img',
+        'tt-offer-img',
+        'tt-food-media',
+    );
+
+    foreach ($contexts as $context) {
+        if (strpos($class, $context) !== false) {
+            return tt_food_placeholder($label, trim($class . ' tt-food-placeholder-media'));
+        }
+    }
+
+    return '';
+}
+
+/** Keyword map for category-aware fallback food illustrations. */
+function tt_food_placeholder_keyword_map(): array {
+    return array(
+        'burger' => array('burger', 'cheeseburger', 'beef burger', 'chicken burger', 'stacker'),
+        'pizza' => array('pizza', 'margherita', 'pepperoni', 'calzone', 'garlic bread'),
+        'noodles' => array('noodle', 'ramen', 'udon', 'pad thai', 'chow mein', 'lo mein'),
+        'curry-bowl' => array('curry', 'korma', 'masala', 'jalfrezi', 'balti', 'biryani', 'rice bowl', 'curry bowl'),
+        'kebab-wrap' => array('kebab', 'doner', 'donner', 'shawarma', 'gyro', 'wrap', 'pitta', 'falafel wrap'),
+        'fish-and-chips' => array('fish', 'chips', 'cod', 'haddock', 'scampi'),
+        'chicken-box' => array('chicken', 'wings', 'strips', 'bucket', 'box meal', 'nugget', 'popcorn chicken'),
+        'sushi' => array('sushi', 'maki', 'nigiri', 'sashimi', 'temaki'),
+        'dessert' => array('dessert', 'cake', 'brownie', 'cookie', 'ice cream', 'gelato', 'churro', 'donut', 'cheesecake'),
+        'drink' => array('drink', 'cola', 'coke', 'sprite', 'fanta', 'water', 'juice', 'milkshake', 'coffee', 'tea'),
+        'cloche' => array(),
+    );
+}
+
+/** Match menu text to the most appropriate placeholder category. */
+function tt_food_placeholder_category(string $text = ''): string {
+    $haystack = strtolower(trim(wp_strip_all_tags(html_entity_decode($text, ENT_QUOTES, 'UTF-8'))));
+    if ($haystack === '') {
+        return 'cloche';
+    }
+
+    foreach (tt_food_placeholder_keyword_map() as $category => $keywords) {
+        foreach ($keywords as $keyword) {
+            if (strpos($haystack, $keyword) !== false) {
+                return $category;
+            }
+        }
+    }
+
+    return 'cloche';
+}
+
+/** Human-readable labels for placeholder chips. */
+function tt_food_placeholder_label(string $category): string {
+    $labels = array(
+        'burger' => __('Burger', 'takeaway-theme'),
+        'pizza' => __('Pizza', 'takeaway-theme'),
+        'noodles' => __('Noodles', 'takeaway-theme'),
+        'curry-bowl' => __('Curry bowl', 'takeaway-theme'),
+        'kebab-wrap' => __('Kebab wrap', 'takeaway-theme'),
+        'fish-and-chips' => __('Fish and chips', 'takeaway-theme'),
+        'chicken-box' => __('Chicken box', 'takeaway-theme'),
+        'sushi' => __('Sushi', 'takeaway-theme'),
+        'dessert' => __('Dessert', 'takeaway-theme'),
+        'drink' => __('Drink', 'takeaway-theme'),
+        'cloche' => __('Freshly prepared', 'takeaway-theme'),
+    );
+
+    return $labels[$category] ?? $labels['cloche'];
+}
+
+/** Inline SVG illustration for food placeholders. */
+function tt_food_placeholder_svg(string $category): string {
+    switch ($category) {
+        case 'burger':
+            return '<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M24 50c2-13 16-22 36-22s34 9 36 22"/><path d="M25 59h70"/><path d="M30 67h60"/><path d="M26 79h68c0 8-6 13-14 13H40c-8 0-14-5-14-13Z"/><path d="M38 50h2"/><path d="M54 46h2"/><path d="M70 50h2"/><path d="M82 46h2"/></svg>';
+        case 'pizza':
+            return '<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M27 29c20-6 46-6 66 0L60 92 27 29Z"/><path d="M38 44c13-3 31-3 44 0"/><circle cx="51" cy="52" r="4"/><circle cx="68" cy="60" r="4"/><circle cx="58" cy="69" r="4"/></svg>';
+        case 'noodles':
+            return '<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M42 25l16 18"/><path d="M76 24 63 43"/><path d="M30 63h60"/><path d="M37 48c0 8 4 12 8 12s8-4 8-12"/><path d="M57 48c0 8 4 12 8 12s8-4 8-12"/><path d="M77 48c0 8 4 12 8 12"/><path d="M38 64c3 18 11 27 22 27s19-9 22-27"/></svg>';
+        case 'curry-bowl':
+            return '<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M41 30c0-5 4-9 9-9"/><path d="M60 26c0-6 4-10 10-10"/><path d="M76 32c0-4 3-8 8-8"/><path d="M26 62h68c-2 18-16 31-34 31S28 80 26 62Z"/><path d="M22 62h76"/><path d="M34 54c6 3 11 4 16 4s10-1 16-4 11-4 16-4"/></svg>';
+        case 'kebab-wrap':
+            return '<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M43 26c22 10 38 27 41 52"/><path d="M41 28c-4 24 4 47 19 66"/><path d="M34 39c11 2 23 9 33 20"/><path d="M29 54c10 1 22 7 32 16"/><path d="M52 96c18-2 29-10 35-25"/></svg>';
+        case 'fish-and-chips':
+            return '<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M26 55c12-13 28-18 40-12 3 1 6 1 9 0l11-5-2 11c-1 3-1 6 1 9 7 12 2 28-11 40-12-5-23-13-31-24-5-7-11-13-17-19Z"/><circle cx="68" cy="53" r="1.5"/><path d="M26 86h28"/><path d="M33 86 29 65"/><path d="M40 86 36 63"/><path d="M47 86 44 68"/></svg>';
+        case 'chicken-box':
+            return '<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M30 44h60l-6 42H36l-6-42Z"/><path d="M39 44V33h42v11"/><path d="M66 61c2-7 8-11 14-9 5 2 7 8 4 13-3 5-8 7-14 5"/><path d="M48 62c-5-3-7-9-5-14 3-5 9-7 14-4 5 3 7 9 5 14-2 5-8 7-14 4Z"/></svg>';
+        case 'sushi':
+            return '<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="25" y="48" width="28" height="28" rx="9"/><rect x="67" y="48" width="28" height="28" rx="9"/><path d="M33 48c2-10 8-15 14-15s12 5 14 15"/><path d="M75 48c2-10 8-15 14-15s12 5 14 15"/><path d="M37 62h4"/><path d="M79 62h4"/></svg>';
+        case 'dessert':
+            return '<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M40 78h40"/><path d="M46 78 52 50h16l6 28"/><path d="M45 50c0-10 7-17 15-17s15 7 15 17"/><path d="M60 23v10"/><path d="M54 28c0-4 3-7 6-7"/><path d="M66 28c0-4-3-7-6-7"/></svg>';
+        case 'drink':
+            return '<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M46 35h28l-4 50H50l-4-50Z"/><path d="M55 35 74 20"/><path d="M54 50h12"/><path d="M53 62h14"/><path d="M52 74h16"/></svg>';
+        case 'cloche':
+        default:
+            return '<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M24 72h72"/><path d="M32 72c0-16 13-29 28-29s28 13 28 29"/><path d="M58 39h4"/><path d="M40 81h40"/></svg>';
+    }
+}
+
+/** Render a category-aware inline SVG placeholder for missing food imagery. */
+function tt_food_placeholder(string $text = '', string $class = '', string $aria_label = ''): string {
+    $category = tt_food_placeholder_category($text);
+    $label = tt_food_placeholder_label($category);
+    $accessible_label = $aria_label !== '' ? $aria_label : sprintf(__('%s illustration', 'takeaway-theme'), $label);
+    $classes = trim('tt-food-placeholder ' . $class);
+
+    return '<div class="' . esc_attr($classes) . '" role="img" aria-label="' . esc_attr($accessible_label) . '" data-food-category="' . esc_attr($category) . '">'
+        . '<span class="tt-food-placeholder-art" aria-hidden="true">' . tt_food_placeholder_svg($category) . '</span>'
+        . '<span class="tt-food-placeholder-label">' . esc_html($label) . '</span>'
+        . '</div>';
 }
 
 /** Accessible star rating (no colour-only meaning). */

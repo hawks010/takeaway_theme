@@ -16,7 +16,11 @@ $access  = (string) tt_content('contact_map', 'accessibility_note', '');
 
 $has_osm = ($provider === 'osm' && $lat !== '' && $lng !== '');
 $has_google = ($provider === 'google' && $google_maps_url !== '');
-$has_map = $has_osm || $has_google;
+$fallback_map = '';
+if (!$has_osm && !$has_google && $address) {
+    $fallback_map = 'https://maps.google.com/maps?q=' . rawurlencode(implode(', ', $address)) . '&z=15&output=embed';
+}
+$has_map = $has_osm || $has_google || $fallback_map !== '';
 
 if (!$address && $phone === '' && $email === '' && !$has_map) return;
 
@@ -29,9 +33,10 @@ if ($has_osm) {
 ?>
 <section class="tt-section tt-home-contact">
     <div class="tt-wrap tt-contact-grid<?php echo $has_map ? '' : ' no-map'; ?>">
-        <div class="tt-card tt-contact-card">
+        <div class="tt-contact-card">
             <p class="tt-eyebrow"><?php esc_html_e('Visit or call', 'takeaway-theme'); ?></p>
             <h2><?php echo esc_html((string) tt_content('contact_map', 'title', __('Find us', 'takeaway-theme'))); ?></h2>
+            <p class="tt-contact-lede"><?php esc_html_e('Pop in, collect, or get directions before you order.', 'takeaway-theme'); ?></p>
             <?php if ($address) : ?>
                 <address class="tt-contact-address"><?php echo esc_html(implode("\n", $address)); ?></address>
             <?php endif; ?>
@@ -52,6 +57,10 @@ if ($has_osm) {
         <?php elseif ($has_google) : ?>
             <div class="tt-contact-map tt-contact-map-link">
                 <a class="tt-btn" href="<?php echo esc_url($google_maps_url); ?>" rel="noopener noreferrer" target="_blank"><?php esc_html_e('Open map & directions', 'takeaway-theme'); ?></a>
+            </div>
+        <?php elseif ($fallback_map !== '') : ?>
+            <div class="tt-contact-map">
+                <iframe title="<?php echo esc_attr(sprintf(__('Map showing %s', 'takeaway-theme'), tt_business_name())); ?>" src="<?php echo esc_url($fallback_map); ?>" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
             </div>
         <?php endif; ?>
     </div>

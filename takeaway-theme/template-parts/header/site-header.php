@@ -35,12 +35,19 @@ foreach ($soc_keys as $key => $label) {
         $socials[] = array('key' => $key, 'url' => $url, 'label' => $label);
     }
 }
+$has_contacts = ($show_phone && $phone) || ($show_email && $email);
+$utility_classes = array('tt-wrap', 'tt-utility-top');
+if (!empty($socials) && $show_hdr_socials) {
+    $utility_classes[] = 'has-socials';
+}
+if ($has_contacts) {
+    $utility_classes[] = 'has-contacts';
+}
 
 // Account: detect login state.
 $is_logged_in  = is_user_logged_in();
 $current_user  = $is_logged_in ? wp_get_current_user() : null;
 $user_first    = $current_user ? ((string) $current_user->user_firstname ?: (string) $current_user->display_name) : '';
-$user_initial  = $user_first ? (function_exists('mb_strtoupper') ? mb_strtoupper(mb_substr($user_first, 0, 1)) : strtoupper(substr($user_first, 0, 1))) : '?';
 $orders_url    = function_exists('wc_get_account_endpoint_url') ? wc_get_account_endpoint_url('orders') : $account_url;
 $address_url   = function_exists('wc_get_account_endpoint_url') ? wc_get_account_endpoint_url('edit-address') : $account_url;
 $payment_url   = function_exists('wc_get_account_endpoint_url') ? wc_get_account_endpoint_url('payment-methods') : $account_url;
@@ -51,7 +58,17 @@ $logout_url    = function_exists('wc_logout_url') ? wc_logout_url(home_url('/'))
 
     <!-- ── Utility strip: collapses on scroll ─────────────────── -->
     <div class="tt-utility" id="tt-utility">
-        <div class="tt-wrap tt-utility-top">
+        <div class="<?php echo esc_attr(implode(' ', $utility_classes)); ?>">
+
+            <a class="tt-mobile-top-brand"
+               href="<?php echo esc_url(home_url('/')); ?>"
+               aria-label="<?php echo esc_attr($biz_name . ' — ' . __('home', 'takeaway-theme')); ?>">
+                <?php
+                $initial = function_exists('mb_strtoupper') ? mb_strtoupper(mb_substr($biz_name, 0, 1)) : strtoupper(substr($biz_name, 0, 1));
+                echo '<span class="tt-logo-mark" aria-hidden="true">' . esc_html($initial) . '</span>';
+                echo '<span>' . esc_html($biz_name) . '</span>';
+                ?>
+            </a>
 
             <!-- Left: status pill -->
             <div class="tt-utility-status">
@@ -132,7 +149,11 @@ $logout_url    = function_exists('wc_logout_url') ? wc_logout_url(home_url('/'))
                             aria-expanded="false" aria-haspopup="true"
                             aria-controls="tt-acct-main-drop"
                             aria-label="<?php echo esc_attr(sprintf(__('My account — %s', 'takeaway-theme'), $user_first)); ?>">
-                        <span class="tt-acct-main-avatar" aria-hidden="true"><?php echo esc_html($user_initial); ?></span>
+                        <span class="tt-acct-main-avatar" aria-hidden="true">
+                            <svg class="tt-fa-user" viewBox="0 0 448 512" focusable="false" aria-hidden="true">
+                                <path fill="currentColor" d="M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3C0 498.7 13.3 512 29.7 512h388.6c16.4 0 29.7-13.3 29.7-29.7C448 383.8 368.2 304 269.7 304h-91.4z"/>
+                            </svg>
+                        </span>
                         <span class="tt-acct-main-hello">
                             <?php
                             /* translators: %s: customer first name */

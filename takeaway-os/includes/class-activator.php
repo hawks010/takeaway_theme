@@ -10,7 +10,10 @@ final class TTOS_Activator {
         self::migrate_site_content();
         self::create_pages();
         update_option('ttos_version', TTOS_VERSION, false);
+        if (class_exists('TTOS_Accounting')) TTOS_Accounting::create_log_table();
+        if (class_exists('TTOS_Hardening')) TTOS_Hardening::maybe_protect_uploads();
         update_option('ttos_do_activation_redirect', '1', false);
+        update_option(TTOS_Client_Intake::STARTUP_PENDING, '1', false);
         flush_rewrite_rules();
     }
 
@@ -25,6 +28,8 @@ final class TTOS_Activator {
         self::migrate_branding_tokens();
         self::migrate_site_content();
         update_option('ttos_version', TTOS_VERSION, false);
+        if (class_exists('TTOS_Accounting')) TTOS_Accounting::create_log_table();
+        if (class_exists('TTOS_Hardening')) TTOS_Hardening::maybe_protect_uploads();
     }
 
     /** v1.3.0 Site Content option. Add-only; never modifies existing values. */
@@ -80,6 +85,7 @@ final class TTOS_Activator {
     private static function add_roles(): void {
         $owner_caps = array(
             'read'                  => true,
+            'edit_posts'            => true,
             'ttos_access'           => true,
             'ttos_manage'           => true,
             'ttos_view_orders'      => true,
@@ -91,6 +97,7 @@ final class TTOS_Activator {
         );
         $manager_caps = array(
             'read'                  => true,
+            'edit_posts'            => true,
             'ttos_access'           => true,
             'ttos_manage'           => true,
             'ttos_view_orders'      => true,
@@ -101,6 +108,7 @@ final class TTOS_Activator {
         );
         $kitchen_caps = array(
             'read'               => true,
+            'edit_posts'         => true,
             'ttos_access'        => true,
             'ttos_view_orders'   => true,
             'ttos_update_orders' => true,
