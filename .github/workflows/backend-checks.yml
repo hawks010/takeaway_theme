@@ -73,6 +73,7 @@ jobs:
         run: |
           { php -v; php --ini; php -m; php -r 'foreach (["opcache.enable_cli", "opcache.jit", "opcache.jit_buffer_size", "pcre.jit"] as $key) echo $key . "=" . ini_get($key) . PHP_EOL;'; } > /tmp/php-runtime.txt
       - name: Create disposable WordPress and WooCommerce installation
+        id: fixture
         run: |
           set -euo pipefail
           curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /tmp/wp-cli.phar
@@ -127,6 +128,11 @@ jobs:
             exit "$result"
           fi
           php /tmp/wp-cli.phar --path="$WP_PATH" eval-file "$GITHUB_WORKSPACE/tests/native/verify_checkout.php" | tee /tmp/checkout-verify.txt
+      - name: Diagnose PHP and PCRE JIT with unchanged native HTTP scenarios
+        if: always() && steps.fixture.outcome == 'success' && matrix.php == '8.5'
+        run: |
+          ulimit -c unlimited
+          python3 -u tests/native/jit_probe.py --wp-path="$WP_PATH" --wp-cli=/tmp/wp-cli.phar --evidence-dir=/tmp/jit-runtime-comparison
       - name: Capture reviewable source without production data
         if: always()
         run: |
@@ -137,9 +143,10 @@ jobs:
             if [ -f "$file" ]; then cp "$file" /tmp/takeaway-review/; fi
           done
           if [ -d /tmp/checkout-runtime-comparison ]; then cp -R /tmp/checkout-runtime-comparison /tmp/takeaway-review/; fi
+          if [ -d /tmp/jit-runtime-comparison ]; then cp -R /tmp/jit-runtime-comparison /tmp/takeaway-review/; fi
           for core in /tmp/ttos-php-core.*; do
             if [ -f "$core" ]; then
-              gdb --batch -ex 'set pagination off' -ex 'thread apply all bt full' "$(command -v php)" "$core" > "/tmp/takeaway-review/$(basename "$core")-backtrace.txt" 2>&1 || true
+              gdb --batch -ex 'set pagination off' -ex 'info proc mappings' -ex 'info files' -ex 'x/20i $pc' -ex 'thread apply all bt full' "$(command -v php)" "$core" > "/tmp/takeaway-review/$(basename "$core")-backtrace.txt" 2>&1 || true
             fi
           done
       - uses: actions/upload-artifact@v4
