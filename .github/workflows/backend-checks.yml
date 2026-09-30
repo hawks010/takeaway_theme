@@ -2,9 +2,9 @@ name: Backend checks
 on:
   push:
     branches: [fix/backend-foundations-20260930]
-    paths: ['takeaway-os/**', 'tests/**', '.github/workflows/backend-checks.yml']
+    paths: ['takeaway-os/**', 'takeaway-theme/**', 'tests/**', '.github/workflows/backend-checks.yml']
   pull_request:
-    paths: ['takeaway-os/**', 'tests/**', '.github/workflows/backend-checks.yml']
+    paths: ['takeaway-os/**', 'takeaway-theme/**', 'tests/**', '.github/workflows/backend-checks.yml']
 permissions:
   contents: read
 jobs:
@@ -137,13 +137,23 @@ jobs:
         run: |
           ulimit -c unlimited
           python3 -u tests/native/jit_probe.py --wp-path="$WP_PATH" --wp-cli=/tmp/wp-cli.phar --modes php-jit-off --repeats=10 --evidence-dir=/tmp/jit-runtime-comparison
+      - name: Real theme fulfilment session and HTTP journey
+        run: |
+          set -euo pipefail
+          php /tmp/wp-cli.phar --path="$WP_PATH" eval-file "$GITHUB_WORKSPACE/tests/native/fulfilment_assertions.php" | tee /tmp/fulfilment-assertions.txt
+          cp -R takeaway-theme "$WP_PATH/wp-content/themes/takeaway-theme"
+          php /tmp/wp-cli.phar --path="$WP_PATH" theme activate takeaway-theme
+          php -S 127.0.0.1:8080 -t "$WP_PATH" > /tmp/fulfilment-server.txt 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true' EXIT
+          python3 -u tests/native/fulfilment_http.py 2>&1 | tee /tmp/fulfilment-http.txt
       - name: Capture reviewable source without production data
         if: always()
         run: |
           mkdir -p /tmp/takeaway-review
           git rev-parse HEAD > /tmp/takeaway-review/commit.txt
-          git archive --format=tar HEAD takeaway-os tests docs/BACKEND-TODO-20260930.md > /tmp/takeaway-review/source.tar
-          for file in /tmp/php-runtime.txt /tmp/native-versions.txt /tmp/native-tests.txt /tmp/http-tests.txt /tmp/checkout-verify.txt /tmp/php-server.log /tmp/server-exit.txt; do
+          git archive --format=tar HEAD takeaway-os takeaway-theme tests docs/BACKEND-TODO-20260930.md > /tmp/takeaway-review/source.tar
+          for file in /tmp/php-runtime.txt /tmp/native-versions.txt /tmp/native-tests.txt /tmp/http-tests.txt /tmp/checkout-verify.txt /tmp/php-server.log /tmp/server-exit.txt /tmp/fulfilment-assertions.txt /tmp/fulfilment-server.txt /tmp/fulfilment-http.txt; do
             if [ -f "$file" ]; then cp "$file" /tmp/takeaway-review/; fi
           done
           if [ -d /tmp/checkout-runtime-comparison ]; then cp -R /tmp/checkout-runtime-comparison /tmp/takeaway-review/; fi
