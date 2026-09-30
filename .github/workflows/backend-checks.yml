@@ -112,7 +112,11 @@ jobs:
           ulimit -c unlimited
           php -S 127.0.0.1:8080 -t "$WP_PATH" > /tmp/php-server.log 2>&1 &
           server_pid=$!
-          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          stop_server() {
+            kill "$server_pid" 2>/dev/null || true
+            wait "$server_pid" 2>/dev/null || true
+          }
+          trap stop_server EXIT
           set +e
           python3 -u tests/native/http_smoke.py > /tmp/http-tests.txt 2>&1
           result=$?

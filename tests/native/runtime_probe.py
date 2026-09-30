@@ -41,6 +41,7 @@ guard = wp('eval', 'if (!defined("TTOS_FIXTURE_ONLY") || TTOS_FIXTURE_ONLY !== t
 if 'TTOS_LOCAL_FIXTURE' not in guard.stdout:
     raise RuntimeError('Disposable fixture guard failed')
 with socket.socket() as port_check:
+    port_check.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     port_check.bind(('127.0.0.1', target.port or 80))
 initially_active = wp('plugin', 'is-active', 'takeaway-os', check=False).returncode == 0
 results = []

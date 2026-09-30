@@ -31,6 +31,7 @@ if 'TTOS_LOCAL_FIXTURE' not in guard.stdout:
     raise RuntimeError('Disposable fixture guard failed')
 subprocess.run([*wp_command, 'plugin', 'is-active', 'takeaway-os'], check=True, capture_output=True, timeout=60)
 with socket.socket() as port_check:
+    port_check.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     port_check.bind(('127.0.0.1', target.port or 80))
 evidence = Path(args.evidence_dir)
 evidence.mkdir(parents=True, exist_ok=True)
