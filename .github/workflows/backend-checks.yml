@@ -64,6 +64,10 @@ jobs:
           extensions: none, ctype, curl, dom, exif, fileinfo, gd, iconv, intl, mbstring, mysqli, mysqlnd, openssl, phar, simplexml, sodium, tokenizer, xml, xmlreader, xmlwriter, zip
           coverage: none
           tools: none
+      - name: Install debugger for disposable runtime diagnosis
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gdb
       - name: Record disposable PHP runtime
         run: |
           { php -v; php --ini; php -m; php -r 'foreach (["opcache.enable_cli", "opcache.jit", "opcache.jit_buffer_size", "pcre.jit"] as $key) echo $key . "=" . ini_get($key) . PHP_EOL;'; } > /tmp/php-runtime.txt
