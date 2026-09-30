@@ -2,6 +2,7 @@ name: Backend checks
 on:
   push:
     branches: [fix/backend-foundations-20260930]
+    paths: ['takeaway-os/**', 'tests/**', '.github/workflows/backend-checks.yml']
   pull_request:
     paths: ['takeaway-os/**', 'tests/**', '.github/workflows/backend-checks.yml']
 permissions:
@@ -35,6 +36,10 @@ jobs:
   native:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.5']
     env:
       TEST_OWNER_PASSWORD: disposable-fixture-password-only
       WP_PATH: /tmp/ttos-wp
@@ -54,9 +59,12 @@ jobs:
           persist-credentials: false
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.5'
+          php-version: ${{ matrix.php }}
           extensions: mysqli
           coverage: none
+      - name: Record disposable PHP runtime
+        run: |
+          { php -v; php --ini; php -m; php -r 'foreach (["opcache.enable_cli", "opcache.jit", "opcache.jit_buffer_size", "pcre.jit"] as $key) echo $key . "=" . ini_get($key) . PHP_EOL;'; } > /tmp/php-runtime.txt
       - name: Create disposable WordPress and WooCommerce installation
         run: |
           set -euo pipefail
@@ -70,7 +78,6 @@ jobs:
           wp config set DISABLE_WP_CRON true --raw
           wp config set WP_MEMORY_LIMIT 512M
           wp core install --url=http://127.0.0.1:8080 --title='Disposable Takeaway fixture' --admin_user=fixtureadmin --admin_password="$TEST_OWNER_PASSWORD" --admin_email=admin@example.test --skip-email
-          # Match the temporary document root, not WP-CLI's inferred /ttos-wp path.
           wp option update home http://127.0.0.1:8080
           wp option update siteurl http://127.0.0.1:8080
           wp plugin install woocommerce --version=11.1.2
@@ -90,8 +97,21 @@ jobs:
           set -euo pipefail
           php -S 127.0.0.1:8080 -t "$WP_PATH" > /tmp/php-server.log 2>&1 &
           server_pid=$!
-          trap 'kill "$server_pid" || true' EXIT
-          python3 tests/native/http_smoke.py | tee /tmp/http-tests.txt
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          set +e
+          python3 -u tests/native/http_smoke.py > /tmp/http-tests.txt 2>&1
+          result=$?
+          set -e
+          cat /tmp/http-tests.txt
+          if [ "$result" -ne 0 ]; then
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              set +e
+              wait "$server_pid"
+              echo "PHP server exit=$?" | tee /tmp/server-exit.txt
+              set -e
+            fi
+            exit "$result"
+          fi
           php /tmp/wp-cli.phar --path="$WP_PATH" eval-file "$GITHUB_WORKSPACE/tests/native/verify_checkout.php" | tee /tmp/checkout-verify.txt
       - name: Capture reviewable source without production data
         if: always()
@@ -99,10 +119,12 @@ jobs:
           mkdir -p /tmp/takeaway-review
           git rev-parse HEAD > /tmp/takeaway-review/commit.txt
           git archive --format=tar HEAD takeaway-os tests docs/BACKEND-TODO-20260930.md > /tmp/takeaway-review/source.tar
-          cp /tmp/native-versions.txt /tmp/native-tests.txt /tmp/http-tests.txt /tmp/checkout-verify.txt /tmp/php-server.log /tmp/takeaway-review/ 2>/dev/null || true
+          for file in /tmp/php-runtime.txt /tmp/native-versions.txt /tmp/native-tests.txt /tmp/http-tests.txt /tmp/checkout-verify.txt /tmp/php-server.log /tmp/server-exit.txt; do
+            if [ -f "$file" ]; then cp "$file" /tmp/takeaway-review/; fi
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: native-backend-review
+          name: native-backend-review-php-${{ matrix.php }}
           path: /tmp/takeaway-review
           retention-days: 7
