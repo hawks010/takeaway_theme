@@ -94,6 +94,12 @@ jobs:
         run: |
           set -o pipefail
           php /tmp/wp-cli.phar --path="$WP_PATH" eval-file "$GITHUB_WORKSPACE/tests/native/run.php" | tee /tmp/native-tests.txt
+      - name: Compare native checkout with Takeaway OS disabled and enabled
+        run: |
+          ulimit -c unlimited
+          debugger=()
+          if command -v gdb >/dev/null 2>&1; then debugger=(--gdb); fi
+          python3 -u tests/native/runtime_probe.py --wp-path="$WP_PATH" --wp-cli=/tmp/wp-cli.phar --evidence-dir=/tmp/checkout-runtime-comparison "${debugger[@]}"
       - name: Authenticated owner and native checkout HTTP smoke
         run: |
           set -euo pipefail
@@ -124,6 +130,7 @@ jobs:
           for file in /tmp/php-runtime.txt /tmp/native-versions.txt /tmp/native-tests.txt /tmp/http-tests.txt /tmp/checkout-verify.txt /tmp/php-server.log /tmp/server-exit.txt; do
             if [ -f "$file" ]; then cp "$file" /tmp/takeaway-review/; fi
           done
+          if [ -d /tmp/checkout-runtime-comparison ]; then cp -R /tmp/checkout-runtime-comparison /tmp/takeaway-review/; fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:

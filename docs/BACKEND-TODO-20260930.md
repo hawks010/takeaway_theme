@@ -34,6 +34,8 @@ WooCommerce and the selected gateway own commerce. No core/gateway edits, replac
 
 ## Required before a live client handoff
 
+Continuation evidence and current hosting/provider state: [BACKEND-VERIFICATION-20260930.md](BACKEND-VERIFICATION-20260930.md). The bundled candidate has now been rebuilt locally; installation and runtime diagnosis remain open.
+
 - [ ] Resolve the intermittent native HTTP runtime failure documented in the Codex report. Final CI run 36738844443 passes both native assertion suites; PHP 8.2 completes checkout, but PHP 8.5 times out loading it. Earlier development-server segmentation faults also occurred. Root cause remains unknown; do not bypass native validation or hide this with an increased timeout.
 
 - [ ] Review and install the tested source through the normal release process. Nothing here is live yet. Rebuild the bundled plugin ZIP so the theme cannot reinstall the old version.

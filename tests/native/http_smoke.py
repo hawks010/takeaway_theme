@@ -1,7 +1,10 @@
 """Native HTTP smoke test. Only a disposable localhost WordPress fixture is accepted."""
 import html, http.cookiejar, json, os, re, time, urllib.parse, urllib.request
 from pathlib import Path
-base = 'http://127.0.0.1:8080'
+base = os.environ.get('TTOS_TEST_BASE_URL', 'http://127.0.0.1:8080').rstrip('/')
+target = urllib.parse.urlsplit(base)
+if target.scheme != 'http' or target.hostname != '127.0.0.1' or target.path or target.username or target.password or target.query or target.fragment:
+    raise RuntimeError('Refusing a non-local HTTP fixture')
 fixture = json.loads(Path('/tmp/ttos-fixtures.json').read_text())
 for key in ('checkout_url','cart_url'):
     if not fixture[key].startswith(base+'/'):
