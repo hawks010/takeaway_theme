@@ -7,6 +7,8 @@ wp_set_current_user(1);
 update_option('woocommerce_currency', 'GBP');
 update_option('timezone_string', 'Europe/London');
 TTOS_Settings::update_section('modules', array_fill_keys(array_keys(TTOS_Settings::defaults()['modules']), false));
+// WP-CLI evaluates this file in a method scope; bind the shared registry explicitly.
+global $tests;
 $tests = array();
 function native_test($name, $fn) { $GLOBALS['tests'][$name] = $fn; }
 function must($condition, $message = 'Assertion failed') { if (!$condition) throw new RuntimeException($message); }
@@ -33,6 +35,13 @@ $refund_order = fixture_order('refund@example.test');
 $legacy_order = fixture_order('legacy@example.test', 'ttos-accepted');
 $board_order = $orders[0];
 
+native_test('Fixture owner has normal WordPress password authentication', function () use ($owner) {
+    $password = getenv('TEST_OWNER_PASSWORD');
+    must(is_string($password) && strlen($password) >= 12, 'Fixture password is missing.');
+    $authenticated = wp_authenticate('fixtureowner', $password);
+    must(!is_wp_error($authenticated), is_wp_error($authenticated) ? $authenticated->get_error_message() : '');
+    must($authenticated->ID === $owner && user_can($owner, 'ttos_access'));
+});
 native_test('HPOS is genuinely enabled', function () { must(\Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled()); });
 native_test('Menu save updates native product and lookup prices', function () use ($product_id) {
     global $wpdb;
@@ -108,6 +117,7 @@ native_test('Accounting export returns an authenticated handler, not a public da
     must(strpos($data['download_url'],'admin-post.php')!==false);must(!isset($data['file_path']));must(strpos($data['download_url'],'_wpnonce=')!==false);
     $GLOBALS['fixture_export']=$data; wp_set_current_user(1);
 });
+must(count($tests) === 23, 'The native suite must execute every registered test.');
 $passed=0;$failed=0;
 foreach($tests as $name=>$test){try{$test();echo "PASS $name\n";$passed++;}catch(Throwable $e){echo "FAIL $name: ".$e->getMessage()."\n";$failed++;}finally{wp_set_current_user(1);}}
 // Prepare a native classic checkout fixture for a separate HTTP smoke test.
