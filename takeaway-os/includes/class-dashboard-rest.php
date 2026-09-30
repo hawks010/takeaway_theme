@@ -87,11 +87,7 @@ final class TTOS_Dashboard_REST {
         $hours = function_exists('ttos_get_opening_hours') ? ttos_get_opening_hours() : array();
         $hours['override'] = $override;
 
-        if (function_exists('ttos_save_opening_hours')) {
-            ttos_save_opening_hours($hours);
-        } else {
-            update_option('ttos_opening_hours', $hours, false);
-        }
+        TTOS_Site_Content::update_section('opening_times', $hours);
 
         $label = array(
             'force_open'   => 'Force open',
@@ -111,7 +107,7 @@ final class TTOS_Dashboard_REST {
         $data = array(
             'ordering_open' => false,
             'override'      => 'normal',
-            'paused'        => (bool) get_option('ttos_ordering_paused', false),
+            'paused'        => TTOS_Production::is_paused(),
         );
 
         if (class_exists('TTOS_Operations')) {
@@ -128,7 +124,7 @@ final class TTOS_Dashboard_REST {
 
     public static function set_pause(WP_REST_Request $request): WP_REST_Response {
         $paused = (bool) $request->get_param('paused');
-        update_option('ttos_ordering_paused', $paused ? '1' : '0', false);
+        TTOS_Production::set_paused($paused);
 
         return new WP_REST_Response(array(
             'success' => true,
@@ -137,25 +133,36 @@ final class TTOS_Dashboard_REST {
     }
 
     public static function patch_settings(WP_REST_Request $request): WP_REST_Response {
-        $body    = $request->get_json_params();
-        $updated = array();
-
-        // Only permit a safe whitelist of patchable settings
-        $allowed_keys = array('trading.delivery_enabled', 'trading.collection_enabled', 'trading.min_order');
-
-        foreach ((array) $body as $key => $value) {
-            if (!in_array($key, $allowed_keys, true)) {
-                continue;
-            }
-            [$section, $field] = explode('.', $key, 2);
-            if (class_exists('TTOS_Settings')) {
-                $s          = TTOS_Settings::get($section);
-                $s[$field]  = sanitize_text_field((string) $value);
-                update_option('ttos_settings', array_merge(TTOS_Settings::get(), array($section => $s)), false);
-                $updated[] = $key;
-            }
+        $body = $request->get_json_params();
+        if (!is_array($body)) {
+            return new WP_REST_Response(array('success' => false, 'message' => 'Expected a settings object.'), 400);
         }
-
+        $allowed = array('trading.delivery_enabled', 'trading.collection_enabled', 'trading.min_order');
+        $trading = TTOS_Settings::get('trading');
+        $updated = array();
+        // Validate the entire request first. An invalid field must not leave a partial save.
+        foreach ($body as $key => $value) {
+            if (!in_array($key, $allowed, true)) {
+                return new WP_REST_Response(array('success' => false, 'message' => 'Unknown setting.'), 400);
+            }
+            $field = substr($key, strlen('trading.'));
+            if ($field === 'min_order') {
+                if (!is_scalar($value) || is_bool($value) || !is_numeric($value) || !is_finite((float) $value) || (float) $value < 0) {
+                    return new WP_REST_Response(array('success' => false, 'message' => 'Minimum order must be a non-negative amount.'), 400);
+                }
+                $value = wc_format_decimal($value, wc_get_price_decimals());
+            } else {
+                if (!in_array($value, array(true, false, 1, 0, '1', '0'), true)) {
+                    return new WP_REST_Response(array('success' => false, 'message' => 'Availability must be true or false.'), 400);
+                }
+                $value = in_array($value, array(true, 1, '1'), true) ? '1' : '0';
+            }
+            $trading[$field] = $value;
+            $updated[] = $key;
+        }
+        if ($updated) {
+            TTOS_Settings::update_section('trading', $trading);
+        }
         return new WP_REST_Response(array('success' => true, 'updated' => $updated), 200);
     }
 }

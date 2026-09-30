@@ -15,6 +15,7 @@ final class TTOS_Accounting {
 
     public static function hooks(): void {
         add_action('rest_api_init', array(__CLASS__, 'register_routes'));
+        add_action('admin_post_ttos_download_accounting_export', array(__CLASS__, 'download_export'));
     }
 
     // -------------------------------------------------------------------------
@@ -87,12 +88,11 @@ final class TTOS_Accounting {
         $to_str     = (string) $request->get_param('to');
 
         $timezone = wp_timezone();
-        $from = $from_str
-            ? new DateTime($from_str, $timezone)
-            : new DateTime('first day of this month 00:00:00', $timezone);
-        $to   = $to_str
-            ? new DateTime($to_str, $timezone)
-            : new DateTime('now', $timezone);
+        $from = $from_str ? self::parse_date($from_str, false) : new DateTime('first day of this month 00:00:00', $timezone);
+        $to = $to_str ? self::parse_date($to_str, true) : new DateTime('now', $timezone);
+        if (!$from || !$to || $from > $to) {
+            return new WP_REST_Response(array('success' => false, 'message' => 'Choose a valid date range using YYYY-MM-DD.'), 400);
+        }
 
         $path = self::export_csv($provider, $from, $to);
 
@@ -100,15 +100,14 @@ final class TTOS_Accounting {
             return new WP_REST_Response(array('success' => false, 'message' => 'Export failed.'), 500);
         }
 
-        $upload      = wp_upload_dir();
-        $base_dir    = trailingslashit($upload['basedir']);
-        $base_url    = trailingslashit($upload['baseurl']);
-        $relative    = str_replace($base_dir, '', $path);
-        $download_url = $base_url . $relative;
+        $file = basename($path);
+        $download_url = wp_nonce_url(add_query_arg(array(
+            'action' => 'ttos_download_accounting_export', 'file' => $file,
+        ), admin_url('admin-post.php')), 'ttos_download_accounting_export_' . $file);
 
         return new WP_REST_Response(array(
             'success'      => true,
-            'file_path'    => $path,
+            'file'         => $file,
             'download_url' => $download_url,
         ), 200);
     }
@@ -199,6 +198,33 @@ final class TTOS_Accounting {
     // -------------------------------------------------------------------------
     // Log helpers
     // -------------------------------------------------------------------------
+
+    private static function parse_date(string $value, bool $end): ?DateTime {
+        $date = DateTime::createFromFormat('!Y-m-d', $value, wp_timezone());
+        if (!$date || $date->format('Y-m-d') !== $value) { return null; }
+        return $end ? $date->setTime(23, 59, 59) : $date;
+    }
+
+    public static function download_export(): void {
+        if (!current_user_can('ttos_manage_settings')) { wp_die('Not allowed.', '', array('response' => 403)); }
+        $file = isset($_GET['file']) && is_string($_GET['file']) ? wp_unslash($_GET['file']) : '';
+        if (!preg_match('/^ttos-[a-z0-9_-]+-[0-9]{8}-[0-9]{8}-[0-9]{6}\.csv$/D', $file)) {
+            wp_die('Invalid export.', '', array('response' => 400));
+        }
+        check_admin_referer('ttos_download_accounting_export_' . $file);
+        $upload = wp_upload_dir();
+        $base = realpath(trailingslashit($upload['basedir']) . 'ttos-exports');
+        $path = $base ? realpath($base . DIRECTORY_SEPARATOR . $file) : false;
+        if (!$base || !$path || dirname($path) !== $base || !is_file($path) || !is_readable($path)) {
+            wp_die('Export not found.', '', array('response' => 404));
+        }
+        nocache_headers();
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . $file . '"');
+        header('X-Content-Type-Options: nosniff');
+        readfile($path);
+        exit;
+    }
 
     private static function log_export(string $provider, string $file_path, int $row_count): void {
         global $wpdb;

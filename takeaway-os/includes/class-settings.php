@@ -180,7 +180,7 @@ final class TTOS_Settings {
         if (!empty($business['postcode'])) {
             update_option('woocommerce_store_postcode', sanitize_text_field((string) $business['postcode']));
         }
-        update_option('woocommerce_store_country', 'GB');
+        // Leave WooCommerce's selected trading/tax country unchanged.
     }
 
     public static function sync_business_to_site_content(array $business): void {
@@ -237,34 +237,14 @@ final class TTOS_Settings {
     }
 
     public static function modules(): array {
-        $modules = self::get('modules');
-        foreach (self::production_locked_modules() as $slug) {
-            $modules[$slug] = false;
-        }
-        return $modules;
+        // Honour the administrator's local selection. Package switches are not
+        // production-approval gates and do not change WooCommerce gateways.
+        return (array) self::get('modules');
     }
 
     public static function module_enabled(string $slug): bool {
         $modules = self::modules();
         return !empty($modules[$slug]);
-    }
-
-    /**
-     * Modules below are intentionally forced off in v1.3.x production mode.
-     * Their settings may exist for future/admin work, but they should not be
-     * treated as live sellable features until separately signed off.
-     */
-    private static function production_locked_modules(): array {
-        return array(
-            'sms_updates',
-            'printer',
-            'allergen_filters',
-            'promo_engine',
-            'kds_pro',
-            'epos_connector',
-            'multi_location',
-            'qr_ordering',
-        );
     }
 
     /**

@@ -279,31 +279,47 @@ final class TTOS_Operations {
         return $fields;
     }
 
-    private static function time_slot_options(array $checkout, string $method, array $state): array {
-        $include_asap = $checkout['time_mode'] !== 'slot' && empty($state['preorder_required']);
+    private static function time_slot_options(array $checkout, string $method, array $state, ?int $now = null): array {
+        $now = $now ?? time();
+        $include_asap = $checkout['time_mode'] !== 'slot' && !empty($state['open']) && empty($state['preorder_required']);
         $options = $include_asap ? array('asap' => 'ASAP') : array('' => __('Choose a time', 'takeaway-os'));
+        if (empty($state['open']) && empty($state['preorder_enabled'])) {
+            return $options;
+        }
         $interval = max(5, (int) $checkout['slot_interval']);
         $days = max(0, (int) $checkout['max_days_ahead']);
         $lead_key = $method === 'collection' ? 'lead_time_collection' : 'lead_time_delivery';
-        $start = current_time('timestamp') + (max(0, (int) $checkout[$lead_key]) * MINUTE_IN_SECONDS);
+        $start = $now + (max(0, (int) $checkout[$lead_key]) * MINUTE_IN_SECONDS);
         $start = (int) ceil($start / ($interval * 60)) * ($interval * 60);
-        $end = current_time('timestamp') + (($days + 1) * DAY_IN_SECONDS);
-        $has_windows = !empty(self::service_windows($method, 8));
-        for ($ts = $start; $ts <= $end; $ts += $interval * 60) {
-            if ($has_windows && !self::time_is_inside_service_window($ts, $method)) {
-                continue;
+        $today = (new DateTimeImmutable('@' . $now))->setTimezone(wp_timezone())->setTime(0, 0);
+        $end = $today->modify('+' . ($days + 1) . ' days')->getTimestamp();
+        $windows = self::service_windows($method, $days + 1, $now);
+        for ($ts = $start; $ts < $end && count($options) < 160; $ts += $interval * 60) {
+            $inside = false;
+            foreach ($windows as $window) {
+                if ($ts >= $window['start'] && $ts < $window['end']) { $inside = true; break; }
             }
+            if (!$inside) { continue; }
             $key = wp_date('Y-m-d\TH:i', $ts, wp_timezone());
-            $label = wp_date('D j M, H:i', $ts, wp_timezone());
-            $options[$key] = $label;
+            $options[$key] = wp_date('D j M, H:i', $ts, wp_timezone());
         }
-        return array_slice($options, 0, 160, true);
+        return $options;
     }
 
     public static function validate_checkout(): void {
         $trading = TTOS_Settings::get('trading');
         $method = sanitize_key(wp_unslash($_POST['ttos_fulfilment_method'] ?? ''));
-        if ($method === '') return;
+        if ($method === '') {
+            if (self::get('checkout', 'force_choice') === '1') {
+                wc_add_notice(__('Please choose delivery or collection.', 'takeaway-os'), 'error');
+                return;
+            }
+            $method = self::current_checkout_method();
+        }
+        if (!in_array($method, array('delivery', 'collection'), true)) {
+            wc_add_notice(__('Please choose delivery or collection.', 'takeaway-os'), 'error');
+            return;
+        }
         $state = self::ordering_state($method);
         if ($method === 'delivery' && $trading['delivery_enabled'] !== '1') wc_add_notice(__('Delivery is currently unavailable.', 'takeaway-os'), 'error');
         if ($method === 'collection' && $trading['collection_enabled'] !== '1') wc_add_notice(__('Collection is currently unavailable.', 'takeaway-os'), 'error');
@@ -323,6 +339,9 @@ final class TTOS_Operations {
         $time = sanitize_text_field(wp_unslash($_POST['ttos_requested_time'] ?? 'asap'));
         if (!empty($state['preorder_required']) && ($time === '' || $time === 'asap')) {
             wc_add_notice(__('Please choose a preorder time before placing this order.', 'takeaway-os'), 'error');
+        }
+        if (self::get('checkout', 'time_mode') === 'slot' && ($time === '' || $time === 'asap')) {
+            wc_add_notice(__('Please choose a requested time.', 'takeaway-os'), 'error');
         }
         if ($time !== '' && $time !== 'asap') {
             $options = self::time_slot_options(self::get('checkout'), $method, $state);
@@ -428,7 +447,7 @@ final class TTOS_Operations {
         return '<span class="ttos-open-status ' . esc_attr($class) . '">' . esc_html($state['label']) . '</span>';
     }
 
-    public static function ordering_state(string $method = ''): array {
+    public static function ordering_state(string $method = '', ?int $now = null): array {
         $checkout = self::get('checkout');
         $hours = function_exists('ttos_get_opening_hours') ? ttos_get_opening_hours() : array();
         $method = self::normalise_method($method !== '' ? $method : self::current_checkout_method());
@@ -443,7 +462,20 @@ final class TTOS_Operations {
             'message'           => __('We are currently closed.', 'takeaway-os'),
         );
 
+        if (TTOS_Production::is_paused()) {
+            $state['preorder_enabled'] = false;
+            $state['label'] = __('Ordering paused', 'takeaway-os');
+            $state['message'] = (string) TTOS_Production::get('pause_message');
+            return $state;
+        }
+        $trading = TTOS_Settings::get('trading');
+        if (($trading[$method . '_enabled'] ?? '0') !== '1') {
+            $state['preorder_enabled'] = false;
+            $state['message'] = __('This fulfilment method is unavailable.', 'takeaway-os');
+            return $state;
+        }
         if (($hours['temporary_closure'] ?? '0') === '1') {
+            $state['preorder_enabled'] = false;
             $message = trim((string) ($hours['temporary_closure_message'] ?? ''));
             if ($message !== '') {
                 $state['label'] = $message;
@@ -461,14 +493,20 @@ final class TTOS_Operations {
         }
         if ($override === 'preorder') {
             $state['preorder_enabled'] = true;
+            $state['preorder_required'] = true;
+            $state['label'] = __('Pre-order open', 'takeaway-os');
+            $state['message'] = __('Please choose a scheduled time for your order.', 'takeaway-os');
+            return $state;
         }
         if ($override === 'force_closed') {
             $state['label'] = __('Closed today', 'takeaway-os');
-            $state['message'] = __('We are not taking immediate orders right now.', 'takeaway-os');
+            $state['message'] = __('We are not taking orders right now.', 'takeaway-os');
+            $state['preorder_enabled'] = false;
+            return $state;
         }
 
-        $windows = self::service_windows($method, 8);
-        $now = current_time('timestamp');
+        $now = $now ?? time();
+        $windows = self::service_windows($method, 8, $now);
         foreach ($windows as $window) {
             if ($now >= $window['start'] && $now < $window['end']) {
                 $state['open'] = true;
@@ -590,14 +628,14 @@ final class TTOS_Operations {
         return false;
     }
 
-    private static function service_windows(string $method, int $days_ahead = 8): array {
+    private static function service_windows(string $method, int $days_ahead = 8, ?int $now = null): array {
         if (!function_exists('ttos_get_opening_hours')) {
             return array();
         }
         $hours = ttos_get_opening_hours();
         $days = is_array($hours['days'] ?? null) ? $hours['days'] : array();
         $timezone = wp_timezone();
-        $base = new DateTimeImmutable('today', $timezone);
+        $base = (new DateTimeImmutable('@' . ($now ?? time())))->setTimezone($timezone)->setTime(0, 0);
         $windows = array();
 
         for ($offset = -1; $offset <= $days_ahead; $offset++) {
@@ -622,8 +660,8 @@ final class TTOS_Operations {
             if ($open === '' || $close === '') {
                 continue;
             }
-            $start = DateTimeImmutable::createFromFormat('Y-m-d H:i', $day->format('Y-m-d') . ' ' . $open, $timezone);
-            $end = DateTimeImmutable::createFromFormat('Y-m-d H:i', $day->format('Y-m-d') . ' ' . $close, $timezone);
+            $start = DateTimeImmutable::createFromFormat('!Y-m-d H:i', $day->format('Y-m-d') . ' ' . $open, $timezone);
+            $end = DateTimeImmutable::createFromFormat('!Y-m-d H:i', $day->format('Y-m-d') . ' ' . $close, $timezone);
             if (!$start || !$end) {
                 continue;
             }

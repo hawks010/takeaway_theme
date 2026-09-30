@@ -91,7 +91,8 @@ final class TTOS_Analytics {
         $daily_close = array();
 
         foreach ($orders as $order) {
-            if (!is_object($order) || !method_exists($order, 'get_total')) continue;
+            if (!is_object($order) || !method_exists($order, 'get_total') || !TTOS_WooCommerce::has_recorded_payment($order)) continue;
+            if ($order->get_currency() !== get_woocommerce_currency()) continue;
             $created = $order->get_date_created();
             $created_ts = $created ? $created->getTimestamp() : time();
             $hour = (int) wp_date('G', $created_ts);
@@ -102,7 +103,7 @@ final class TTOS_Analytics {
             $refunds = method_exists($order, 'get_total_refunded') ? (float) $order->get_total_refunded() : 0.0;
             $discounts = method_exists($order, 'get_discount_total') ? (float) $order->get_discount_total() : 0.0;
             $delivery = method_exists($order, 'get_shipping_total') ? (float) $order->get_shipping_total() : 0.0;
-            $tax = method_exists($order, 'get_total_tax') ? (float) $order->get_total_tax() : 0.0;
+            $tax = (float) $order->get_total_tax() - (float) $order->get_total_tax_refunded();
             $fees = 0.0;
             foreach ($order->get_items('fee') as $fee) {
                 $fees += method_exists($fee, 'get_total') ? (float) $fee->get_total() : 0.0;
@@ -183,8 +184,9 @@ final class TTOS_Analytics {
         $summary['aov'] = $summary['orders'] ? $summary['gross'] / $summary['orders'] : 0.0;
         $summary['items_per_order'] = $summary['orders'] ? $summary['items'] / $summary['orders'] : 0.0;
         $summary['unique_customers'] = count($customers);
-        $summary['vat_estimate'] = self::vat_estimate($summary['gross']);
-        $summary['direct_savings_estimate'] = $summary['gross'] * 0.168;
+        // Legacy field retained for consumers; value is recorded tax, never an assumed percentage.
+        $summary['vat_estimate'] = $summary['tax'];
+        $summary['direct_savings_estimate'] = null;
 
         $busiest = array('hour' => null, 'orders' => 0, 'gross' => 0.0);
         foreach ($hours as $hour => $row) {
@@ -207,20 +209,20 @@ final class TTOS_Analytics {
     }
 
     public static function orders_between(int $start_ts, int $end_ts): array {
-        if (!function_exists('wc_get_orders')) return array();
-        $orders = wc_get_orders(array(
-            'limit' => -1,
-            'status' => array_keys(wc_get_order_statuses()),
-            'date_created' => '>' . $start_ts,
-            'return' => 'objects',
-        ));
-        return array_values(array_filter($orders, function ($order) use ($start_ts, $end_ts) {
-            if (!is_object($order) || !method_exists($order, 'get_date_created')) return false;
-            $date = $order->get_date_created();
-            if (!$date) return false;
-            $ts = $date->getTimestamp();
-            return $ts >= $start_ts && $ts <= $end_ts;
-        }));
+        if (!function_exists('wc_get_orders') || $start_ts > $end_ts) return array();
+        $all = array();
+        for ($page = 1; ; $page++) {
+            $batch = wc_get_orders(array(
+                'limit' => 100, 'page' => $page, 'type' => 'shop_order',
+                'currency' => get_woocommerce_currency(),
+                'date_created' => $start_ts . '...' . $end_ts,
+                'orderby' => 'ID', 'order' => 'ASC', 'return' => 'objects',
+            ));
+            if (!is_array($batch)) throw new RuntimeException('WooCommerce could not load the report.');
+            foreach ($batch as $order) $all[] = $order;
+            if (count($batch) < 100) break;
+        }
+        return $all;
     }
 
     public static function recent_orders(): array {
@@ -253,21 +255,12 @@ final class TTOS_Analytics {
                 'orders' => 0, 'gross' => 0.0, 'net' => 0.0, 'refunds' => 0.0, 'discounts' => 0.0,
                 'delivery_fees' => 0.0, 'fees' => 0.0, 'tax' => 0.0, 'cash' => 0.0, 'card' => 0.0,
                 'items' => 0, 'aov' => 0.0, 'items_per_order' => 0.0, 'unique_customers' => 0,
-                'vat_estimate' => 0.0, 'direct_savings_estimate' => 0.0,
+                'vat_estimate' => 0.0, 'direct_savings_estimate' => null,
             ),
             'payment_methods' => array(), 'statuses' => array(), 'fulfilment' => array('delivery' => 0, 'collection' => 0, 'unknown' => 0),
             'hours' => array_fill(0, 24, array('orders' => 0, 'gross' => 0.0)), 'busiest_hour' => array('hour' => null, 'orders' => 0, 'gross' => 0.0),
             'days' => array(), 'top_items' => array(), 'recent_orders' => array(),
         );
-    }
-
-    private static function vat_estimate(float $gross): float {
-        $rate = 20.0;
-        if (class_exists('TTOS_Features')) {
-            $feature_rate = (float) TTOS_Features::get('accounting', 'vat_rate');
-            if ($feature_rate > 0) $rate = $feature_rate;
-        }
-        return $gross - ($gross / (1 + ($rate / 100)));
     }
 
     private static function money_csv_rows(array $report, string $label): array {
@@ -282,7 +275,7 @@ final class TTOS_Analytics {
             array('Summary', 'Discounts', self::decimal($s['discounts'])),
             array('Summary', 'Delivery fees', self::decimal($s['delivery_fees'])),
             array('Summary', 'Fees', self::decimal($s['fees'])),
-            array('Summary', 'VAT estimate', self::decimal($s['vat_estimate'])),
+            array('Summary', 'Recorded tax after refunds', self::decimal($s['vat_estimate'])),
             array('Summary', 'Card/non-cash', self::decimal($s['card'])),
             array('Summary', 'Cash', self::decimal($s['cash'])),
             array('Summary', 'Average order value', self::decimal($s['aov'])),
@@ -312,7 +305,7 @@ final class TTOS_Analytics {
             array('Refunds', self::decimal($s['refunds'])),
             array('Discounts', self::decimal($s['discounts'])),
             array('Delivery fees', self::decimal($s['delivery_fees'])),
-            array('VAT estimate', self::decimal($s['vat_estimate'])),
+            array('Recorded tax after refunds', self::decimal($s['vat_estimate'])),
             array('Average order value', self::decimal($s['aov'])),
             array('', ''),
             array('Payment method', 'Orders', 'Gross'),

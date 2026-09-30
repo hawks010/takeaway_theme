@@ -30,7 +30,8 @@ final class TTOS_Features {
         add_action('woocommerce_checkout_create_order_line_item', array(__CLASS__, 'save_meal_deal_order_item_meta'), 20, 4);
 
         add_action('woocommerce_new_order', array(__CLASS__, 'order_created_integrations'), 20, 2);
-        add_action('woocommerce_after_order_status_changed', array(__CLASS__, 'order_status_integrations'), 20, 4);
+        add_action('woocommerce_order_status_changed', array(__CLASS__, 'order_status_integrations'), 20, 4);
+        add_action('ttos_kitchen_status_changed', array(__CLASS__, 'order_status_integrations'), 20, 4);
         add_action('woocommerce_order_status_completed', array(__CLASS__, 'award_rewards'), 20, 1);
         add_action('woocommerce_cart_calculate_fees', array(__CLASS__, 'apply_advanced_zone_fee'), 30);
         add_action('woocommerce_checkout_process', array(__CLASS__, 'validate_advanced_zone_checkout'));
@@ -653,11 +654,15 @@ final class TTOS_Features {
 
     private static function save_inventory_rows(array $rows): void {
         foreach ($rows as $row) {
-            $id = absint($row['id'] ?? 0); if (!$id || get_post_type($id) !== 'product') continue;
-            $available = !empty($row['available']); $hidden = !empty($row['hidden']); $qty = isset($row['qty']) && $row['qty'] !== '' ? max(0, absint($row['qty'])) : '';
-            wp_update_post(array('ID' => $id, 'post_status' => $hidden ? 'draft' : 'publish'));
-            if ($qty !== '') { update_post_meta($id, '_manage_stock', 'yes'); update_post_meta($id, '_stock', $qty); update_post_meta($id, '_stock_status', ($available && $qty > 0) ? 'instock' : 'outofstock'); }
-            else { update_post_meta($id, '_manage_stock', 'no'); update_post_meta($id, '_stock_status', $available ? 'instock' : 'outofstock'); }
+            if (!is_array($row)) { continue; }
+            $product = wc_get_product(absint($row['id'] ?? 0));
+            if (!$product) { continue; }
+            $qty = isset($row['qty']) && $row['qty'] !== '' ? max(0, absint($row['qty'])) : null;
+            $product->set_status(!empty($row['hidden']) ? 'draft' : 'publish');
+            $product->set_manage_stock($qty !== null);
+            $product->set_stock_quantity($qty);
+            $product->set_stock_status(!empty($row['available']) && ($qty === null || $qty > 0) ? 'instock' : 'outofstock');
+            $product->save();
         }
     }
 
@@ -873,7 +878,7 @@ final class TTOS_Features {
 
     private static function process_retry_queue(bool $manual = false): void {
         $queue = self::integration_queue();
-        if (!$queue) { self::log('retry', 'Retry queue is empty.'); return; }
+        if (!$queue) { return; }
         $now = time();
         $remaining = array();
         $processed = 0;
@@ -966,7 +971,8 @@ final class TTOS_Features {
             'event' => $event,
             'order_id' => $order->get_id(),
             'status' => $status,
-            'epos_status' => self::mapped_epos_status($status),
+            'kitchen_status' => TTOS_WooCommerce::kitchen_status($order),
+            'epos_status' => self::mapped_epos_status(TTOS_WooCommerce::kitchen_status($order)),
             'total' => $order->get_total(),
             'currency' => $order->get_currency(),
             'payment_method' => $order->get_payment_method(),
@@ -1011,7 +1017,7 @@ final class TTOS_Features {
             $sent = true;
         }
         if (TTOS_Settings::module_enabled('sms_updates')) {
-            self::send_order_sms($order, $order->get_status());
+            self::send_order_sms($order, TTOS_WooCommerce::kitchen_status($order));
             $sent = true;
         }
         if (!$sent) {

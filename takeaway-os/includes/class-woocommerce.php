@@ -19,9 +19,6 @@ final class TTOS_WooCommerce {
         add_action('woocommerce_checkout_after_customer_details', array(__CLASS__, 'checkout_experience_panel'), 20);
         add_action('woocommerce_thankyou', array(__CLASS__, 'thankyou_tracking_prompt'), 5);
 
-        // Cash on Delivery: ensure the gateway is registered and enabled.
-        add_filter('woocommerce_payment_gateways', array(__CLASS__, 'ensure_cod_gateway'));
-
         // Service charge: percentage-based fee added to cart totals.
         add_action('woocommerce_cart_calculate_fees', array(__CLASS__, 'apply_service_charge'));
 
@@ -70,6 +67,19 @@ final class TTOS_WooCommerce {
 
     public static function dietary_list(): array {
         return array('halal' => 'Halal', 'vegetarian' => 'Vegetarian', 'vegan' => 'Vegan', 'gluten-free' => 'Gluten-free', 'spicy' => 'Spicy', 'popular' => 'Popular');
+    }
+
+    /** Read WooCommerce's recorded payment evidence; do not infer it from a kitchen stage. */
+    public static function has_recorded_payment($order): bool {
+        return (bool) $order->get_date_paid() || (bool) $order->is_paid();
+    }
+
+    /** Kitchen metadata is separate from WooCommerce commerce/payment state. */
+    public static function kitchen_status($order): string {
+        $native = (string) $order->get_status();
+        if (in_array($native, array('completed', 'cancelled', 'refunded', 'failed'), true)) return $native;
+        $stage = (string) $order->get_meta('_ttos_kitchen_status');
+        return in_array($stage, array('ttos-accepted','ttos-prepping','ttos-ready','ttos-out'), true) ? $stage : $native;
     }
 
     public static function register_order_statuses(): void {
@@ -260,98 +270,87 @@ final class TTOS_WooCommerce {
     }
 
     public static function create_or_update_product(array $data): int {
-        if (!post_type_exists('product')) {
+        if (!function_exists('wc_get_product') || !class_exists('WC_Product_Simple')) { return 0; }
+        $id = absint($data['product_id'] ?? 0);
+        $product = $id ? wc_get_product($id) : new WC_Product_Simple();
+        // The takeaway form manages simple products with option groups. Never convert other native types.
+        if (!$product || !$product->is_type('simple')) { return 0; }
+        $name = sanitize_text_field($data['name'] ?? $product->get_name());
+        if ($name === '') { return 0; }
+        foreach (array('price', 'sale_price') as $field) {
+            if (array_key_exists($field, $data) && $data[$field] !== '') {
+                if (!is_scalar($data[$field]) || is_bool($data[$field]) || !is_numeric($data[$field]) || !is_finite((float) $data[$field]) || (float) $data[$field] < 0) { return 0; }
+            }
+        }
+        try {
+            $product->set_name($name);
+            if (array_key_exists('description', $data)) {
+                $description = wp_kses_post($data['description']);
+                $product->set_description($description);
+                $product->set_short_description($description);
+            }
+            if (array_key_exists('hidden', $data) || !$id) { $product->set_status(!empty($data['hidden']) ? 'draft' : 'publish'); }
+            if (array_key_exists('sort_order', $data)) { $product->set_menu_order((int) $data['sort_order']); }
+            if (array_key_exists('price', $data)) { $product->set_regular_price(wc_format_decimal($data['price'])); }
+            if (array_key_exists('sale_price', $data)) { $product->set_sale_price($data['sale_price'] === '' ? '' : wc_format_decimal($data['sale_price'])); }
+            if (array_key_exists('limited_qty', $data)) {
+                $qty = $data['limited_qty'] === '' ? null : max(0, absint($data['limited_qty']));
+                $product->set_manage_stock($qty !== null);
+                $product->set_stock_quantity($qty);
+            }
+            if (array_key_exists('sold_out', $data) || array_key_exists('limited_qty', $data) || !$id) {
+                $empty = $product->get_manage_stock() && (int) $product->get_stock_quantity() < 1;
+                $product->set_stock_status(!empty($data['sold_out']) || $empty ? 'outofstock' : 'instock');
+            }
+            if (array_key_exists('tax_status', $data)) { $product->set_tax_status(sanitize_key($data['tax_status'])); }
+            if (array_key_exists('featured', $data)) { $product->set_featured(!empty($data['featured'])); }
+            if (array_key_exists('image_id', $data)) { $product->set_image_id(absint($data['image_id'])); }
+            $product->update_meta_data('_ttos_menu_item', '1');
+            foreach (array('spice', 'badges', 'allergens', 'discount_note') as $field) {
+                if (array_key_exists($field, $data)) { $product->update_meta_data('_ttos_' . $field, sanitize_text_field($data[$field])); }
+            }
+            if (array_key_exists('cost_price', $data)) { $product->update_meta_data('_ttos_cost_price', wc_format_decimal($data['cost_price'])); }
+            if (array_key_exists('option_groups', $data)) { $product->update_meta_data('_ttos_option_groups', self::sanitise_option_groups($data['option_groups'])); }
+            $category = sanitize_text_field($data['category'] ?? '');
+            if ($category !== '' && taxonomy_exists('product_cat')) {
+                $term = term_exists($category, 'product_cat');
+                if (!$term) { $term = wp_insert_term($category, 'product_cat'); }
+                if (is_wp_error($term)) { return 0; }
+                $product->set_category_ids(array((int) (is_array($term) ? $term['term_id'] : $term)));
+            }
+            $id = (int) $product->save();
+        } catch (Exception $e) {
             return 0;
         }
-
-        $product_id = absint($data['product_id'] ?? 0);
-        $sort_order = isset($data['sort_order']) ? (int) $data['sort_order'] : 0;
-        $post_data = array(
-            'post_title'   => sanitize_text_field($data['name'] ?? ''),
-            'post_content' => wp_kses_post($data['description'] ?? ''),
-            'post_excerpt' => wp_kses_post($data['description'] ?? ''),
-            'post_type'    => 'product',
-            'post_status'  => !empty($data['hidden']) ? 'draft' : 'publish',
-            'menu_order'   => $sort_order,
-        );
-        if ($product_id) {
-            $post_data['ID'] = $product_id;
-            wp_update_post($post_data);
-        } else {
-            $product_id = wp_insert_post($post_data);
+        if (!$id) { return 0; }
+        if (taxonomy_exists('ttos_allergen') && (array_key_exists('allergen_slugs', $data) || array_key_exists('allergens', $data))) {
+            $slugs = isset($data['allergen_slugs']) && is_array($data['allergen_slugs']) ? $data['allergen_slugs'] : explode(',', (string) ($data['allergens'] ?? ''));
+            wp_set_object_terms($id, array_filter(array_map('sanitize_key', $slugs)), 'ttos_allergen', false);
         }
-        if (!$product_id || is_wp_error($product_id)) {
-            return 0;
+        if (taxonomy_exists('ttos_dietary') && array_key_exists('dietary', $data)) {
+            $dietary = is_array($data['dietary']) ? array_map('sanitize_key', $data['dietary']) : array();
+            wp_set_object_terms($id, array_filter($dietary), 'ttos_dietary', false);
         }
-
-        $regular_price = wc_format_decimal($data['price'] ?? 0);
-        $sale_price = isset($data['sale_price']) && $data['sale_price'] !== '' ? wc_format_decimal($data['sale_price']) : '';
-        $active_price = $sale_price !== '' ? $sale_price : $regular_price;
-
-        update_post_meta($product_id, '_regular_price', $regular_price);
-        update_post_meta($product_id, '_sale_price', $sale_price);
-        update_post_meta($product_id, '_price', $active_price);
-        $limited_qty = isset($data['limited_qty']) && $data['limited_qty'] !== '' ? max(0, absint($data['limited_qty'])) : '';
-        if ($limited_qty !== '') {
-            update_post_meta($product_id, '_manage_stock', 'yes');
-            update_post_meta($product_id, '_stock', $limited_qty);
-            update_post_meta($product_id, '_stock_status', (!empty($data['sold_out']) || $limited_qty < 1) ? 'outofstock' : 'instock');
-        } else {
-            update_post_meta($product_id, '_manage_stock', 'no');
-            delete_post_meta($product_id, '_stock');
-            update_post_meta($product_id, '_stock_status', !empty($data['sold_out']) ? 'outofstock' : 'instock');
-        }
-        update_post_meta($product_id, '_ttos_menu_item', '1');
-        update_post_meta($product_id, '_tax_status', sanitize_key($data['tax_status'] ?? 'taxable'));
-        update_post_meta($product_id, '_featured', !empty($data['featured']) ? 'yes' : 'no');
-        update_post_meta($product_id, '_ttos_cost_price', wc_format_decimal($data['cost_price'] ?? ''));
-        update_post_meta($product_id, '_ttos_spice', sanitize_text_field($data['spice'] ?? ''));
-        update_post_meta($product_id, '_ttos_badges', sanitize_text_field($data['badges'] ?? ''));
-        update_post_meta($product_id, '_ttos_allergens', sanitize_text_field($data['allergens'] ?? ''));
-        update_post_meta($product_id, '_ttos_discount_note', sanitize_text_field($data['discount_note'] ?? ''));
-        update_post_meta($product_id, '_ttos_option_groups', self::sanitise_option_groups($data['option_groups'] ?? '[]'));
-
-        $image_id = absint($data['image_id'] ?? 0);
-        if ($image_id) {
-            set_post_thumbnail($product_id, $image_id);
-        } else {
-            delete_post_thumbnail($product_id);
-        }
-
-        $category = sanitize_text_field($data['category'] ?? '');
-        if ($category !== '' && taxonomy_exists('product_cat')) {
-            $term = term_exists($category, 'product_cat');
-            if (!$term) {
-                $term = wp_insert_term($category, 'product_cat');
-            }
-            if (!is_wp_error($term)) {
-                $term_id = is_array($term) ? (int) $term['term_id'] : (int) $term;
-                wp_set_object_terms($product_id, array($term_id), 'product_cat');
-            }
-        }
-
-        if (taxonomy_exists('ttos_allergen')) {
-            $allergen_slugs = array();
-            if (!empty($data['allergen_slugs']) && is_array($data['allergen_slugs'])) {
-                $allergen_slugs = array_map('sanitize_key', $data['allergen_slugs']);
-            } elseif (!empty($data['allergens'])) {
-                $allergen_slugs = array_map('sanitize_key', preg_split('/,/', (string) $data['allergens']));
-            }
-            wp_set_object_terms($product_id, array_filter($allergen_slugs), 'ttos_allergen', false);
-        }
-
-        if (taxonomy_exists('ttos_dietary')) {
-            $dietary = !empty($data['dietary']) && is_array($data['dietary']) ? array_map('sanitize_key', $data['dietary']) : array();
-            wp_set_object_terms($product_id, array_filter($dietary), 'ttos_dietary', false);
-        }
-
-        if (function_exists('wp_set_object_terms')) {
-            wp_set_object_terms($product_id, 'simple', 'product_type');
-        }
-
-        return (int) $product_id;
+        return $id;
     }
 
+    /** Owner actions use native product setters so WooCommerce updates its lookup tables and caches. */
+    public static function set_product_state(int $id, string $action): bool {
+        $product = function_exists('wc_get_product') ? wc_get_product($id) : false;
+        if (!$product) { return false; }
+        switch ($action) {
+            case 'soldout': $product->set_stock_status('outofstock'); break;
+            case 'available':
+                $empty = $product->get_manage_stock() && (int) $product->get_stock_quantity() < 1 && !$product->backorders_allowed();
+                $product->set_stock_status($empty ? 'outofstock' : 'instock'); break;
+            case 'hide': $product->set_status('draft'); break;
+            case 'show': $product->set_status('publish'); break;
+            case 'feature': $product->set_featured(true); break;
+            case 'unfeature': $product->set_featured(false); break;
+            default: return false;
+        }
+        return (bool) $product->save();
+    }
 
     public static function duplicate_product(int $product_id): int {
         if (!post_type_exists('product') || get_post_type($product_id) !== 'product') {
@@ -982,17 +981,8 @@ final class TTOS_WooCommerce {
     // Cash on Delivery
     // -------------------------------------------------------------------------
 
-    /**
-     * Ensure the WooCommerce COD gateway class is registered even when the
-     * built-in option is not yet set. The option-level default written by
-     * TTOS_Onboarding::apply_profile() is what actually enables it; this filter
-     * just guarantees the class is in the registered list so WooCommerce can see
-     * it on the checkout and in WC > Settings > Payments.
-     */
+    /** Backwards-compatible no-op. Gateway registration belongs to WooCommerce. */
     public static function ensure_cod_gateway(array $gateways): array {
-        if (!in_array('WC_Gateway_COD', $gateways, true)) {
-            $gateways[] = 'WC_Gateway_COD';
-        }
         return $gateways;
     }
 

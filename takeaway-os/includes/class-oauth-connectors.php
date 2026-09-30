@@ -114,9 +114,11 @@ final class TTOS_OAuth_Connectors {
                 'type' => (string) ($config['type'] ?? 'general'),
                 'available' => $available,
                 'connect_url' => self::referral_url($provider),
-                'message' => $available
-                    ? __('Ready to connect.', 'takeaway-os')
-                    : __('Not yet available - contact your developer.', 'takeaway-os'),
+                'connected' => false,
+                'mode' => !empty($config['client_id_constant']) ? 'oauth_scaffold' : 'provider_link',
+                'message' => !empty($config['client_id_constant'])
+                    ? __('OAuth setup is incomplete; use the provider plugin settings.', 'takeaway-os')
+                    : __('Provider website link only; not an active integration.', 'takeaway-os'),
             );
         }
         return $payload;
