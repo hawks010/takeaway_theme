@@ -38,7 +38,15 @@ Local disposable fixture: WordPress 7.1.2, WooCommerce 11.1.2, PHP 8.5.1, MariaD
 | In-app browser, JavaScript on | Both method switches refresh times without reloading; valid 20:00 time survives switch; Tab reaches refreshed time select | `/tmp/takeaway-fulfilment-slot-refresh-20260930.jpg` |
 | In-app browser, JavaScript off | Menu -> basket -> checkout retains collection; native Update Totals saves delivery back to the menu after the fix | Browser session evidence; scripting restored and temporary tab closed |
 
-Known pre-existing test-harness ReflectionMethod deprecation notices are nonfatal in the isolated PHP 8.5 run. None of its assertions were skipped. The CI matrix and all original runtime/repetition scenarios remain unchanged; new-source CI results are recorded separately after execution.
+Known pre-existing test-harness ReflectionMethod deprecation notices are nonfatal in the isolated PHP 8.5 run. None of its assertions were skipped. The CI matrix and all original runtime/repetition scenarios remain unchanged.
+
+### Executed CI evidence
+
+Application commit `0cec15cc7a4994b3315750786f1190266f4437f8` passed all four jobs in both [push run 36780821761](https://github.com/hawks010/takeaway_theme/actions/runs/36780821761) and [PR run 36780825970](https://github.com/hawks010/takeaway_theme/actions/runs/36780825970). The PR ran merge snapshot `862e81a1f2458562042d3c0df63803d0f263f831`. Subsequent documentation-only changes do not alter the tested application.
+
+Retrieved PHP 8.5.11 push and PHP 8.2.34 PR artifacts confirm WordPress 7.1.2 / WooCommerce 11.1.2, all 41 original native checks, all 26 fulfilment checks, both HTTP journeys and persisted offline checkout. Both isolated regression jobs passed all 63 checks. The PHP 8.5 push repetition artifact records 10/10 complete owner/export/checkout runs with OPcache on, PCRE JIT on, PHP JIT disabled and the unchanged 30-second limit. The PR repetition step also succeeded.
+
+All 224 plugin/theme paths in each retrieved tested source archive match the local candidates byte-for-byte, including the bundled ZIP. Retrieved evidence directories are `/tmp/ttos-rc3-ci-push-85-20260930` and `/tmp/ttos-rc3-ci-pr-82-20260930`. These results remain disposable-fixture evidence, not actual-hosting/provider acceptance.
 
 ## Actual hosting inspection
 
