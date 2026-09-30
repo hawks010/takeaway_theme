@@ -60,8 +60,10 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: mysqli
+          # Avoid inheriting dozens of unrelated PECL/database drivers from the runner.
+          extensions: none, ctype, curl, dom, exif, fileinfo, gd, iconv, intl, mbstring, mysqli, mysqlnd, openssl, phar, simplexml, sodium, tokenizer, xml, xmlreader, xmlwriter, zip
           coverage: none
+          tools: none
       - name: Record disposable PHP runtime
         run: |
           { php -v; php --ini; php -m; php -r 'foreach (["opcache.enable_cli", "opcache.jit", "opcache.jit_buffer_size", "pcre.jit"] as $key) echo $key . "=" . ini_get($key) . PHP_EOL;'; } > /tmp/php-runtime.txt
