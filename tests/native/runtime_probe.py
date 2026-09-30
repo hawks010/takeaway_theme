@@ -35,7 +35,7 @@ evidence.mkdir(parents=True, exist_ok=True)
 def wp(*command, check=True):
     return subprocess.run([args.php, '-d', 'memory_limit=512M', args.wp_cli,
                            '--no-color', '--path=' + str(Path(args.wp_path).resolve()),
-                           *command], check=check, capture_output=True, text=True)
+                           *command], check=check, capture_output=True, text=True, timeout=60)
 
 guard = wp('eval', 'if (!defined("TTOS_FIXTURE_ONLY") || TTOS_FIXTURE_ONLY !== true || wp_get_environment_type() !== "local") { WP_CLI::error("Not a disposable fixture"); } echo "TTOS_LOCAL_FIXTURE";')
 if 'TTOS_LOCAL_FIXTURE' not in guard.stdout:

@@ -68,6 +68,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq gdb
+          sudo sysctl -w kernel.core_pattern=/tmp/ttos-php-core.%p
       - name: Record disposable PHP runtime
         run: |
           { php -v; php --ini; php -m; php -r 'foreach (["opcache.enable_cli", "opcache.jit", "opcache.jit_buffer_size", "pcre.jit"] as $key) echo $key . "=" . ini_get($key) . PHP_EOL;'; } > /tmp/php-runtime.txt
@@ -107,6 +108,7 @@ jobs:
       - name: Authenticated owner and native checkout HTTP smoke
         run: |
           set -euo pipefail
+          ulimit -c unlimited
           php -S 127.0.0.1:8080 -t "$WP_PATH" > /tmp/php-server.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
@@ -135,6 +137,11 @@ jobs:
             if [ -f "$file" ]; then cp "$file" /tmp/takeaway-review/; fi
           done
           if [ -d /tmp/checkout-runtime-comparison ]; then cp -R /tmp/checkout-runtime-comparison /tmp/takeaway-review/; fi
+          for core in /tmp/ttos-php-core.*; do
+            if [ -f "$core" ]; then
+              gdb --batch -ex 'set pagination off' -ex 'thread apply all bt full' "$(command -v php)" "$core" > "/tmp/takeaway-review/$(basename "$core")-backtrace.txt" 2>&1 || true
+            fi
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
