@@ -17,8 +17,13 @@ for attempt in range(30):
         fetch(client(),base+'/wp-login.php').read();break
     except OSError:
         time.sleep(.3)
-owner=client()
-fetch(owner,base+'/wp-login.php').read()
+owner_jar = http.cookiejar.CookieJar()
+owner = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(owner_jar))
+login_page = fetch(owner,base+'/wp-login.php')
+login_page.read()
+# Only disposable-cookie metadata is logged, never credential or cookie values.
+print('LOGIN COOKIE METADATA', [(c.name, c.domain, c.path, c.secure) for c in owner_jar])
+print('LOGIN COOKIE HEADER FLAGS', [h.split(';')[1:] for h in login_page.headers.get_all('Set-Cookie', [])])
 response=fetch(owner,base+'/wp-login.php',{'log':'fixtureowner','pwd':os.environ['TEST_OWNER_PASSWORD'],'wp-submit':'Log In','redirect_to':base+'/wp-admin/admin.php?page=takeaway-os','testcookie':'1'})
 body=response.read().decode()
 if 'wp-login.php' in response.url:
