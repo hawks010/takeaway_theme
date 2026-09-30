@@ -34,9 +34,9 @@ WooCommerce and the selected gateway own commerce. No core/gateway edits, replac
 
 ## Required before a live client handoff
 
-Continuation evidence and current hosting/provider state: [BACKEND-VERIFICATION-20260930.md](BACKEND-VERIFICATION-20260930.md). The bundled candidate has now been rebuilt locally; installation and runtime diagnosis remain open.
+Continuation evidence and current hosting/provider state: [BACKEND-VERIFICATION-20260930.md](BACKEND-VERIFICATION-20260930.md). The bundled candidate has been rebuilt; native CI is now green under explicit runtime settings. Installation and existing-hosting-stack verification remain open.
 
-- [ ] Resolve the intermittent native HTTP runtime failure documented in the Codex report. Final CI run 36738844443 passes both native assertion suites; PHP 8.2 completes checkout, but PHP 8.5 times out loading it. Earlier development-server segmentation faults also occurred. Root cause remains unknown; do not bypass native validation or hide this with an increased timeout.
+- [x] Investigate and stabilize the intermittent native HTTP runtime failure documented in the Codex report. Controlled PHP 8.5.11 comparisons isolate reproduced crashes to the runner's opt-in function JIT; disabling PCRE JIT does not repair it. Native CI now explicitly keeps OPcache and PCRE JIT on, with PHP JIT disabled and the unchanged 30-second limit. Runs 36765963874 and 36765967557 pass PHP 8.2/8.5, all original scenarios and 20 additional full PHP 8.5 HTTP runs. No native validation was bypassed. The exact upstream C defect and earlier timeout reproducer remain unidentified; hosting JIT state and actual-stack verification remain open.
 
 - [ ] Review and install the tested source through the normal release process. Nothing here is live yet. Rebuild the bundled plugin ZIP so the theme cannot reinstall the old version.
 - [ ] Test the existing theme/plugin/cache/security stack, not only the clean fixture; exercise owner/kitchen operations in a real browser and run WAVE plus keyboard/screen-reader checks.
@@ -44,7 +44,7 @@ Continuation evidence and current hosting/provider state: [BACKEND-VERIFICATION-
 - [ ] Verify transactional delivery with the chosen mailer and real intended recipients; test failure visibility and recovery without real marketing mailouts.
 - [ ] Rehearse menus/options/extras/deals, tax and sale changes, overnight hours/clock changes, pauses and kitchen handoffs with the actual storefront. Classic checkout is the tested path; do not claim Blocks support without its own work and tests.
 - [ ] Rehearse an upgrade and a second-business setup. Preserve orders and client content. Do not restore an old database over newer orders as a routine code rollback.
-- [ ] Review existing orphaned WooCommerce scheduler records with its normal tools; do not delete them blindly or patch the scheduler. Check legacy accounting exports left from older versions before deleting any files.
+- [x] Review existing orphaned WooCommerce scheduler records with its normal tools; do not delete them blindly or patch the scheduler. Inspection found 77 failed actions and missing callbacks in the reviewed migration/database records; the current WooCommerce database version is 11.1.2. Both legacy accounting CSV URLs return 403. No scheduler actions or files were modified. Any retention/deletion policy remains a separate decision.
 - [ ] Measure realistic-history performance. Pagination fixes per-query size and truncation, but CRM/report/export screens still perform full-history work and some assemble rows in memory.
 
 ## Wider features still not finished or proven
