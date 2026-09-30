@@ -1,19 +1,20 @@
 """Real theme form -> cart -> checkout preference, on a disposable loopback shop.
 No orders are submitted. Native shipping rates and payment methods are not rewritten.
 """
-import http.cookiejar, json, os, re, subprocess, urllib.error, urllib.parse, urllib.request
+import base64, http.cookiejar, json, os, re, subprocess, urllib.error, urllib.parse, urllib.request
 from html.parser import HTMLParser
 from pathlib import Path
 base=os.environ.get('TTOS_TEST_BASE_URL','http://127.0.0.1:8080').rstrip('/')
 url=urllib.parse.urlsplit(base)
-if url.scheme!='http' or url.hostname not in ('127.0.0.1','localhost') or url.path:
+if url.scheme!='http' or url.hostname not in ('127.0.0.1','localhost') or url.path or url.username or url.password or url.query or url.fragment:
     raise RuntimeError('Use a disposable loopback fixture')
 fixture=json.loads(Path('/tmp/ttos-fixtures.json').read_text())
 wp_path=os.environ.get('WP_PATH','/tmp/ttos-wp')
 wp_cli=os.environ.get('TTOS_WP_CLI','/tmp/wp-cli.phar')
 def wp(code):
-    return subprocess.check_output(['php',wp_cli,'--path='+wp_path,'eval',
+    return subprocess.check_output(['php','-d','memory_limit=512M','-d','error_reporting=24575',wp_cli,'--path='+wp_path,'eval',
         "if (!defined('TTOS_FIXTURE_ONLY') || !TTOS_FIXTURE_ONLY || wp_get_environment_type() !== 'local') throw new RuntimeException('Fixture only'); "+code],text=True)
+wp('if (untrailingslashit(home_url()) !== '+json.dumps(base)+') throw new RuntimeException("Fixture URL mismatch");')
 wp('$id = '+str(fixture['product_id'])+'; $term = term_exists("fixture-menu", "product_cat") ?: wp_insert_term("Fixture menu", "product_cat", array("slug"=>"fixture-menu")); $p = wc_get_product($id); $p->set_category_ids(array((int)$term["term_id"])); $p->save();')
 shop=wp('echo wc_get_page_permalink("shop");').strip()
 assert shop.startswith(base+'/'), shop
@@ -78,4 +79,52 @@ with visitor.open(base+'/?wc-ajax=update_order_review',urllib.parse.urlencode(bo
 assert page(visitor,shop).selected()=='collection'
 assert page(visitor,fixture['checkout_url']).checkout_choice()=='collection'
 print('PASS native checkout review choice persists back to the menu')
-print('FULFILMENT HTTP complete: real theme, native form submissions, no order submitted')
+before=json.loads(wp('echo wp_json_encode(array("hours"=>TTOS_Site_Content::get("opening_times"),"checkout"=>TTOS_Operations::get("checkout")));'))
+try:
+    tomorrow=wp('$hours=TTOS_Site_Content::get("opening_times");$hours["override"]="normal";$hours["temporary_closure"]="0";foreach($hours["days"] as &$day){$day=array_merge($day,array("closed"=>"0","open"=>"08:00","close"=>"23:00","collection_open"=>"08:00","collection_close"=>"23:00","delivery_open"=>"16:00","delivery_close"=>"23:00"));}unset($day);TTOS_Site_Content::update_section("opening_times",$hours);TTOS_Operations::update_section("checkout",array_merge(TTOS_Operations::get("checkout"),array("time_mode"=>"slot","preorder_enabled"=>"1","lead_time_collection"=>"0","lead_time_delivery"=>"0","max_days_ahead"=>"2")));echo (new DateTimeImmutable("tomorrow",wp_timezone()))->format("Y-m-d");').strip()
+    def review(method,requested):
+        body['post_data']=urllib.parse.urlencode({'ttos_fulfilment_method':method,'ttos_requested_time':requested})
+        with visitor.open(base+'/?wc-ajax=update_order_review',urllib.parse.urlencode(body).encode(),timeout=40) as response:
+            result=json.loads(response.read().decode())
+        assert result.get('result')=='success',result
+        assert '.woocommerce-checkout-review-order-table' in result['fragments']
+        assert '.woocommerce-checkout-payment' in result['fragments']
+        return Page(result['fragments']['#ttos_requested_time_field'])
+    morning=tomorrow+'T08:00'; evening=tomorrow+'T20:00'
+    collection=review('collection',morning).selects['ttos_requested_time']
+    assert any(o['value']==morning and 'selected' in o for o in collection)
+    delivery=review('delivery',morning).selects['ttos_requested_time']
+    assert all(o['value']!=morning for o in delivery)
+    assert next(o['value'] for o in delivery if 'selected' in o)==''
+    print('PASS native AJAX refresh replaces collection-only slots and clears unavailable scheduled time')
+    delivery=review('delivery',evening).selects['ttos_requested_time']
+    assert any(o['value']==evening and 'selected' in o for o in delivery)
+    collection=review('collection',evening).selects['ttos_requested_time']
+    assert any(o['value']==evening and 'selected' in o for o in collection)
+    assert any(o['value']==morning for o in collection)
+    print('PASS reverse AJAX selection restores collection slots and retains a still-valid requested time')
+    assert page(visitor,shop).selected()=='collection'
+    assert page(visitor,fixture['checkout_url']).checkout_choice()=='collection'
+    print('PASS refreshed slot fragments retain menu/checkout preference persistence')
+finally:
+    payload=base64.b64encode(json.dumps(before).encode()).decode()
+    wp('$before=json_decode(base64_decode("'+payload+'"),true);TTOS_Site_Content::update_section("opening_times",$before["hours"]);TTOS_Operations::update_section("checkout",$before["checkout"]);')
+order_count=wp('echo wc_get_orders(array("limit"=>1,"paginate"=>true))->total;').strip()
+def update_totals(method,valid_nonce=True):
+    checkout=page(visitor,fixture['checkout_url'])
+    form=next(f for f in checkout.forms if 'woocommerce-process-checkout-nonce' in f['fields'])
+    fields=dict(form['fields'])
+    fields.update({'woocommerce_checkout_update_totals':'1','ttos_fulfilment_method':method,'ttos_requested_time':'asap','billing_first_name':'Fixture','billing_last_name':'Guest','billing_country':'GB','billing_address_1':'1 Example Street','billing_city':'London','billing_postcode':'SW1A 1AA','billing_email':'guest@example.test','payment_method':'ttos_fixture'})
+    if not valid_nonce: fields['woocommerce-process-checkout-nonce']='invalid'
+    return page(visitor,urllib.parse.urljoin(fixture['checkout_url'],form['attrs'].get('action','')),fields)
+update_totals('delivery',valid_nonce=False)
+assert page(visitor,shop).selected()=='collection'
+print('PASS invalid native checkout nonce cannot overwrite the saved preference')
+for method in ('delivery','collection'):
+    assert update_totals(method).checkout_choice()==method
+    assert page(visitor,shop).selected()==method
+    assert page(visitor,fixture['checkout_url']).checkout_choice()==method
+    print('PASS native no-JavaScript Update Totals persists '+method+' back to menu and checkout')
+assert wp('echo wc_get_orders(array("limit"=>1,"paginate"=>true))->total;').strip()==order_count
+print('PASS native Update Totals creates no orders')
+print('FULFILMENT HTTP complete: real theme, native forms and AJAX fragments, no order submitted')

@@ -1,7 +1,7 @@
 # Backend work list, 30 September 2026
 
 Repository: `hawks010/takeaway_theme`. Branch: `fix/backend-foundations-20260930`. PR: #2.
-Candidate: `1.3.13-rc.2`. Paired theme: `0.3.35-rc.1`. Original source: `dc0f056770d4749c0c3b844f73cff7c99b47a127`.
+Candidate: `1.3.13-rc.3`. Paired theme: `0.3.35-rc.2`. Original source: `dc0f056770d4749c0c3b844f73cff7c99b47a127`.
 
 ## Product boundaries
 
@@ -33,11 +33,14 @@ WooCommerce and the selected gateway own commerce. No core/gateway edits, replac
 - [x] Exercise normal owner login, 15 owner backend pages, authenticated/anonymous export access and native classic checkout over HTTP in the disposable fixture.
 - [x] Correct menu collection/delivery persistence using the existing WooCommerce session and ordinary form submission. The menu, checkout default and existing zone-fee reader share one preference. Actual-theme menu/cart/checkout HTTP journeys and 13 additional assertions pass on PHP 8.2/8.5 in push run 36769737190. See FULFILMENT-VERIFICATION-20260930.md.
 - [x] Rebuild the paired theme's bundled plugin and manifest for rc.2. All 50 package files match source and ZIP integrity passes. Package SHA-256: `1108f2fa5bd438464479b1e2ab2232c08a41d5c1f79ca9aeb118ec21d5768678`.
+- [x] Reproduce and fix stale method-specific checkout slots through the native review-fragment hook; preserve still-valid selections. Also persist no-JavaScript Update Totals choices through WooCommerce's nonce-validated checkout hook. The fulfilment suite now has 26 assertions. See FULFILMENT-ACCEPTANCE-20260930.md for browser evidence and remaining boundaries.
+- [x] Rebuild the paired rc.3 plugin / rc.2 theme package. All 50 distributable files match source and ZIP integrity passes. Package SHA-256: `2b01d2f43cdc9893bc2eb0266fef878839834043f5627e5692715a2ab146aa47`.
 
 ## Required before a live client handoff
 
 Runtime and hosting/provider evidence: [BACKEND-VERIFICATION-20260930.md](BACKEND-VERIFICATION-20260930.md).
 Latest preference-persistence fix and tested candidates: [FULFILMENT-VERIFICATION-20260930.md](FULFILMENT-VERIFICATION-20260930.md).
+Continuation findings and acceptance limits: [FULFILMENT-ACCEPTANCE-20260930.md](FULFILMENT-ACCEPTANCE-20260930.md).
 The bundled candidate has been rebuilt; native CI is green under explicit runtime settings. Installation and existing-hosting-stack verification remain open.
 
 - [x] Investigate and stabilize the intermittent native HTTP runtime failure documented in the Codex report. Controlled PHP 8.5.11 comparisons isolate reproduced crashes to the runner's opt-in function JIT; disabling PCRE JIT does not repair it. Native CI now explicitly keeps OPcache and PCRE JIT on, with PHP JIT disabled and the unchanged 30-second limit. Runs 36765963874 and 36765967557 pass PHP 8.2/8.5, all original scenarios and 20 additional full PHP 8.5 HTTP runs. No native validation was bypassed. The exact upstream C defect and earlier timeout reproducer remain unidentified; hosting JIT state and actual-stack verification remain open.
@@ -45,6 +48,7 @@ The bundled candidate has been rebuilt; native CI is green under explicit runtim
 - [ ] Review and install the paired tested plugin and theme through the normal release process. Nothing here is live yet. The bundled plugin is already refreshed; preserve client data and settings during installation.
 - [ ] Verify the preference fix on the actual cache/security stack, fresh and returning guests, signed-in customers, browser back/refresh, JavaScript disabled and expired sessions/nonces. HTTP form testing is not a browser audit.
 - [ ] Verify collection/delivery preference together with native local-pickup/delivery shipping methods, zone fees, final totals and available times. Preference persistence does not automatically choose a native shipping rate or prove a zero delivery charge.
+- [ ] Correct and rehearse the actual native shipping configuration on an isolated copy. Read-only matching of MK18 1AA, MK17 8AA and SW1A 1AA all resolves to the broad GB zone 1 with only its zero-cost flat rate, not the other delivery or collection zones. Do not treat the preference fix as a shipping-configuration repair.
 - [ ] Test the existing theme/plugin/cache/security stack, not only the clean fixture; exercise owner/kitchen operations in a real browser and run WAVE plus keyboard/screen-reader checks.
 - [ ] Verify the merchant's chosen gateway in its normal sandbox: success, decline, authentication, delayed/repeated callbacks, cancellation and actual provider refunds. The fixture gateway is not Stripe/provider verification.
 - [ ] Verify transactional delivery with the chosen mailer and real intended recipients; test failure visibility and recovery without real marketing mailouts.

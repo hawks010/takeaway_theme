@@ -15,7 +15,9 @@ final class TTOS_Operations {
         add_action('template_redirect', array(__CLASS__, 'handle_fulfilment_selection'), 5);
         add_action('woocommerce_checkout_update_order_review', array(__CLASS__, 'sync_checkout_method'), 5);
         add_filter('woocommerce_checkout_fields', array(__CLASS__, 'checkout_fields'));
+        add_filter('woocommerce_update_order_review_fragments', array(__CLASS__, 'checkout_time_fragment'));
         add_filter('woocommerce_add_to_cart_validation', array(__CLASS__, 'validate_add_to_cart_window'), 5, 3);
+        add_action('woocommerce_checkout_process', array(__CLASS__, 'sync_posted_checkout_method'), 5);
         add_action('woocommerce_checkout_process', array(__CLASS__, 'validate_checkout'));
         add_action('woocommerce_checkout_create_order', array(__CLASS__, 'save_order_meta'), 20, 2);
         add_action('woocommerce_admin_order_data_after_billing_address', array(__CLASS__, 'admin_order_meta'));
@@ -280,6 +282,31 @@ final class TTOS_Operations {
             $fields['order']['ttos_requested_time'] = array('type'=>'hidden','default'=>'asap','priority'=>6);
         }
         return $fields;
+    }
+
+    public static function checkout_time_fragment(array $fragments): array {
+        if (!TTOS_WooCommerce::active() || !WC()->cart || WC()->cart->is_empty()) return $fragments;
+        $fields = self::checkout_fields(array());
+        $field = $fields['order']['ttos_requested_time'] ?? null;
+        if (!$field) return $fragments;
+
+        // WooCommerce has validated the review nonce and saved the method before this filter.
+        $posted = array();
+        if (is_string($_POST['post_data'] ?? null)) {
+            parse_str(wp_unslash($_POST['post_data']), $posted);
+        }
+        $value = $field['default'] ?? '';
+        $requested = $posted['ttos_requested_time'] ?? null;
+        if ($field['type'] === 'select' && is_string($requested) && isset($field['options'][$requested])) {
+            $value = $requested;
+        }
+        $field['return'] = true;
+        $fragments['#ttos_requested_time_field'] = woocommerce_form_field('ttos_requested_time', $field, $value);
+        return $fragments;
+    }
+
+    public static function sync_posted_checkout_method(): void {
+        self::set_fulfilment_method(wp_unslash($_POST['ttos_fulfilment_method'] ?? ''));
     }
 
     private static function time_slot_options(array $checkout, string $method, array $state, ?int $now = null): array {
