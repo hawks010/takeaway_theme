@@ -12,6 +12,8 @@ final class TTOS_Operations {
         add_action('admin_menu', array(__CLASS__, 'client_menu_lockdown'), 999);
         add_filter('body_class', array(__CLASS__, 'front_body_class'));
 
+        add_action('template_redirect', array(__CLASS__, 'handle_fulfilment_selection'), 5);
+        add_action('woocommerce_checkout_update_order_review', array(__CLASS__, 'sync_checkout_method'), 5);
         add_filter('woocommerce_checkout_fields', array(__CLASS__, 'checkout_fields'));
         add_filter('woocommerce_add_to_cart_validation', array(__CLASS__, 'validate_add_to_cart_window'), 5, 3);
         add_action('woocommerce_checkout_process', array(__CLASS__, 'validate_checkout'));
@@ -256,12 +258,13 @@ final class TTOS_Operations {
         if ($trading['delivery_enabled'] === '1') $options['delivery'] = $checkout['delivery_label'];
         if ($trading['collection_enabled'] === '1') $options['collection'] = $checkout['collection_label'];
         if (!$options) return $fields;
+        $method = self::current_checkout_method(array_keys($options));
         $fields['order']['ttos_fulfilment_method'] = array(
             'type' => 'select', 'label' => __('Delivery or collection', 'takeaway-os'), 'required' => $checkout['force_choice'] === '1',
-            'options' => $options, 'default' => isset($options[$checkout['default_method']]) ? $checkout['default_method'] : array_key_first($options), 'priority' => 5,
+            'options' => $options, 'default' => $method, 'priority' => 5,
+            'class' => array('form-row-wide', 'update_totals_on_change'),
         );
 
-        $method = self::current_checkout_method(array_keys($options));
         $state = self::ordering_state($method);
         $time_options = self::time_slot_options($checkout, $method, $state);
         $requires_preorder = !empty($state['preorder_required']);
@@ -588,28 +591,71 @@ final class TTOS_Operations {
         return $method === 'collection' ? 'collection' : 'delivery';
     }
 
-    private static function current_checkout_method(array $allowed = array()): string {
-        $method = '';
-        if (isset($_POST['ttos_fulfilment_method'])) {
-            $method = sanitize_key(wp_unslash($_POST['ttos_fulfilment_method']));
-        } elseif (function_exists('WC') && WC()->session) {
-            $method = sanitize_key((string) WC()->session->get('ttos_fulfilment_method', ''));
+    /** The same available choices used by checkout and the menu form. */
+    public static function available_fulfilment_methods(): array {
+        $trading = TTOS_Settings::get('trading');
+        $methods = array();
+        foreach (array('delivery', 'collection') as $method) {
+            if (($trading[$method . '_enabled'] ?? '0') === '1') $methods[] = $method;
         }
-        if ($method === '' && function_exists('ttos_get_opening_hours')) {
+        return $methods;
+    }
+
+    /** Read the existing WooCommerce session; do not create a session on page views. */
+    public static function current_checkout_method(array $allowed = array()): string {
+        $allowed = $allowed ?: self::available_fulfilment_methods();
+        if (!$allowed) return '';
+        $method = is_string($_POST['ttos_fulfilment_method'] ?? null)
+            ? wp_unslash($_POST['ttos_fulfilment_method']) : '';
+        if (!in_array($method, $allowed, true) && function_exists('WC') && WC()->session) {
+            $method = WC()->session->get('ttos_fulfilment_method', '');
+        }
+        if (!in_array($method, $allowed, true) && function_exists('ttos_get_opening_hours')) {
             $hours = ttos_get_opening_hours();
-            $method = sanitize_key((string) ($hours['default_fulfilment'] ?? ''));
+            $method = $hours['default_fulfilment'] ?? '';
         }
-        if ($method === '') {
-            $method = sanitize_key((string) self::get('checkout', 'default_method'));
+        if (!in_array($method, $allowed, true)) $method = self::get('checkout', 'default_method');
+        return in_array($method, $allowed, true) ? $method : (string) reset($allowed);
+    }
+
+    /** Writes only our existing preference, never shipping rates, totals or payments. */
+    public static function set_fulfilment_method($method): bool {
+        if (!is_string($method) || !in_array($method, self::available_fulfilment_methods(), true)
+            || !function_exists('WC') || !WC()->session) return false;
+        WC()->session->set('ttos_fulfilment_method', $method);
+        return true;
+    }
+
+    /** WooCommerce has already checked its own update-order-review nonce. */
+    public static function sync_checkout_method($post_data): void {
+        if (!is_string($post_data)) return;
+        $posted = array();
+        parse_str($post_data, $posted);
+        self::set_fulfilment_method($posted['ttos_fulfilment_method'] ?? null);
+    }
+
+    /** Ordinary POST/redirect/GET: it also works with JavaScript disabled. */
+    public static function handle_fulfilment_selection(): void {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST'
+            || ($_POST['ttos_action'] ?? '') !== 'select_fulfilment') return;
+        $nonce = is_string($_POST['ttos_fulfilment_nonce'] ?? null)
+            ? wp_unslash($_POST['ttos_fulfilment_nonce']) : '';
+        if (!wp_verify_nonce($nonce, 'ttos_select_fulfilment')) {
+            wp_die(__('Your selection was not saved. Return to the menu, reload it and try again.', 'takeaway-os'), '', array('response' => 403));
         }
-        $method = self::normalise_method($method);
-        if ($allowed && !in_array($method, $allowed, true)) {
-            return (string) reset($allowed);
+        if (!function_exists('WC') || !WC()->session) {
+            wp_die(__('Ordering is temporarily unavailable. Please try again.', 'takeaway-os'), '', array('response' => 503));
         }
-        if (function_exists('WC') && WC()->session) {
-            WC()->session->set('ttos_fulfilment_method', $method);
+        $method = is_string($_POST['ttos_fulfilment_method'] ?? null)
+            ? wp_unslash($_POST['ttos_fulfilment_method']) : null;
+        if (!self::set_fulfilment_method($method)) {
+            wp_die(__('This order type is unavailable. Return to the menu and choose an available option.', 'takeaway-os'), '', array('response' => 400));
         }
-        return $method;
+        // Retain a guest's choice even before their first item is added.
+        WC()->session->set_customer_session_cookie(true);
+        nocache_headers();
+        wp_safe_redirect(wc_get_page_permalink('shop'), 303);
+        exit;
     }
 
     private static function closed_notice_message(array $state): string {

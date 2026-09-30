@@ -710,30 +710,7 @@ final class TTOS_Features {
     }
 
     private static function current_fulfilment_method(): string {
-        $method = '';
-
-        if (isset($_POST['ttos_fulfilment_method'])) {
-            $method = sanitize_key(wp_unslash($_POST['ttos_fulfilment_method']));
-        } elseif (isset($_POST['post_data'])) {
-            $posted = array();
-            parse_str(wp_unslash($_POST['post_data']), $posted);
-            $method = sanitize_key($posted['ttos_fulfilment_method'] ?? '');
-        }
-
-        if ($method !== '' && function_exists('WC') && WC()->session) {
-            WC()->session->set('ttos_fulfilment_method', $method);
-        }
-
-        if ($method === '' && function_exists('WC') && WC()->session) {
-            $method = sanitize_key((string) WC()->session->get('ttos_fulfilment_method', ''));
-        }
-
-        if ($method === '') {
-            $ops = get_option('ttos_operations_settings', array());
-            $method = sanitize_key($ops['checkout']['default_method'] ?? 'delivery');
-        }
-
-        return $method ?: 'delivery';
+        return TTOS_Operations::current_checkout_method();
     }
 
     public static function apply_advanced_zone_fee($cart): void {

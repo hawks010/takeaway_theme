@@ -16,8 +16,10 @@ if ($is_menu) :
     $subtitle = (string) tt_content('menu_page', 'subtitle', '');
     $intro    = (string) tt_content('menu_page', 'intro_text', '');
     $footer_text = (string) tt_content('menu_page', 'footer_text', '');
-    $delivery_on_menu   = (string) tt_content('delivery_collection', 'delivery_enabled', '1') === '1';
-    $collection_on_menu = (string) tt_content('delivery_collection', 'collection_enabled', '1') === '1';
+    $has_fulfilment_form = is_callable(array('TTOS_Operations', 'available_fulfilment_methods'));
+    $methods = $has_fulfilment_form ? TTOS_Operations::available_fulfilment_methods() : array();
+    $delivery_on_menu = $has_fulfilment_form ? in_array('delivery', $methods, true) : (string) tt_content('delivery_collection', 'delivery_enabled', '1') === '1';
+    $collection_on_menu = $has_fulfilment_form ? in_array('collection', $methods, true) : (string) tt_content('delivery_collection', 'collection_enabled', '1') === '1';
     $show_postcode = (string) tt_content('menu_page', 'show_postcode_checker', '1') === '1' && $delivery_on_menu;
     $bg_id = absint(tt_content('menu_page', 'hero_image_id', 0));
     $bg_url = $bg_id ? wp_get_attachment_image_url($bg_id, 'full') : '';
@@ -30,8 +32,7 @@ if ($is_menu) :
         (string) ($menu_biz_info['county'] ?? ''),
         (string) ($menu_biz_info['postcode'] ?? ''),
     )));
-    $req_fulfilment = sanitize_key(isset($_GET['fulfilment']) ? $_GET['fulfilment'] : '');
-    $menu_default_mode = ($req_fulfilment === 'collection' && $collection_on_menu) ? 'collection'
+    $menu_default_mode = $has_fulfilment_form ? TTOS_Operations::current_checkout_method()
         : ($delivery_on_menu ? 'delivery' : 'collection');
 ?>
 <section class="tt-pagehead tt-pagehead-menu<?php echo $bg_url ? ' has-bg' : ''; ?>"<?php echo $bg_url ? ' style="--tt-pagehead-bg:url(' . esc_url($bg_url) . ')"' : ''; ?>>
@@ -43,11 +44,13 @@ if ($is_menu) :
         </div>
         <?php if ($delivery_on_menu || $collection_on_menu) : ?>
         <div class="tt-pagehead-fulfilment">
-            <?php if ($delivery_on_menu && $collection_on_menu) : ?>
-            <div class="tt-fulfilment-toggle" role="group" aria-label="<?php esc_attr_e('Order type', 'takeaway-theme'); ?>">
-                <button type="button" class="tt-fulfilment-pill" data-fulfilment="collection" aria-pressed="<?php echo $menu_default_mode === 'collection' ? 'true' : 'false'; ?>"><?php esc_html_e('Collect', 'takeaway-theme'); ?></button>
-                <button type="button" class="tt-fulfilment-pill" data-fulfilment="delivery" aria-pressed="<?php echo $menu_default_mode === 'delivery' ? 'true' : 'false'; ?>"><?php esc_html_e('Delivery', 'takeaway-theme'); ?></button>
-            </div>
+            <?php if ($delivery_on_menu && $collection_on_menu && $has_fulfilment_form) : ?>
+            <form method="post" action="<?php echo esc_url(wc_get_page_permalink('shop')); ?>" class="tt-fulfilment-toggle" role="group" aria-label="<?php esc_attr_e('Order type', 'takeaway-theme'); ?>">
+                <input type="hidden" name="ttos_action" value="select_fulfilment">
+                <?php wp_nonce_field('ttos_select_fulfilment', 'ttos_fulfilment_nonce', false); ?>
+                <button type="submit" name="ttos_fulfilment_method" value="collection" class="tt-fulfilment-pill<?php echo $menu_default_mode === 'collection' ? ' is-active' : ''; ?>" aria-pressed="<?php echo $menu_default_mode === 'collection' ? 'true' : 'false'; ?>"><?php esc_html_e('Collect', 'takeaway-theme'); ?></button>
+                <button type="submit" name="ttos_fulfilment_method" value="delivery" class="tt-fulfilment-pill<?php echo $menu_default_mode === 'delivery' ? ' is-active' : ''; ?>" aria-pressed="<?php echo $menu_default_mode === 'delivery' ? 'true' : 'false'; ?>"><?php esc_html_e('Delivery', 'takeaway-theme'); ?></button>
+            </form>
             <?php endif; ?>
             <?php if ($delivery_on_menu && $show_postcode) : ?>
             <div class="tt-pagehead-zone" data-zone="delivery"<?php echo $menu_default_mode !== 'delivery' ? ' hidden' : ''; ?>>
