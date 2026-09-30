@@ -70,6 +70,9 @@ jobs:
           wp config set DISABLE_WP_CRON true --raw
           wp config set WP_MEMORY_LIMIT 512M
           wp core install --url=http://127.0.0.1:8080 --title='Disposable Takeaway fixture' --admin_user=fixtureadmin --admin_password="$TEST_OWNER_PASSWORD" --admin_email=admin@example.test --skip-email
+          # Match the temporary document root, not WP-CLI's inferred /ttos-wp path.
+          wp option update home http://127.0.0.1:8080
+          wp option update siteurl http://127.0.0.1:8080
           wp plugin install woocommerce --version=11.1.2
           mkdir -p "$WP_PATH/wp-content/mu-plugins"
           cp tests/native/safety.php "$WP_PATH/wp-content/mu-plugins/fixture-safety.php"
