@@ -3,31 +3,103 @@ on:
   push:
     branches: [fix/backend-foundations-20260930]
   pull_request:
-    paths: ['takeaway-os/**', 'tests/backend/**', '.github/workflows/backend-checks.yml']
+    paths: ['takeaway-os/**', 'tests/**', '.github/workflows/backend-checks.yml']
 permissions:
   contents: read
 jobs:
-  backend:
+  regression:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      matrix:
+        php: ['8.2', '8.5']
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: PHP syntax
-        run: find takeaway-os -path '*/node_modules' -prune -o -name '*.php' -print0 | xargs -0 -r -n1 php -l
-      - name: Backend regression tests
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - name: Syntax and isolated regressions
         run: |
-          if [ -f tests/backend/run.php ]; then php tests/backend/run.php; else echo 'Baseline capture only; regression tests not yet added.'; fi
-      - name: Capture source and checks for review
-        if: always()
-        run: |
-          mkdir -p /tmp/takeaway-review
-          git archive --format=tar HEAD takeaway-os takeaway-theme docs scripts STATE_OF_SITE.md TAKEAWAY_OS_PROGRESS.md > /tmp/takeaway-review/source.tar
-          git rev-parse HEAD > /tmp/takeaway-review/commit.txt
+          set -o pipefail
+          find takeaway-os -path '*/node_modules' -prune -o -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          php tests/backend/run.php | tee /tmp/regression.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: backend-review-source
+          name: regression-php-${{ matrix.php }}
+          path: /tmp/regression.txt
+          retention-days: 7
+  native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TEST_OWNER_PASSWORD: disposable-fixture-password-only
+      WP_PATH: /tmp/ttos-wp
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: fixture-db-only
+          MYSQL_DATABASE: ttos_fixture
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pfixture-db-only"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mysqli
+          coverage: none
+      - name: Create disposable WordPress and WooCommerce installation
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /tmp/wp-cli.phar
+          wp() { php /tmp/wp-cli.phar --path="$WP_PATH" "$@"; }
+          mkdir -p "$WP_PATH"
+          wp core download --version=7.1.2
+          wp config create --dbname=ttos_fixture --dbuser=root --dbpass=fixture-db-only --dbhost=127.0.0.1:3306
+          wp config set WP_ENVIRONMENT_TYPE local
+          wp config set TTOS_FIXTURE_ONLY true --raw
+          wp config set DISABLE_WP_CRON true --raw
+          wp config set WP_MEMORY_LIMIT 512M
+          wp core install --url=http://127.0.0.1:8080 --title='Disposable Takeaway fixture' --admin_user=fixtureadmin --admin_password="$TEST_OWNER_PASSWORD" --admin_email=admin@example.test --skip-email
+          wp plugin install woocommerce --version=11.1.2
+          mkdir -p "$WP_PATH/wp-content/mu-plugins"
+          cp tests/native/safety.php "$WP_PATH/wp-content/mu-plugins/fixture-safety.php"
+          wp plugin activate woocommerce
+          wp option update woocommerce_custom_orders_table_enabled yes
+          cp -R takeaway-os "$WP_PATH/wp-content/plugins/takeaway-os"
+          wp plugin activate takeaway-os
+          wp eval 'echo "WP=" . get_bloginfo("version") . " Woo=" . WC_VERSION . " PHP=" . PHP_VERSION . PHP_EOL;' | tee /tmp/native-versions.txt
+      - name: Native HPOS and permissions tests
+        run: |
+          set -o pipefail
+          php /tmp/wp-cli.phar --path="$WP_PATH" eval-file "$GITHUB_WORKSPACE/tests/native/run.php" | tee /tmp/native-tests.txt
+      - name: Authenticated owner and native checkout HTTP smoke
+        run: |
+          set -euo pipefail
+          php -S 127.0.0.1:8080 -t "$WP_PATH" > /tmp/php-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" || true' EXIT
+          python3 tests/native/http_smoke.py | tee /tmp/http-tests.txt
+          php /tmp/wp-cli.phar --path="$WP_PATH" eval-file "$GITHUB_WORKSPACE/tests/native/verify_checkout.php" | tee /tmp/checkout-verify.txt
+      - name: Capture reviewable source without production data
+        if: always()
+        run: |
+          mkdir -p /tmp/takeaway-review
+          git rev-parse HEAD > /tmp/takeaway-review/commit.txt
+          git archive --format=tar HEAD takeaway-os tests docs/BACKEND-TODO-20260930.md > /tmp/takeaway-review/source.tar
+          cp /tmp/native-versions.txt /tmp/native-tests.txt /tmp/http-tests.txt /tmp/checkout-verify.txt /tmp/php-server.log /tmp/takeaway-review/ 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-backend-review
           path: /tmp/takeaway-review
           retention-days: 7
