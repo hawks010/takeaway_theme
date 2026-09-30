@@ -1,5 +1,5 @@
 """Native HTTP smoke test. Only a disposable localhost WordPress fixture is accepted."""
-import http.cookiejar, json, os, re, time, urllib.parse, urllib.request
+import html, http.cookiejar, json, os, re, time, urllib.parse, urllib.request
 from pathlib import Path
 base = 'http://127.0.0.1:8080'
 fixture = json.loads(Path('/tmp/ttos-fixtures.json').read_text())
@@ -21,7 +21,10 @@ owner=client()
 fetch(owner,base+'/wp-login.php').read()
 response=fetch(owner,base+'/wp-login.php',{'log':'fixtureowner','pwd':os.environ['TEST_OWNER_PASSWORD'],'wp-submit':'Log In','redirect_to':base+'/wp-admin/admin.php?page=takeaway-os','testcookie':'1'})
 body=response.read().decode()
-assert 'wp-login.php' not in response.url, 'Owner could not log in'
+if 'wp-login.php' in response.url:
+    errors = re.findall(r'<div[^>]+id=[\"\']login_error[\"\'][^>]*>(.*?)</div>', body, re.S)
+    error = html.unescape(re.sub(r'<[^>]+>', ' ', ' '.join(errors))).strip()
+    raise AssertionError('Owner could not log in: ' + (error or 'No login error markup; final URL ' + response.url))
 for slug in ['takeaway-os','takeaway-os-orders','takeaway-os-kitchen','takeaway-os-customers','takeaway-os-reports','takeaway-os-settings']:
     response=fetch(owner,base+'/wp-admin/admin.php?page='+slug)
     body=response.read().decode()
