@@ -1,0 +1,50 @@
+name: Apply prepared backend candidate
+on:
+  push:
+    branches: [fix/backend-foundations-20260930]
+    paths: ['.backend-candidate/**', '.github/workflows/apply-backend-candidate.yml']
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: github.ref == 'refs/heads/fix/backend-foundations-20260930'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/backend-foundations-20260930
+      - name: Verify source transfer and apply candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find .backend-candidate -name 'part-*.b64' | wc -l)" -eq 8
+          cat .backend-candidate/part-*.b64 | tr -d '\r\n' | base64 -d | gzip -d > /tmp/backend-candidate.patch
+          echo '004375f8e7bbe3354ca76a9f0ee652673e0094b5ea8e87995724243a5e86a215  /tmp/backend-candidate.patch' | sha256sum --check
+          git apply --check /tmp/backend-candidate.patch
+          git apply /tmp/backend-candidate.patch
+      - name: Check candidate before committing
+        shell: bash
+        run: |
+          set -euo pipefail
+          php tests/backend/run.php | tee /tmp/backend-regressions.txt
+          find takeaway-os tests -name '*.php' -print0 | xargs -0 -n1 php -l > /tmp/backend-lint.txt
+          git diff --check
+      - name: Commit candidate to review branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add takeaway-os tests docs/BACKEND-TODO-20260930.md docs/CODEX-BACKEND-REPORT-20260930.md
+          git rm -r .backend-candidate
+          git commit -m 'Fix Takeaway backend ownership, operations, CRM and handover paths'
+          git push origin HEAD:refs/heads/fix/backend-foundations-20260930
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: candidate-application-evidence
+          path: |
+            /tmp/backend-regressions.txt
+            /tmp/backend-lint.txt
+          retention-days: 7
