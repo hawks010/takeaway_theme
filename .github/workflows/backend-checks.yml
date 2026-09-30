@@ -64,6 +64,8 @@ jobs:
           extensions: none, ctype, curl, dom, exif, fileinfo, gd, iconv, intl, mbstring, mysqli, mysqlnd, openssl, phar, simplexml, sodium, tokenizer, xml, xmlreader, xmlwriter, zip
           coverage: none
           tools: none
+          # cli-server ignores enable_cli=0. Keep opcode caching, without opt-in PHP JIT.
+          ini-values: opcache.enable=1, opcache.jit=disable, pcre.jit=1, max_execution_time=30
       - name: Install debugger for disposable runtime diagnosis
         run: |
           sudo apt-get update -qq
@@ -103,9 +105,7 @@ jobs:
       - name: Compare native checkout with Takeaway OS disabled and enabled
         run: |
           ulimit -c unlimited
-          debugger=()
-          if command -v gdb >/dev/null 2>&1; then debugger=(--gdb); fi
-          python3 -u tests/native/runtime_probe.py --wp-path="$WP_PATH" --wp-cli=/tmp/wp-cli.phar --evidence-dir=/tmp/checkout-runtime-comparison "${debugger[@]}"
+          python3 -u tests/native/runtime_probe.py --wp-path="$WP_PATH" --wp-cli=/tmp/wp-cli.phar --evidence-dir=/tmp/checkout-runtime-comparison
       - name: Authenticated owner and native checkout HTTP smoke
         run: |
           set -euo pipefail
@@ -132,11 +132,11 @@ jobs:
             exit "$result"
           fi
           php /tmp/wp-cli.phar --path="$WP_PATH" eval-file "$GITHUB_WORKSPACE/tests/native/verify_checkout.php" | tee /tmp/checkout-verify.txt
-      - name: Diagnose PHP and PCRE JIT with unchanged native HTTP scenarios
+      - name: Repeat complete native HTTP scenarios with verified runtime settings
         if: always() && steps.fixture.outcome == 'success' && matrix.php == '8.5'
         run: |
           ulimit -c unlimited
-          python3 -u tests/native/jit_probe.py --wp-path="$WP_PATH" --wp-cli=/tmp/wp-cli.phar --evidence-dir=/tmp/jit-runtime-comparison
+          python3 -u tests/native/jit_probe.py --wp-path="$WP_PATH" --wp-cli=/tmp/wp-cli.phar --modes php-jit-off --repeats=10 --evidence-dir=/tmp/jit-runtime-comparison
       - name: Capture reviewable source without production data
         if: always()
         run: |

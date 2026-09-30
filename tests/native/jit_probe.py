@@ -15,6 +15,8 @@ parser.add_argument('--wp-path', required=True)
 parser.add_argument('--wp-cli', required=True)
 parser.add_argument('--php', default='php')
 parser.add_argument('--repeats', type=int, default=3)
+parser.add_argument('--modes', nargs='+', choices=('default', 'php-jit-off', 'pcre-jit-off', 'php-jit-on'),
+                    default=['default', 'php-jit-off', 'pcre-jit-off'])
 parser.add_argument('--evidence-dir', required=True)
 args = parser.parse_args()
 base = os.environ.get('TTOS_TEST_BASE_URL', 'http://127.0.0.1:8080').rstrip('/')
@@ -36,9 +38,11 @@ with socket.socket() as port_check:
 evidence = Path(args.evidence_dir)
 evidence.mkdir(parents=True, exist_ok=True)
 results = []
-modes = {'default': [], 'php-jit-off': ['-d', 'opcache.jit=disable'], 'pcre-jit-off': ['-d', 'pcre.jit=0']}
+modes = {'default': [], 'php-jit-off': ['-d', 'opcache.jit=disable'], 'pcre-jit-off': ['-d', 'pcre.jit=0'],
+         'php-jit-on': ['-d', 'opcache.jit=1235', '-d', 'opcache.jit_buffer_size=256M']}
 try:
-    for mode, ini_flags in modes.items():
+    for mode in args.modes:
+        ini_flags = modes[mode]
         for iteration in range(1, args.repeats + 1):
             name = mode + '-' + str(iteration)
             result = {'mode': mode, 'iteration': iteration}
@@ -60,6 +64,8 @@ try:
                     assert result['runtime']['sapi'] == 'cli-server'
                     if mode == 'php-jit-off':
                         assert not (result['runtime']['jit'] or {}).get('enabled'), 'PHP JIT remained enabled'
+                    if mode == 'php-jit-on':
+                        assert (result['runtime']['jit'] or {}).get('on'), 'PHP JIT did not enable'
                     if mode == 'pcre-jit-off':
                         assert result['runtime']['ini']['pcre.jit'] == '0', 'PCRE JIT remained enabled'
                     with (evidence / (name + '-http.log')).open('w') as http_log:
