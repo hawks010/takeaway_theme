@@ -17,39 +17,39 @@ for attempt in range(30):
         fetch(client(),base+'/wp-login.php').read();break
     except OSError:
         time.sleep(.3)
-owner_jar = http.cookiejar.CookieJar()
-owner = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(owner_jar))
-login_page = fetch(owner,base+'/wp-login.php')
-login_page.read()
-# Only disposable-cookie metadata is logged, never credential or cookie values.
-print('LOGIN COOKIE METADATA', [(c.name, c.domain, c.path, c.secure) for c in owner_jar])
-print('LOGIN COOKIE HEADER FLAGS', [h.split(';')[1:] for h in login_page.headers.get_all('Set-Cookie', [])])
+owner=client()
+fetch(owner,base+'/wp-login.php').read()
 response=fetch(owner,base+'/wp-login.php',{'log':'fixtureowner','pwd':os.environ['TEST_OWNER_PASSWORD'],'wp-submit':'Log In','redirect_to':base+'/wp-admin/admin.php?page=takeaway-os','testcookie':'1'})
 body=response.read().decode()
 if 'wp-login.php' in response.url:
     errors = re.findall(r'<div[^>]+id=[\"\']login_error[\"\'][^>]*>(.*?)</div>', body, re.S)
     error = html.unescape(re.sub(r'<[^>]+>', ' ', ' '.join(errors))).strip()
     raise AssertionError('Owner could not log in: ' + (error or 'No login error markup; final URL ' + response.url))
-for slug in ['takeaway-os','takeaway-os-orders','takeaway-os-kitchen','takeaway-os-customers','takeaway-os-reports','takeaway-os-settings']:
+pages = ['takeaway-os','takeaway-os-orders','takeaway-os-kitchen','takeaway-os-customers',
+         'takeaway-os-reports','takeaway-os-settings','takeaway-os-launchpad','takeaway-os-setup-health',
+         'takeaway-os-menu','takeaway-os-site-content','takeaway-os-delivery','takeaway-os-payments',
+         'takeaway-os-operations','takeaway-os-golive','takeaway-os-production']
+for slug in pages:
     response=fetch(owner,base+'/wp-admin/admin.php?page='+slug)
     body=response.read().decode()
     assert response.status==200 and 'critical error' not in body.lower() and 'Fatal error' not in body, slug
+    assert urllib.parse.parse_qs(urllib.parse.urlsplit(response.url).query).get('page') == [slug], 'Unexpected redirect: '+slug
     print('PASS authenticated owner screen '+slug)
 nonce=json.loads(fetch(owner,base+'/wp-admin/admin.php?page=takeaway-os&ttos_fixture_rest_nonce=1').read().decode())['nonce']
 req=urllib.request.Request(base+'/?rest_route=/ttos/v1/accounting/export',data=json.dumps({'from':'2026-01-01','to':'2026-01-02','provider':'generic'}).encode(),headers={'Content-Type':'application/json','X-WP-Nonce':nonce},method='POST')
 export=json.loads(owner.open(req,timeout=40).read().decode())
-if export:
-    response=fetch(owner,export['download_url'])
-    body=response.read().decode('utf-8-sig')
-    assert body.startswith('order_id,'), 'Owner download was blocked or redirected'
-    assert 'customer_email' in body
-    print('PASS owner authenticated accounting download without CRM redirect')
-    try:
-        response=fetch(client(),export['download_url'])
-        assert not response.read().decode('utf-8-sig').startswith('order_id,'), 'Anonymous download exposed orders'
-    except urllib.error.HTTPError as e:
-        assert e.code in (400,401,403)
-    print('PASS anonymous accounting download denied')
+assert export.get('success') is True, 'Export request did not succeed'
+response=fetch(owner,export['download_url'])
+body=response.read().decode('utf-8-sig')
+assert body.startswith('order_id,'), 'Owner download was blocked or redirected'
+assert 'customer_email' in body
+print('PASS owner authenticated accounting download without CRM redirect')
+try:
+    response=fetch(client(),export['download_url'])
+    assert not response.read().decode('utf-8-sig').startswith('order_id,'), 'Anonymous download exposed orders'
+except urllib.error.HTTPError as e:
+    assert e.code in (400,401,403)
+print('PASS anonymous accounting download denied')
 guest=client()
 fetch(guest,base+'/?add-to-cart='+str(fixture['product_id'])).read()
 checkout=fetch(guest,fixture['checkout_url']).read().decode()
