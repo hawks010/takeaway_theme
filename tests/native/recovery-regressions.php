@@ -36,3 +36,10 @@ native_test('Spreadsheet formula-like values are data, not executable cells', fu
     must(TTOS_Accounting::csv_cell('  @SUM(1)')[0] === "'");
     must(TTOS_Accounting::csv_cell('-4.50') === '-4.50');
 });
+
+native_test('Legacy order export pages every native order and excludes refund objects', function () {
+    $all = private_call('TTOS_Features', 'exportable_orders');
+    $count = 0; foreach ($all as $order) { must($order instanceof WC_Order); $count++; }
+    $expected = wc_get_orders(array('type' => 'shop_order', 'limit' => 1, 'paginate' => true));
+    must($count === (int) $expected->total && $count >= 208);
+});

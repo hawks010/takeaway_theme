@@ -1108,11 +1108,23 @@ final class TTOS_Features {
         return '<section class="ttos-home-blocks"><p class="ttos-eyebrow">' . esc_html($s['hero_eyebrow']) . '</p><h1>' . esc_html($s['hero_title']) . '</h1><p>' . esc_html($s['hero_text']) . '</p><div class="ttos-home-offer"><strong>' . esc_html($s['offer_title']) . '</strong><span>' . esc_html($s['offer_text']) . '</span></div><a class="ttos-order-btn" href="' . esc_url($s['cta_url']) . '">' . esc_html($s['cta_label']) . '</a></section>';
     }
 
+    /** Native pages, not a silently truncated 1000-order snapshot. */
+    private static function exportable_orders(): \Generator {
+        for ($page = 1; ; $page++) {
+  $orders = wc_get_orders(array('type' => 'shop_order', 'limit' => 100, 'page' => $page,
+      'return' => 'objects', 'orderby' => 'ID', 'order' => 'ASC'));
+  if (!is_array($orders)) throw new RuntimeException('WooCommerce orders could not be loaded.');
+  foreach ($orders as $order) yield $order;
+  if (count($orders) < 100) break;
+        }
+    }
+
     public static function export_orders_csv(): void {
         if (!current_user_can('ttos_view_reports') || !check_admin_referer('ttos_export_orders_csv')) wp_die('Not allowed.');
         $rows = array();
         if (TTOS_WooCommerce::active()) {
-            foreach (wc_get_orders(array('type' => 'shop_order', 'limit'=>1000,'return'=>'objects')) as $o) {
+            foreach (self::exportable_orders() as $o) {
+                if (!$o instanceof WC_Order) continue;
                 $rows[] = array(
                     $o->get_id(),
                     $o->get_date_created() ? $o->get_date_created()->date('Y-m-d H:i:s') : '',
