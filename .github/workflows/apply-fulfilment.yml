@@ -1,0 +1,29 @@
+name: Apply fulfilment candidate
+on:
+  push:
+    branches: [fix/backend-foundations-20260930]
+    paths: ['.github/workflows/apply-fulfilment.yml']
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/backend-foundations-20260930
+      - name: Apply bounded edits and refresh candidate package
+        run: |
+          set -euo pipefail
+          python3 .apply-fulfilment.py
+          php tests/backend/run.php
+          find takeaway-os takeaway-theme tests -path '*/node_modules' -prune -o -name '*.php' -print0 | xargs -0 -r -n1 php -l > /tmp/fulfilment-lint.txt
+          node --check takeaway-theme/assets/js/theme.js
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add takeaway-os takeaway-theme
+          git rm .apply-fulfilment.py .github/workflows/apply-fulfilment.yml
+          git commit -m 'Persist menu fulfilment through the native WooCommerce session'
+          git push origin HEAD:refs/heads/fix/backend-foundations-20260930
