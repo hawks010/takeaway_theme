@@ -1,0 +1,61 @@
+name: Complete legacy export pagination
+on:
+  push:
+    branches: [fix/backend-foundations-20260930]
+    paths: ['.github/workflows/export-recovery.yml']
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/backend-foundations-20260930
+      - name: Apply narrow export correction
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('takeaway-os/includes/class-features.php')
+          s = p.read_text()
+          old = "foreach (wc_get_orders(array('type' => 'shop_order', 'limit'=>1000,'return'=>'objects')) as $o) {"
+          assert s.count(old) == 1
+          s = s.replace(old, "foreach (self::exportable_orders() as $o) {\n                if (!$o instanceof WC_Order) continue;")
+          marker = '    public static function export_orders_csv(): void {'
+          helper = '''    /** Native pages, not a silently truncated 1000-order snapshot. */
+              private static function exportable_orders(): \\Generator {
+                  for ($page = 1; ; $page++) {
+                      $orders = wc_get_orders(array('type' => 'shop_order', 'limit' => 100, 'page' => $page,
+                          'return' => 'objects', 'orderby' => 'ID', 'order' => 'ASC'));
+                      if (!is_array($orders)) throw new RuntimeException('WooCommerce orders could not be loaded.');
+                      foreach ($orders as $order) yield $order;
+                      if (count($orders) < 100) break;
+                  }
+              }
+          
+          '''
+          s = s.replace(marker, '\n'.join(line[10:] if line.startswith('          ') else line for line in helper.split('\n')) + marker)
+          p.write_text(s)
+          p = Path('tests/backend/run.php'); s = p.read_text()
+          marker = '$passed=0;$failed=0;'
+          test = "test('Legacy orders CSV reads beyond order 1000',function(){for($i=1;$i<=1205;$i++)$GLOBALS['orders'][]=new FixtureOrder($i,'export@example.test');$orders=iterator_to_array(invoke_private('TTOS_Features','exportable_orders'));eq(count($orders),1205);eq(end($orders)->get_id(),1205);});\n"
+          assert s.count(marker) == 1
+          p.write_text(s.replace(marker, test + marker))
+          p = Path('tests/native/recovery-regressions.php')
+          with p.open('a') as f:
+              f.write("\nnative_test('Legacy order export pages every native order and excludes refund objects', function () {\n    $all = private_call('TTOS_Features', 'exportable_orders');\n    $count = 0; foreach ($all as $order) { must($order instanceof WC_Order); $count++; }\n    $expected = wc_get_orders(array('type' => 'shop_order', 'limit' => 1, 'paginate' => true));\n    must($count === (int) $expected->total && $count >= 208);\n});\n")
+          p = Path('tests/native/run.php'); s = p.read_text()
+          assert 'must(count($tests) === 40' in s
+          p.write_text(s.replace('must(count($tests) === 40', 'must(count($tests) === 41'))
+          PY
+          php tests/backend/run.php
+          find takeaway-os tests -name '*.php' -print0 | xargs -0 -n1 php -l
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add takeaway-os tests
+          git rm .github/workflows/export-recovery.yml
+          git commit -m 'Remove legacy order export truncation using native paginated queries'
+          git push origin HEAD:refs/heads/fix/backend-foundations-20260930
