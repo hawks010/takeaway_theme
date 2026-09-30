@@ -669,7 +669,7 @@ final class TTOS_Shortcodes {
         ob_start();
         echo '<div class="ttos-portal"><h2>My orders</h2>';
         if (TTOS_WooCommerce::active()) {
-            $orders = wc_get_orders(array('customer_id' => get_current_user_id(), 'limit' => 10));
+            $orders = wc_get_orders(array('type' => 'shop_order', 'customer_id' => get_current_user_id(), 'limit' => 10));
             if ($orders) {
                 echo '<div class="ttos-order-list">';
                 foreach ($orders as $order) {
@@ -686,7 +686,7 @@ final class TTOS_Shortcodes {
 
     public static function kitchen_screen(): string {
         if (!current_user_can('ttos_view_orders') || !TTOS_WooCommerce::active()) return '';
-        $orders = wc_get_orders(array('limit' => 15, 'status' => array('processing','ttos-accepted','ttos-prepping','ttos-ready')));
+        $orders = wc_get_orders(array('type' => 'shop_order', 'limit' => 15, 'status' => array('processing','ttos-accepted','ttos-prepping','ttos-ready')));
         ob_start();
         echo '<div class="ttos-kitchen-screen"><h2>Takeaway Tickets</h2>';
         foreach ($orders as $order) {

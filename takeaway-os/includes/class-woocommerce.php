@@ -866,7 +866,7 @@ final class TTOS_WooCommerce {
             return $cache[$email] = array();
         }
 
-        $orders = wc_get_orders(array(
+        $orders = wc_get_orders(array('type' => 'shop_order',
             'billing_email' => $email,
             'status'        => array('wc-completed', 'wc-processing', 'wc-ttos-accepted', 'wc-ttos-prepping', 'wc-ttos-ready', 'wc-ttos-out'),
             'limit'         => 25,
@@ -1139,7 +1139,7 @@ final class TTOS_WooCommerce {
         if (!function_exists('wc_get_orders') || $email === '') {
             return 0;
         }
-        $orders = wc_get_orders(array(
+        $orders = wc_get_orders(array('type' => 'shop_order',
             'billing_email' => $email,
             'status'        => array('wc-completed', 'wc-processing', 'wc-ttos-accepted', 'wc-ttos-prepping', 'wc-ttos-ready', 'wc-ttos-out'),
             'limit'         => -1,

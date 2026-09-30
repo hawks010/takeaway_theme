@@ -40,7 +40,7 @@ final class TTOS_Analytics {
         if ($preset === 'custom' && $from && $to) {
             $start = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $from . ' 00:00:00', $tz);
             $end = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $to . ' 23:59:59', $tz);
-            if ($start && $end && $start <= $end) {
+            if ($start && $end && $start->format('Y-m-d') === $from && $end->format('Y-m-d') === $to && $start <= $end) {
                 return array('start' => $start->getTimestamp(), 'end' => $end->getTimestamp(), 'label' => date_i18n('d M Y', $start->getTimestamp()) . ' - ' . date_i18n('d M Y', $end->getTimestamp()));
             }
         }
@@ -125,7 +125,7 @@ final class TTOS_Analytics {
             $payment[$method]['gross'] += $gross;
 
             $method_slug = strtolower((string) $order->get_payment_method());
-            if (in_array($method_slug, array('cod', 'cash', 'cheque'), true) || stripos($method, 'cash') !== false) {
+            if (in_array($method_slug, array('cod', 'cash'), true) || stripos($method, 'cash') !== false) {
                 $summary['cash'] += $gross;
             } else {
                 $summary['card'] += $gross;
@@ -227,7 +227,7 @@ final class TTOS_Analytics {
 
     public static function recent_orders(): array {
         if (!TTOS_WooCommerce::active() || !function_exists('wc_get_orders')) return array();
-        return wc_get_orders(array('limit' => 8, 'orderby' => 'date', 'order' => 'DESC', 'return' => 'objects'));
+        return wc_get_orders(array('type' => 'shop_order', 'limit' => 8, 'orderby' => 'date', 'order' => 'DESC', 'return' => 'objects'));
     }
 
     public static function export_money_csv(): void {

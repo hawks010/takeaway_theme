@@ -670,7 +670,7 @@ final class TTOS_Admin {
         echo '<div class="ttos-dashboard-inline-stats">';
         self::dashboard_inline_stat('Net sales', self::money($month['net']));
         self::dashboard_inline_stat('Recorded tax', self::money($month['tax']));
-        self::dashboard_inline_stat('Card', self::money($month['card']));
+        self::dashboard_inline_stat('Non-cash', self::money($month['card']));
         self::dashboard_inline_stat('Cash', self::money($month['cash']));
         echo '</div></section>';
 
@@ -861,7 +861,7 @@ final class TTOS_Admin {
 
         echo '<div class="ttos-dashboard-list">';
         foreach (array_slice($orders, 0, 6) as $order) {
-            if (!$order || !method_exists($order, 'get_id')) {
+            if (!$order instanceof WC_Order) {
                 continue;
             }
             $customer = trim((string) $order->get_formatted_billing_full_name());
@@ -1929,7 +1929,7 @@ final class TTOS_Admin {
         return is_array($campaigns) ? $campaigns : array();
     }
 
-    private static function customer_snapshot_enhanced(int $limit = 300): array {
+    public static function customer_snapshot_enhanced(int $limit = 300): array {
         if (!function_exists('wc_get_orders')) return array();
         $orders = self::customer_orders_for_snapshot();
         $profiles = self::customer_profiles();

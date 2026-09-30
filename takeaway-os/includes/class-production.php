@@ -943,7 +943,7 @@ final class TTOS_Production {
         if (!function_exists('wc_get_orders')) {
             return 0;
         }
-        $orders = wc_get_orders(array(
+        $orders = wc_get_orders(array('type' => 'shop_order',
             'limit' => 1,
             'billing_email' => $email,
             'orderby' => 'date',
