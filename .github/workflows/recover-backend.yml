@@ -1,0 +1,28 @@
+name: Recover backend candidate
+on:
+  push:
+    branches: [fix/backend-foundations-20260930]
+    paths: ['.github/workflows/recover-backend.yml']
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/backend-foundations-20260930
+      - name: Apply and check prepared source edits
+        run: |
+          set -euo pipefail
+          python3 .backend-recovery.py
+          php tests/backend/run.php
+          find takeaway-os tests -name '*.php' -print0 | xargs -0 -n1 php -l
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add takeaway-os tests
+          git rm .backend-recovery.py .github/workflows/recover-backend.yml
+          git commit -m 'Fix refund dashboard crash and consolidate legacy customer reporting'
+          git push origin HEAD:refs/heads/fix/backend-foundations-20260930
