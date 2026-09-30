@@ -284,6 +284,7 @@ final class TTOS_WooCommerce {
         }
         try {
             $product->set_name($name);
+            if (array_key_exists('sku', $data)) { $product->set_sku(sanitize_text_field($data['sku'])); }
             if (array_key_exists('description', $data)) {
                 $description = wp_kses_post($data['description']);
                 $product->set_description($description);

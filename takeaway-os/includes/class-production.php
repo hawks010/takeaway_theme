@@ -693,12 +693,12 @@ final class TTOS_Production {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename=takeaway-menu-' . gmdate('Y-m-d') . '.csv');
         $out = fopen('php://output', 'w');
-        fputcsv($out, array('product_id','name','category','price','sale_price','description','allergens','badges','sold_out','hidden','option_groups_json'));
+        TTOS_Accounting::write_csv_row($out, array('product_id','name','category','price','sale_price','description','allergens','badges','sold_out','hidden','option_groups_json'));
         if (post_type_exists('product')) {
             $q = new WP_Query(array('post_type'=>'product','post_status'=>array('publish','draft'),'posts_per_page'=>-1,'orderby'=>'menu_order title','order'=>'ASC'));
             while ($q->have_posts()) { $q->the_post(); $id = get_the_ID();
                 $terms = wp_get_post_terms($id, 'product_cat', array('fields'=>'names'));
-                fputcsv($out, array($id, get_the_title(), !is_wp_error($terms) && $terms ? $terms[0] : '', get_post_meta($id,'_regular_price',true), get_post_meta($id,'_sale_price',true), wp_strip_all_tags(get_post_field('post_content',$id)), get_post_meta($id,'_ttos_allergens',true), get_post_meta($id,'_ttos_badges',true), get_post_meta($id,'_stock_status',true)==='outofstock' ? 'yes' : 'no', get_post_status($id)==='draft' ? 'yes' : 'no', get_post_meta($id,'_ttos_option_groups',true)));
+                TTOS_Accounting::write_csv_row($out, array($id, get_the_title(), !is_wp_error($terms) && $terms ? $terms[0] : '', get_post_meta($id,'_regular_price',true), get_post_meta($id,'_sale_price',true), wp_strip_all_tags(get_post_field('post_content',$id)), get_post_meta($id,'_ttos_allergens',true), get_post_meta($id,'_ttos_badges',true), get_post_meta($id,'_stock_status',true)==='outofstock' ? 'yes' : 'no', get_post_status($id)==='draft' ? 'yes' : 'no', get_post_meta($id,'_ttos_option_groups',true)));
             }
             wp_reset_postdata();
         }
@@ -852,8 +852,8 @@ final class TTOS_Production {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename=takeaway-campaign-contacts-' . gmdate('Y-m-d') . '.csv');
         $out = fopen('php://output', 'w');
-        fputcsv($out, array('email','coupon','campaign'));
-        foreach ((array) ($campaign['emails'] ?? array()) as $email) fputcsv($out, array($email, $campaign['code'] ?? '', $campaign['name'] ?? ''));
+        TTOS_Accounting::write_csv_row($out, array('email','coupon','campaign'));
+        foreach ((array) ($campaign['emails'] ?? array()) as $email) TTOS_Accounting::write_csv_row($out, array($email, $campaign['code'] ?? '', $campaign['name'] ?? ''));
         fclose($out); exit;
     }
 

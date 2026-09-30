@@ -319,7 +319,7 @@ final class TTOS_Analytics {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename=' . sanitize_file_name($filename));
         $out = fopen('php://output', 'w');
-        foreach ($rows as $row) fputcsv($out, $row);
+        foreach ($rows as $row) TTOS_Accounting::write_csv_row($out, $row);
         fclose($out);
         exit;
     }

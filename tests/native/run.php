@@ -118,7 +118,8 @@ native_test('Accounting export returns an authenticated handler, not a public da
     $GLOBALS['fixture_export']=$data; wp_set_current_user(1);
 });
 require __DIR__ . '/recovery-regressions.php';
-must(count($tests) === 28, 'The native suite must execute every registered test.');
+require __DIR__ . '/import-regressions.php';
+must(count($tests) === 40, 'The native suite must execute every registered test.');
 $passed=0;$failed=0;
 foreach($tests as $name=>$test){try{$test();echo "PASS $name\n";$passed++;}catch(Throwable $e){echo "FAIL $name: ".$e->getMessage()."\n";$failed++;}finally{wp_set_current_user(1);}}
 // Prepare a native classic checkout fixture for a separate HTTP smoke test.

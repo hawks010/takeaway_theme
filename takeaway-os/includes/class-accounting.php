@@ -101,6 +101,10 @@ final class TTOS_Accounting {
         return $count;
     }
 
+    public static function write_csv_row($stream, array $row) {
+        return fputcsv($stream, array_map(array(__CLASS__, 'csv_cell'), $row), ',', '"', '');
+    }
+
     public static function csv_cell($value): string {
         $value = (string) $value;
         // Preserve ordinary numbers; prevent spreadsheet execution of user-provided text.

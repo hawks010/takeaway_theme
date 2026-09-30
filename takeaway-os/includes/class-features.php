@@ -1149,9 +1149,9 @@ final class TTOS_Features {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . sanitize_file_name($filename) . '"');
         $out = fopen('php://output', 'w');
-        fputcsv($out, $headers);
+        TTOS_Accounting::write_csv_row($out, $headers);
         foreach ($rows as $row) {
-            fputcsv($out, $row);
+            TTOS_Accounting::write_csv_row($out, $row);
         }
         fclose($out);
         exit;

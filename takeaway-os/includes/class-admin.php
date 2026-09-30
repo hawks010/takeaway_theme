@@ -2172,80 +2172,23 @@ final class TTOS_Admin {
 
     private static function import_customer_profiles() {
         $upload = TTOS_Hardening::stash_uploaded_file($_FILES['customer_csv'] ?? array(), array('csv'), 2 * 1024 * 1024, 'customer-import-');
-        if (is_wp_error($upload)) {
-            return $upload;
-        }
-
-        $profiles = self::customer_profiles();
-        $summary = array('processed' => 0, 'created' => 0, 'updated' => 0, 'skipped' => 0);
-        $warnings = array();
+        if (is_wp_error($upload)) return $upload;
         $handle = fopen($upload['path'], 'r');
         if (!$handle) {
             TTOS_Hardening::cleanup_import_file($upload['path']);
             return new WP_Error('ttos_customer_import_open', __('The uploaded customer CSV could not be opened.', 'takeaway-os'));
         }
-
         try {
-            $headers = fgetcsv($handle);
-            if (!$headers) {
-                return new WP_Error('ttos_customer_import_headers', __('The customer CSV is empty or missing its header row.', 'takeaway-os'));
+            $summary = TTOS_Import::import_customer_stream($handle);
+            if (!$summary['processed']) {
+                return new WP_Error('ttos_customer_import_empty', $summary['errors'][0] ?? __('No customer profiles were imported.', 'takeaway-os'));
             }
-            $headers = array_map(array(__CLASS__, 'normalise_csv_header'), $headers);
-            if (!in_array('email', $headers, true)) {
-                return new WP_Error('ttos_customer_import_email', __('The customer CSV must include an "email" column.', 'takeaway-os'));
-            }
-
-            while (($row = fgetcsv($handle)) !== false) {
-                if (!is_array($row) || self::csv_row_blank($row)) {
-                    continue;
-                }
-                $data = array();
-                foreach ($headers as $index => $key) {
-                    if ($key === '') {
-                        continue;
-                    }
-                    $data[$key] = isset($row[$index]) ? trim((string) $row[$index]) : '';
-                }
-
-                $email = strtolower(sanitize_email((string) ($data['email'] ?? '')));
-                if ($email === '' || !is_email($email)) {
-                    $warnings[] = __('A row was skipped because the email address was missing or invalid.', 'takeaway-os');
-                    $summary['skipped']++;
-                    continue;
-                }
-
-                $existing = is_array($profiles[$email] ?? null) ? $profiles[$email] : array();
-                $profiles[$email] = array(
-                    'name'           => sanitize_text_field((string) ($data['name'] ?? ($existing['name'] ?? ''))),
-                    'phone'          => sanitize_text_field((string) ($data['phone'] ?? ($existing['phone'] ?? ''))),
-                    'postcode'       => sanitize_text_field((string) ($data['postcode'] ?? ($existing['postcode'] ?? ''))),
-                    'tags'           => sanitize_text_field((string) ($data['tags'] ?? ($existing['tags'] ?? ''))),
-                    'internal_notes' => sanitize_textarea_field((string) ($data['internal_notes'] ?? ($existing['internal_notes'] ?? ''))),
-                    'marketing_ok'   => self::csv_bool((string) ($data['marketing_ok'] ?? ($existing['marketing_ok'] ?? '0'))) ? '1' : '0',
-                    'birthday'       => sanitize_text_field((string) ($data['birthday'] ?? ($existing['birthday'] ?? ''))),
-                    'updated'        => time(),
-                );
-                $summary['processed']++;
-                if ($existing) {
-                    $summary['updated']++;
-                } else {
-                    $summary['created']++;
-                }
-            }
+            $summary['warnings'] = array_merge($summary['warnings'], $summary['errors']);
+            return $summary;
         } finally {
             fclose($handle);
             TTOS_Hardening::cleanup_import_file($upload['path']);
         }
-
-        if (!$summary['processed']) {
-            return new WP_Error('ttos_customer_import_empty', __('No customer profiles were imported from that CSV.', 'takeaway-os'));
-        }
-
-        update_option('ttos_customer_profiles', $profiles, false);
-        if ($warnings) {
-            $summary['warnings'] = $warnings;
-        }
-        return $summary;
     }
 
     public static function export_customer_profiles_csv(): void {
@@ -2256,9 +2199,9 @@ final class TTOS_Admin {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename=takeaway-customer-crm-' . gmdate('Y-m-d') . '.csv');
         $out = fopen('php://output', 'w');
-        fputcsv($out, array('email','name','phone','postcode','tags','internal_notes','marketing_ok','birthday','orders','lifetime_value','last_order','status'));
+        TTOS_Accounting::write_csv_row($out, array('email','name','phone','postcode','tags','internal_notes','marketing_ok','birthday','orders','lifetime_value','last_order','status'));
         foreach (self::customer_snapshot_enhanced(500) as $email => $customer) {
-            fputcsv($out, array(
+            TTOS_Accounting::write_csv_row($out, array(
                 $email,
                 $customer['name'],
                 $customer['phone'],
