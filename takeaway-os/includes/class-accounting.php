@@ -101,9 +101,12 @@ final class TTOS_Accounting {
         }
 
         $file = basename($path);
-        $download_url = wp_nonce_url(add_query_arg(array(
-            'action' => 'ttos_download_accounting_export', 'file' => $file,
-        ), admin_url('admin-post.php')), 'ttos_download_accounting_export_' . $file);
+        // REST returns a raw URL, not an HTML-escaped anchor attribute.
+        $download_url = add_query_arg(array(
+            'action' => 'ttos_download_accounting_export',
+            'file' => $file,
+            '_wpnonce' => wp_create_nonce('ttos_download_accounting_export_' . $file),
+        ), admin_url('admin-post.php'));
 
         return new WP_REST_Response(array(
             'success'      => true,
