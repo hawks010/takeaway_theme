@@ -147,13 +147,35 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true' EXIT
           python3 -u tests/native/fulfilment_http.py 2>&1 | tee /tmp/fulfilment-http.txt
+      - name: Rehearse shipping and resolved checkout address
+        run: |
+          set -euo pipefail
+          git fetch --depth=1 origin 38c26eb37e9c7eea4d0c6b2961a28ea892de3c84
+          target="$WP_PATH/wp-content/plugins/takeaway-os/includes"
+          restore_candidate() {
+            cp takeaway-os/includes/class-operations.php "$target/class-operations.php"
+            cp takeaway-os/includes/class-features.php "$target/class-features.php"
+          }
+          trap restore_candidate EXIT
+          for file in class-operations.php class-features.php; do
+            git show "38c26eb37e9c7eea4d0c6b2961a28ea892de3c84:takeaway-os/includes/$file" > "$target/$file"
+          done
+          set +e
+          php /tmp/wp-cli.phar --path="$WP_PATH" eval-file "$GITHUB_WORKSPACE/tests/native/shipping_assertions.php" > /tmp/shipping-baseline.txt 2>&1
+          baseline_result=$?
+          set -e
+          restore_candidate
+          cat /tmp/shipping-baseline.txt
+          test "$baseline_result" -eq 1
+          grep -F 'SHIPPING RESULT 13 passed, 7 failed, 20 tests' /tmp/shipping-baseline.txt
+          php /tmp/wp-cli.phar --path="$WP_PATH" eval-file "$GITHUB_WORKSPACE/tests/native/shipping_assertions.php" | tee /tmp/shipping-candidate.txt
       - name: Capture reviewable source without production data
         if: always()
         run: |
           mkdir -p /tmp/takeaway-review
           git rev-parse HEAD > /tmp/takeaway-review/commit.txt
           git archive --format=tar HEAD takeaway-os takeaway-theme tests docs/BACKEND-TODO-20260930.md > /tmp/takeaway-review/source.tar
-          for file in /tmp/php-runtime.txt /tmp/native-versions.txt /tmp/native-tests.txt /tmp/http-tests.txt /tmp/checkout-verify.txt /tmp/php-server.log /tmp/server-exit.txt /tmp/fulfilment-assertions.txt /tmp/fulfilment-server.txt /tmp/fulfilment-http.txt; do
+          for file in /tmp/php-runtime.txt /tmp/native-versions.txt /tmp/native-tests.txt /tmp/http-tests.txt /tmp/checkout-verify.txt /tmp/php-server.log /tmp/server-exit.txt /tmp/fulfilment-assertions.txt /tmp/fulfilment-server.txt /tmp/fulfilment-http.txt /tmp/shipping-baseline.txt /tmp/shipping-candidate.txt; do
             if [ -f "$file" ]; then cp "$file" /tmp/takeaway-review/; fi
           done
           if [ -d /tmp/checkout-runtime-comparison ]; then cp -R /tmp/checkout-runtime-comparison /tmp/takeaway-review/; fi
