@@ -34,7 +34,7 @@ final class TTOS_Features {
         add_action('ttos_kitchen_status_changed', array(__CLASS__, 'order_status_integrations'), 20, 4);
         add_action('woocommerce_order_status_completed', array(__CLASS__, 'award_rewards'), 20, 1);
         add_action('woocommerce_cart_calculate_fees', array(__CLASS__, 'apply_advanced_zone_fee'), 30);
-        add_action('woocommerce_checkout_process', array(__CLASS__, 'validate_advanced_zone_checkout'));
+        add_action('woocommerce_after_checkout_validation', array(__CLASS__, 'validate_advanced_zone_checkout'), 20, 2);
 
         add_action('init', array(__CLASS__, 'account_endpoint'));
         add_action('woocommerce_account_takeaway-rewards_endpoint', array(__CLASS__, 'account_rewards_endpoint'));
@@ -374,6 +374,7 @@ final class TTOS_Features {
     private static function delivery_zones_panel(): void {
         $s = self::get('advanced_zones');
         echo '<section id="delivery-zones" class="ttos-card"><h2>Advanced delivery zones ' . self::module_badge('advanced_zones') . '</h2><p class="ttos-muted">One rule per line: <code>Name|postcode prefixes|fee|min order|free over</code>. Example: <code>Local|MK18|1.50|12.00|30.00</code></p><form method="post">';
+        echo '<p class="ttos-muted">These optional non-taxable fees are added to native WooCommerce shipping, not used instead of it. Minimum and free-delivery thresholds use the item subtotal before discounts and tax. For native-only pricing, leave this module off and configure Shipping in WooCommerce. Collection preference does not select Local pickup automatically.</p>';
         wp_nonce_field('ttos_feature_save_settings');
         echo '<input type="hidden" name="ttos_action" value="feature_save_settings">';
         self::settings_hidden_except('advanced_zones');
@@ -721,13 +722,13 @@ final class TTOS_Features {
         if ($zone['fee'] > 0) $cart->add_fee('Delivery zone: ' . $zone['name'], $zone['fee']);
     }
 
-    public static function validate_advanced_zone_checkout(): void {
+    public static function validate_advanced_zone_checkout(array $data, $errors): void {
         if (!TTOS_Settings::module_enabled('advanced_zones') || !function_exists('WC')) return;
         if (self::current_fulfilment_method() !== 'delivery') return;
-        $postcode = isset($_POST['shipping_postcode']) ? sanitize_text_field(wp_unslash($_POST['shipping_postcode'])) : sanitize_text_field(wp_unslash($_POST['billing_postcode'] ?? ''));
+        $postcode = TTOS_Operations::checkout_delivery_postcode($data);
         $zone = self::zone_for_postcode($postcode); if (!$zone) return;
         $subtotal = WC()->cart ? (float) WC()->cart->get_subtotal() : 0;
-        if ($subtotal < (float) $zone['min']) wc_add_notice(sprintf('Minimum delivery order for %s is %s.', $zone['name'], self::money($zone['min'])), 'error');
+        if ($subtotal < (float) $zone['min']) $errors->add('ttos_zone_minimum', sprintf('Minimum delivery order for %s is %s.', $zone['name'], self::money($zone['min'])));
     }
 
     public static function award_rewards(int $order_id): void {

@@ -19,6 +19,7 @@ final class TTOS_Operations {
         add_filter('woocommerce_add_to_cart_validation', array(__CLASS__, 'validate_add_to_cart_window'), 5, 3);
         add_action('woocommerce_checkout_process', array(__CLASS__, 'sync_posted_checkout_method'), 5);
         add_action('woocommerce_checkout_process', array(__CLASS__, 'validate_checkout'));
+        add_action('woocommerce_after_checkout_validation', array(__CLASS__, 'validate_delivery_destination'), 10, 2);
         add_action('woocommerce_checkout_create_order', array(__CLASS__, 'save_order_meta'), 20, 2);
         add_action('woocommerce_admin_order_data_after_billing_address', array(__CLASS__, 'admin_order_meta'));
         add_filter('woocommerce_email_order_meta_fields', array(__CLASS__, 'email_order_meta'), 20, 3);
@@ -359,12 +360,6 @@ final class TTOS_Operations {
         if ($method === 'delivery' && function_exists('WC') && WC()->cart) {
             $min = (float) ($trading['min_order'] ?? 0);
             if ($min > 0 && (float) WC()->cart->get_subtotal() < $min) wc_add_notice(sprintf(__('Minimum delivery order is £%s.', 'takeaway-os'), number_format($min, 2)), 'error');
-            $allowed = self::basic_postcodes($trading['delivery_postcodes'] ?? '');
-            if ($allowed) {
-                $pc = strtoupper(preg_replace('/\s+/', '', sanitize_text_field(wp_unslash($_POST['shipping_postcode'] ?? $_POST['billing_postcode'] ?? ''))));
-                $ok = false; foreach ($allowed as $prefix) if ($prefix !== '' && strpos($pc, $prefix) === 0) $ok = true;
-                if (!$ok) wc_add_notice(__('Sorry, this postcode is outside the current delivery area.', 'takeaway-os'), 'error');
-            }
         }
         $time = sanitize_text_field(wp_unslash($_POST['ttos_requested_time'] ?? 'asap'));
         if (!empty($state['preorder_required']) && ($time === '' || $time === 'asap')) {
@@ -379,6 +374,24 @@ final class TTOS_Operations {
                 wc_add_notice(__('That requested time is no longer available. Please choose another slot.', 'takeaway-os'), 'error');
             }
         }
+    }
+
+    /** Validate the destination WooCommerce resolved, not inactive fields in the form. */
+    public static function validate_delivery_destination(array $data, $errors): void {
+        if (self::current_checkout_method() !== 'delivery') return;
+        $allowed = self::postcode_prefixes();
+        if (!$allowed) return;
+        $postcode = self::checkout_delivery_postcode($data);
+        foreach ($allowed as $prefix) {
+            if ($prefix !== '' && strpos($postcode, $prefix) === 0) return;
+        }
+        $errors->add('ttos_delivery_area', __('Sorry, this postcode is outside the current delivery area.', 'takeaway-os'));
+    }
+
+    /** The native checkout has already selected/copied billing or shipping fields. */
+    public static function checkout_delivery_postcode(array $data): string {
+        $value = $data['shipping_postcode'] ?? '';
+        return is_string($value) ? strtoupper(preg_replace('/\s+/', '', $value)) : '';
     }
 
     private static function basic_postcodes(string $raw): array {
@@ -427,8 +440,10 @@ final class TTOS_Operations {
     public static function shipping_method_label(string $label, $order): string {
         if (!$order instanceof WC_Order) return $label;
         $method = $order->get_meta('_ttos_fulfilment_method');
+        // Native shipping lines remain visible; fulfilment has its own order meta.
+        if ($label !== '') return $label;
         if ($method === 'collection') return 'Collection';
-        if ($method === 'delivery') return $label ?: 'Delivery';
+        if ($method === 'delivery') return 'Delivery';
         return $label;
     }
 
