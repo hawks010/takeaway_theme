@@ -25,6 +25,8 @@ final class TTOS_Production {
         add_action('woocommerce_order_status_completed', array(__CLASS__, 'schedule_retention_after_completed_order'), 25, 1);
         add_action('wp_footer', array(__CLASS__, 'pause_banner'));
 
+        self::restore_retention_jobs();
+
         if (!wp_next_scheduled('ttos_inventory_daily_reset')) {
             wp_schedule_event(time() + HOUR_IN_SECONDS, 'daily', 'ttos_inventory_daily_reset');
         }
@@ -53,7 +55,24 @@ final class TTOS_Production {
 
     public static function get(string $key = '') {
         $settings = wp_parse_args(get_option('ttos_production_settings', array()), self::defaults());
+        $settings['pause_enabled'] = self::is_paused() ? '1' : '0';
         return $key === '' ? $settings : ($settings[$key] ?? null);
+    }
+
+    /** Read the established production setting; accept the obsolete flag only until first save. */
+    public static function is_paused(): bool {
+        $stored = get_option('ttos_production_settings', array());
+        if (is_array($stored) && array_key_exists('pause_enabled', $stored)) {
+            return (string) $stored['pause_enabled'] === '1';
+        }
+        return (string) get_option('ttos_ordering_paused', '0') === '1';
+    }
+
+    public static function set_paused(bool $paused): void {
+        $settings = self::get();
+        $settings['pause_enabled'] = $paused ? '1' : '0';
+        self::update($settings);
+        delete_option('ttos_ordering_paused');
     }
 
     public static function update(array $values): void {
@@ -674,12 +693,12 @@ final class TTOS_Production {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename=takeaway-menu-' . gmdate('Y-m-d') . '.csv');
         $out = fopen('php://output', 'w');
-        fputcsv($out, array('product_id','name','category','price','sale_price','description','allergens','badges','sold_out','hidden','option_groups_json'));
+        TTOS_Accounting::write_csv_row($out, array('product_id','name','category','price','sale_price','description','allergens','badges','sold_out','hidden','option_groups_json'));
         if (post_type_exists('product')) {
             $q = new WP_Query(array('post_type'=>'product','post_status'=>array('publish','draft'),'posts_per_page'=>-1,'orderby'=>'menu_order title','order'=>'ASC'));
             while ($q->have_posts()) { $q->the_post(); $id = get_the_ID();
                 $terms = wp_get_post_terms($id, 'product_cat', array('fields'=>'names'));
-                fputcsv($out, array($id, get_the_title(), !is_wp_error($terms) && $terms ? $terms[0] : '', get_post_meta($id,'_regular_price',true), get_post_meta($id,'_sale_price',true), wp_strip_all_tags(get_post_field('post_content',$id)), get_post_meta($id,'_ttos_allergens',true), get_post_meta($id,'_ttos_badges',true), get_post_meta($id,'_stock_status',true)==='outofstock' ? 'yes' : 'no', get_post_status($id)==='draft' ? 'yes' : 'no', get_post_meta($id,'_ttos_option_groups',true)));
+                TTOS_Accounting::write_csv_row($out, array($id, get_the_title(), !is_wp_error($terms) && $terms ? $terms[0] : '', get_post_meta($id,'_regular_price',true), get_post_meta($id,'_sale_price',true), wp_strip_all_tags(get_post_field('post_content',$id)), get_post_meta($id,'_ttos_allergens',true), get_post_meta($id,'_ttos_badges',true), get_post_meta($id,'_stock_status',true)==='outofstock' ? 'yes' : 'no', get_post_status($id)==='draft' ? 'yes' : 'no', get_post_meta($id,'_ttos_option_groups',true)));
             }
             wp_reset_postdata();
         }
@@ -692,7 +711,7 @@ final class TTOS_Production {
         $q = new WP_Query(array('post_type'=>'product','post_status'=>array('publish','draft'),'posts_per_page'=>-1,'meta_query'=>array(array('key'=>'_stock_status','value'=>'outofstock'))));
         while ($q->have_posts()) { $q->the_post(); $id = get_the_ID();
             if (get_post_meta($id, '_manage_stock', true) === 'yes') continue;
-            update_post_meta($id, '_stock_status', 'instock');
+            TTOS_WooCommerce::set_product_state($id, 'available');
         }
         wp_reset_postdata();
         self::log('inventory', 'Non-stock sold-out items reset', array('manual'=>$manual));
@@ -719,7 +738,7 @@ final class TTOS_Production {
                 continue;
             }
             $profile = $profiles[strtolower($email)] ?? array();
-            if (($profile['marketing_ok'] ?? '0') !== '1') {
+            if (!self::customer_marketing_opt_in($email)) {
                 $skipped++;
                 continue;
             }
@@ -833,8 +852,8 @@ final class TTOS_Production {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename=takeaway-campaign-contacts-' . gmdate('Y-m-d') . '.csv');
         $out = fopen('php://output', 'w');
-        fputcsv($out, array('email','coupon','campaign'));
-        foreach ((array) ($campaign['emails'] ?? array()) as $email) fputcsv($out, array($email, $campaign['code'] ?? '', $campaign['name'] ?? ''));
+        TTOS_Accounting::write_csv_row($out, array('email','coupon','campaign'));
+        foreach ((array) ($campaign['emails'] ?? array()) as $email) TTOS_Accounting::write_csv_row($out, array($email, $campaign['code'] ?? '', $campaign['name'] ?? ''));
         fclose($out); exit;
     }
 
@@ -878,6 +897,19 @@ final class TTOS_Production {
         update_option('ttos_retention_jobs', $jobs, false);
     }
 
+    /** Restore only previously queued, still permitted follow-ups after reactivation. */
+    public static function restore_retention_jobs(): void {
+        if (self::get('retention_enabled') !== '1') return;
+        foreach (self::retention_jobs() as $email => $job) {
+            $email = strtolower(sanitize_email((string) $email));
+            if (!$email || !is_email($email) || !self::customer_marketing_opt_in($email)) continue;
+            $scheduled = (int) ($job['scheduled_for'] ?? 0);
+            if ($scheduled > 0 && !wp_next_scheduled('ttos_send_retention_email', array($email))) {
+                wp_schedule_single_event(max(time() + MINUTE_IN_SECONDS, $scheduled), 'ttos_send_retention_email', array($email));
+            }
+        }
+    }
+
     private static function clear_retention_job(string $email): void {
         wp_clear_scheduled_hook('ttos_send_retention_email', array($email));
         $jobs = self::retention_jobs();
@@ -894,12 +926,16 @@ final class TTOS_Production {
         update_option('ttos_retention_jobs', array(), false);
     }
 
-    private static function customer_marketing_opt_in(string $email): bool {
+    public static function customer_marketing_opt_in(string $email): bool {
         $profiles = get_option('ttos_customer_profiles', array());
         if (!is_array($profiles)) {
             return false;
         }
         $profile = $profiles[strtolower($email)] ?? array();
+        $user = get_user_by('email', strtolower($email));
+        if ($user && get_user_meta($user->ID, '_ttos_retention_opt_out', true) === '1') {
+            return false;
+        }
         return ($profile['marketing_ok'] ?? '0') === '1';
     }
 
@@ -907,7 +943,7 @@ final class TTOS_Production {
         if (!function_exists('wc_get_orders')) {
             return 0;
         }
-        $orders = wc_get_orders(array(
+        $orders = wc_get_orders(array('type' => 'shop_order',
             'limit' => 1,
             'billing_email' => $email,
             'orderby' => 'date',
@@ -1040,22 +1076,35 @@ final class TTOS_Production {
         return hash_hmac('sha256', strtolower(trim($email)), wp_salt('auth'));
     }
 
+    /** The explicit owner form can record fresh consent; imported lists cannot clear a prior opt-out. */
+    public static function record_marketing_permission(string $email, bool $allowed): void {
+        $email = strtolower(sanitize_email($email));
+        if (!$email || !is_email($email)) { return; }
+        $profiles = get_option('ttos_customer_profiles', array());
+        if (!is_array($profiles)) { $profiles = array(); }
+        $profiles[$email] = is_array($profiles[$email] ?? null) ? $profiles[$email] : array();
+        $profiles[$email]['marketing_ok'] = $allowed ? '1' : '0';
+        update_option('ttos_customer_profiles', $profiles, false);
+        $user = get_user_by('email', $email);
+        if ($user) {
+            if ($allowed) { delete_user_meta($user->ID, '_ttos_retention_opt_out'); }
+            else { update_user_meta($user->ID, '_ttos_retention_opt_out', '1'); }
+        }
+        if (!$allowed) { self::clear_retention_job($email); }
+    }
+
+    public static function unsubscribe_customer(string $email): void {
+        self::record_marketing_permission($email, false);
+        self::log('campaign', 'Customer unsubscribed from campaign emails', array('email' => strtolower(sanitize_email($email))));
+    }
+
     public static function handle_campaign_unsubscribe(): void {
         $email = sanitize_email(wp_unslash($_GET['email'] ?? ''));
         $sig = sanitize_text_field(wp_unslash($_GET['sig'] ?? ''));
         if (!$email || !is_email($email) || !$sig || !hash_equals(self::campaign_unsubscribe_signature($email), $sig)) {
             wp_die(esc_html__('That unsubscribe link is invalid or has expired.', 'takeaway-os'), esc_html__('Unsubscribe failed', 'takeaway-os'), array('response' => 400));
         }
-        $profiles = get_option('ttos_customer_profiles', array());
-        if (!is_array($profiles)) {
-            $profiles = array();
-        }
-        $key = strtolower($email);
-        $profiles[$key] = is_array($profiles[$key] ?? null) ? $profiles[$key] : array();
-        $profiles[$key]['marketing_ok'] = '0';
-        update_option('ttos_customer_profiles', $profiles, false);
-        self::clear_retention_job($key);
-        self::log('campaign', 'Customer unsubscribed from campaign emails', array('email' => $email));
+        self::unsubscribe_customer($email);
 
         wp_die(
             '<p>' . esc_html__('You have been unsubscribed from future Takeaway OS campaign emails.', 'takeaway-os') . '</p><p><a href="' . esc_url(home_url('/')) . '">' . esc_html__('Return to the site', 'takeaway-os') . '</a></p>',

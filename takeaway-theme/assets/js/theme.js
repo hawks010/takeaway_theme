@@ -241,32 +241,6 @@
         });
     }
 
-    /* ── Fulfilment toggle (menu pagehead) ──────────────────────────── */
-    document.querySelectorAll('.tt-fulfilment-toggle').forEach(function (tog) {
-        tog.setAttribute('role', 'radiogroup');
-        var pills = tog.querySelectorAll('.tt-fulfilment-pill[data-fulfilment]');
-        var scope = tog.parentElement;
-
-        pills.forEach(function (p) {
-            p.setAttribute('role', 'radio');
-            p.setAttribute('aria-checked', p.getAttribute('aria-pressed') === 'true' ? 'true' : 'false');
-            p.removeAttribute('aria-pressed');
-        });
-
-        function activateMode(mode) {
-            pills.forEach(function (p) {
-                p.setAttribute('aria-checked', p.dataset.fulfilment === mode ? 'true' : 'false');
-            });
-            scope.querySelectorAll('.tt-hero-zone[data-zone], .tt-pagehead-zone[data-zone]').forEach(function (z) {
-                z.hidden = z.dataset.zone !== mode;
-            });
-        }
-
-        pills.forEach(function (pill) {
-            pill.addEventListener('click', function () { activateMode(pill.dataset.fulfilment); });
-        });
-    });
-
     /* ── Mobile drawer ─────────────────────────────────────────────── */
     var drawer = document.getElementById('tt-mobile-drawer');
     var toggle = document.querySelector('.tt-drawer-toggle');

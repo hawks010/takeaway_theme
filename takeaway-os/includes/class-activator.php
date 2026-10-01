@@ -23,6 +23,7 @@ final class TTOS_Activator {
             return;
         }
 
+        self::migrate_legacy_module_selection($installed);
         self::add_roles();
         self::seed_settings();
         self::migrate_branding_tokens();
@@ -30,6 +31,21 @@ final class TTOS_Activator {
         update_option('ttos_version', TTOS_VERSION, false);
         if (class_exists('TTOS_Accounting')) TTOS_Accounting::create_log_table();
         if (class_exists('TTOS_Hardening')) TTOS_Hardening::maybe_protect_uploads();
+    }
+
+    /** Preserve the previous effective state once, then honour ordinary admin toggles. */
+    private static function migrate_legacy_module_selection(string $installed): void {
+        if ($installed === '' || version_compare($installed, '1.3.13-rc.1', '>=') || get_option('ttos_module_selection_migrated')) return;
+        $settings = get_option('ttos_settings', array());
+        if (is_array($settings) && isset($settings['modules']) && is_array($settings['modules'])) {
+            foreach (array('sms_updates','printer','allergen_filters','promo_engine','kds_pro','epos_connector','multi_location','qr_ordering') as $slug) {
+                // These flags were previously ignored even when saved as true.
+                // Do not suddenly start external services during an update.
+                if (array_key_exists($slug, $settings['modules'])) $settings['modules'][$slug] = false;
+            }
+            update_option('ttos_settings', $settings, false);
+        }
+        update_option('ttos_module_selection_migrated', true, false);
     }
 
     /** v1.3.0 Site Content option. Add-only; never modifies existing values. */
@@ -75,9 +91,8 @@ final class TTOS_Activator {
     }
 
     public static function deactivate(): void {
-        $timestamp = wp_next_scheduled('ttos_retry_integrations');
-        if ($timestamp) {
-            wp_unschedule_event($timestamp, 'ttos_retry_integrations');
+        foreach (array('ttos_retry_integrations', 'ttos_inventory_daily_reset', 'ttos_send_retention_email') as $hook) {
+            wp_unschedule_hook($hook);
         }
         flush_rewrite_rules();
     }

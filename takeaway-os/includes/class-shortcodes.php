@@ -420,7 +420,7 @@ final class TTOS_Shortcodes {
                     'ttos-out'       => __('Out for delivery', 'takeaway-os'),
                     'completed'      => __('Complete', 'takeaway-os'),
                 );
-                $active_status = $order->get_status();
+                $active_status = TTOS_WooCommerce::kitchen_status($order);
                 $seen_active = false;
                 $timeline = '';
                 foreach ($steps as $slug => $label) {
@@ -669,11 +669,11 @@ final class TTOS_Shortcodes {
         ob_start();
         echo '<div class="ttos-portal"><h2>My orders</h2>';
         if (TTOS_WooCommerce::active()) {
-            $orders = wc_get_orders(array('customer_id' => get_current_user_id(), 'limit' => 10));
+            $orders = wc_get_orders(array('type' => 'shop_order', 'customer_id' => get_current_user_id(), 'limit' => 10));
             if ($orders) {
                 echo '<div class="ttos-order-list">';
                 foreach ($orders as $order) {
-                    echo '<div class="ttos-front-card"><strong>#' . esc_html($order->get_id()) . '</strong><span>' . esc_html(wc_get_order_status_name($order->get_status())) . '</span><b>' . wp_kses_post($order->get_formatted_order_total()) . '</b></div>';
+                    echo '<div class="ttos-front-card"><strong>#' . esc_html($order->get_id()) . '</strong><span>' . esc_html(wc_get_order_status_name(TTOS_WooCommerce::kitchen_status($order))) . '</span><b>' . wp_kses_post($order->get_formatted_order_total()) . '</b></div>';
                 }
                 echo '</div>';
             } else echo '<p>No orders yet.</p>';
@@ -686,11 +686,11 @@ final class TTOS_Shortcodes {
 
     public static function kitchen_screen(): string {
         if (!current_user_can('ttos_view_orders') || !TTOS_WooCommerce::active()) return '';
-        $orders = wc_get_orders(array('limit' => 15, 'status' => array('processing','ttos-accepted','ttos-prepping','ttos-ready')));
+        $orders = wc_get_orders(array('type' => 'shop_order', 'limit' => 15, 'status' => array('processing','ttos-accepted','ttos-prepping','ttos-ready')));
         ob_start();
         echo '<div class="ttos-kitchen-screen"><h2>Takeaway Tickets</h2>';
         foreach ($orders as $order) {
-            echo '<div class="ttos-kitchen-ticket"><h3>#' . esc_html($order->get_id()) . ' · ' . esc_html(wc_get_order_status_name($order->get_status())) . '</h3><ul>';
+            echo '<div class="ttos-kitchen-ticket"><h3>#' . esc_html($order->get_id()) . ' · ' . esc_html(wc_get_order_status_name(TTOS_WooCommerce::kitchen_status($order))) . '</h3><ul>';
             foreach ($order->get_items() as $item) echo '<li>' . esc_html($item->get_quantity()) . ' × ' . esc_html($item->get_name()) . '</li>';
             echo '</ul></div>';
         }

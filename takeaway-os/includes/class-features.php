@@ -30,10 +30,11 @@ final class TTOS_Features {
         add_action('woocommerce_checkout_create_order_line_item', array(__CLASS__, 'save_meal_deal_order_item_meta'), 20, 4);
 
         add_action('woocommerce_new_order', array(__CLASS__, 'order_created_integrations'), 20, 2);
-        add_action('woocommerce_after_order_status_changed', array(__CLASS__, 'order_status_integrations'), 20, 4);
+        add_action('woocommerce_order_status_changed', array(__CLASS__, 'order_status_integrations'), 20, 4);
+        add_action('ttos_kitchen_status_changed', array(__CLASS__, 'order_status_integrations'), 20, 4);
         add_action('woocommerce_order_status_completed', array(__CLASS__, 'award_rewards'), 20, 1);
         add_action('woocommerce_cart_calculate_fees', array(__CLASS__, 'apply_advanced_zone_fee'), 30);
-        add_action('woocommerce_checkout_process', array(__CLASS__, 'validate_advanced_zone_checkout'));
+        add_action('woocommerce_after_checkout_validation', array(__CLASS__, 'validate_advanced_zone_checkout'), 20, 2);
 
         add_action('init', array(__CLASS__, 'account_endpoint'));
         add_action('woocommerce_account_takeaway-rewards_endpoint', array(__CLASS__, 'account_rewards_endpoint'));
@@ -373,6 +374,7 @@ final class TTOS_Features {
     private static function delivery_zones_panel(): void {
         $s = self::get('advanced_zones');
         echo '<section id="delivery-zones" class="ttos-card"><h2>Advanced delivery zones ' . self::module_badge('advanced_zones') . '</h2><p class="ttos-muted">One rule per line: <code>Name|postcode prefixes|fee|min order|free over</code>. Example: <code>Local|MK18|1.50|12.00|30.00</code></p><form method="post">';
+        echo '<p class="ttos-muted">These optional non-taxable fees are added to native WooCommerce shipping, not used instead of it. Minimum and free-delivery thresholds use the item subtotal before discounts and tax. For native-only pricing, leave this module off and configure Shipping in WooCommerce. Collection preference does not select Local pickup automatically.</p>';
         wp_nonce_field('ttos_feature_save_settings');
         echo '<input type="hidden" name="ttos_action" value="feature_save_settings">';
         self::settings_hidden_except('advanced_zones');
@@ -502,9 +504,9 @@ final class TTOS_Features {
     private static function accounting_panel(): void {
         $s = self::get('accounting');
         echo '<section id="accounting" class="ttos-card"><h2>Accounting export ' . self::module_badge('accounting') . '</h2><form method="post">'; wp_nonce_field('ttos_feature_save_settings'); echo '<input type="hidden" name="ttos_action" value="feature_save_settings">'; self::settings_hidden_except('accounting');
-        echo '<div class="ttos-grid ttos-grid-2">'; self::field('VAT estimate rate (%)', 'feature_settings[accounting][vat_rate]', $s['vat_rate'], 'number'); self::field('Owner/accountant email', 'feature_settings[accounting][daily_email]', $s['daily_email'], 'email'); echo '</div><button class="ttos-button">Save accounting settings</button></form>';
+        echo '<div class="ttos-grid ttos-grid-2">'; echo '<p>Tax is read from WooCommerce orders. This screen never calculates or changes tax rates.</p>'; self::field('Owner/accountant email', 'feature_settings[accounting][daily_email]', $s['daily_email'], 'email'); echo '</div><button class="ttos-button">Save accounting settings</button></form>';
         $daily = self::daily_close_snapshot();
-        echo '<div class="ttos-grid ttos-grid-4">'; self::metric('Today gross', self::money($daily['gross'])); self::metric('Card', self::money($daily['card'])); self::metric('Cash', self::money($daily['cash'])); self::metric('VAT est.', self::money($daily['vat'])); echo '</div>';
+        echo '<div class="ttos-grid ttos-grid-4">'; self::metric('Today gross', self::money($daily['gross'])); self::metric('Non-cash', self::money($daily['card'])); self::metric('Cash', self::money($daily['cash'])); self::metric('Recorded tax', self::money($daily['vat'])); echo '</div>';
         echo '<p><a class="ttos-button" href="' . esc_url(wp_nonce_url(admin_url('admin-post.php?action=ttos_export_orders_csv'), 'ttos_export_orders_csv')) . '">Export orders CSV</a></p>';
         self::accounting_export_log_table();
         echo '</section>';
@@ -653,45 +655,44 @@ final class TTOS_Features {
 
     private static function save_inventory_rows(array $rows): void {
         foreach ($rows as $row) {
-            $id = absint($row['id'] ?? 0); if (!$id || get_post_type($id) !== 'product') continue;
-            $available = !empty($row['available']); $hidden = !empty($row['hidden']); $qty = isset($row['qty']) && $row['qty'] !== '' ? max(0, absint($row['qty'])) : '';
-            wp_update_post(array('ID' => $id, 'post_status' => $hidden ? 'draft' : 'publish'));
-            if ($qty !== '') { update_post_meta($id, '_manage_stock', 'yes'); update_post_meta($id, '_stock', $qty); update_post_meta($id, '_stock_status', ($available && $qty > 0) ? 'instock' : 'outofstock'); }
-            else { update_post_meta($id, '_manage_stock', 'no'); update_post_meta($id, '_stock_status', $available ? 'instock' : 'outofstock'); }
+            if (!is_array($row)) { continue; }
+            $product = wc_get_product(absint($row['id'] ?? 0));
+            if (!$product) { continue; }
+            $qty = isset($row['qty']) && $row['qty'] !== '' ? max(0, absint($row['qty'])) : null;
+            $product->set_status(!empty($row['hidden']) ? 'draft' : 'publish');
+            $product->set_manage_stock($qty !== null);
+            $product->set_stock_quantity($qty);
+            $product->set_stock_status(!empty($row['available']) && ($qty === null || $qty > 0) ? 'instock' : 'outofstock');
+            $product->save();
         }
     }
 
     public static function analytics_snapshot(): array {
-        $out = array('orders' => 0, 'revenue' => 0.0, 'aov' => 0.0, 'busy_hour' => '—', 'top_items' => array(), 'statuses' => array());
-        if (!TTOS_WooCommerce::active()) return $out;
-        $orders = wc_get_orders(array('limit' => 300, 'date_created' => '>' . (new WC_DateTime('-30 days'))->date('Y-m-d H:i:s'), 'return' => 'objects'));
-        $hours = array();
-        foreach ($orders as $order) {
-            $out['orders']++; $out['revenue'] += (float) $order->get_total();
-            $status = wc_get_order_status_name($order->get_status()); $out['statuses'][$status] = ($out['statuses'][$status] ?? 0) + 1;
-            if ($order->get_date_created()) { $h = $order->get_date_created()->date_i18n('H:00'); $hours[$h] = ($hours[$h] ?? 0) + 1; }
-            foreach ($order->get_items() as $item) { $name = $item->get_name(); $out['top_items'][$name] = ($out['top_items'][$name] ?? 0) + (int) $item->get_quantity(); }
-        }
-        arsort($out['top_items']); $out['top_items'] = array_slice($out['top_items'], 0, 10, true); arsort($hours); $out['busy_hour'] = $hours ? array_key_first($hours) : '—'; $out['aov'] = $out['orders'] ? $out['revenue'] / $out['orders'] : 0;
-        return $out;
+        $range = TTOS_Analytics::range('30days');
+        $report = TTOS_Analytics::report($range['start'], $range['end']);
+        $items = array();
+        foreach ($report['top_items'] as $item) $items[$item['name']] = $item['qty'];
+        $statuses = array();
+        foreach ($report['statuses'] as $name => $row) $statuses[$name] = $row['orders'];
+        $hour = $report['busiest_hour']['hour'];
+        return array('orders' => $report['summary']['orders'], 'revenue' => $report['summary']['gross'],
+            'aov' => $report['summary']['aov'], 'busy_hour' => $hour === null ? '—' : sprintf('%02d:00', $hour),
+            'top_items' => $items, 'statuses' => $statuses);
     }
 
     private static function customer_snapshot(): array {
-        $customers = array(); if (!TTOS_WooCommerce::active()) return $customers;
-        $orders = wc_get_orders(array('limit' => 300, 'return' => 'objects'));
-        foreach ($orders as $order) {
-            $email = strtolower($order->get_billing_email()); if (!$email) continue; if (!isset($customers[$email])) $customers[$email] = array('name'=>$order->get_formatted_billing_full_name(),'orders'=>0,'total'=>0.0,'last'=>'','last_ts'=>0,'dormant'=>false);
-            $customers[$email]['orders']++; $customers[$email]['total'] += (float) $order->get_total(); $ts = $order->get_date_created() ? $order->get_date_created()->getTimestamp() : 0; if ($ts > $customers[$email]['last_ts']) { $customers[$email]['last_ts'] = $ts; $customers[$email]['last'] = $order->get_date_created()->date_i18n('d M Y'); }
-        }
-        foreach ($customers as &$c) $c['dormant'] = $c['last_ts'] && $c['last_ts'] < strtotime('-60 days');
-        uasort($customers, function($a,$b){ return $b['total'] <=> $a['total']; }); return $customers;
+        // Both owner screens and CSV exports use the same complete, paid-history definition.
+        $customers = TTOS_Admin::customer_snapshot_enhanced();
+        foreach ($customers as &$customer) $customer['dormant'] = $customer['status'] === 'dormant';
+        unset($customer);
+        return $customers;
     }
 
     private static function daily_close_snapshot(): array {
-        $out = array('gross'=>0.0,'card'=>0.0,'cash'=>0.0,'vat'=>0.0); if (!TTOS_WooCommerce::active()) return $out;
-        $orders = wc_get_orders(array('limit'=>200,'date_created'=>'>'.gmdate('Y-m-d 00:00:00'),'return'=>'objects'));
-        foreach ($orders as $order) { $total = (float) $order->get_total(); $out['gross'] += $total; $method = strtolower($order->get_payment_method()); if (strpos($method, 'cod') !== false || strpos($method, 'cash') !== false) $out['cash'] += $total; else $out['card'] += $total; }
-        $rate = (float) self::get('accounting', 'vat_rate'); $out['vat'] = $rate > 0 ? $out['gross'] - ($out['gross'] / (1 + ($rate / 100))) : 0; return $out;
+        $range = TTOS_Analytics::range('today');
+        $summary = TTOS_Analytics::report($range['start'], $range['end'])['summary'];
+        return array('gross' => $summary['gross'], 'card' => $summary['card'],
+            'cash' => $summary['cash'], 'vat' => $summary['tax']);
     }
 
     private static function delivery_rules(): array {
@@ -710,30 +711,7 @@ final class TTOS_Features {
     }
 
     private static function current_fulfilment_method(): string {
-        $method = '';
-
-        if (isset($_POST['ttos_fulfilment_method'])) {
-            $method = sanitize_key(wp_unslash($_POST['ttos_fulfilment_method']));
-        } elseif (isset($_POST['post_data'])) {
-            $posted = array();
-            parse_str(wp_unslash($_POST['post_data']), $posted);
-            $method = sanitize_key($posted['ttos_fulfilment_method'] ?? '');
-        }
-
-        if ($method !== '' && function_exists('WC') && WC()->session) {
-            WC()->session->set('ttos_fulfilment_method', $method);
-        }
-
-        if ($method === '' && function_exists('WC') && WC()->session) {
-            $method = sanitize_key((string) WC()->session->get('ttos_fulfilment_method', ''));
-        }
-
-        if ($method === '') {
-            $ops = get_option('ttos_operations_settings', array());
-            $method = sanitize_key($ops['checkout']['default_method'] ?? 'delivery');
-        }
-
-        return $method ?: 'delivery';
+        return TTOS_Operations::current_checkout_method();
     }
 
     public static function apply_advanced_zone_fee($cart): void {
@@ -744,13 +722,13 @@ final class TTOS_Features {
         if ($zone['fee'] > 0) $cart->add_fee('Delivery zone: ' . $zone['name'], $zone['fee']);
     }
 
-    public static function validate_advanced_zone_checkout(): void {
+    public static function validate_advanced_zone_checkout(array $data, $errors): void {
         if (!TTOS_Settings::module_enabled('advanced_zones') || !function_exists('WC')) return;
         if (self::current_fulfilment_method() !== 'delivery') return;
-        $postcode = isset($_POST['shipping_postcode']) ? sanitize_text_field(wp_unslash($_POST['shipping_postcode'])) : sanitize_text_field(wp_unslash($_POST['billing_postcode'] ?? ''));
+        $postcode = TTOS_Operations::checkout_delivery_postcode($data);
         $zone = self::zone_for_postcode($postcode); if (!$zone) return;
         $subtotal = WC()->cart ? (float) WC()->cart->get_subtotal() : 0;
-        if ($subtotal < (float) $zone['min']) wc_add_notice(sprintf('Minimum delivery order for %s is %s.', $zone['name'], self::money($zone['min'])), 'error');
+        if ($subtotal < (float) $zone['min']) $errors->add('ttos_zone_minimum', sprintf('Minimum delivery order for %s is %s.', $zone['name'], self::money($zone['min'])));
     }
 
     public static function award_rewards(int $order_id): void {
@@ -873,7 +851,7 @@ final class TTOS_Features {
 
     private static function process_retry_queue(bool $manual = false): void {
         $queue = self::integration_queue();
-        if (!$queue) { self::log('retry', 'Retry queue is empty.'); return; }
+        if (!$queue) { return; }
         $now = time();
         $remaining = array();
         $processed = 0;
@@ -966,7 +944,8 @@ final class TTOS_Features {
             'event' => $event,
             'order_id' => $order->get_id(),
             'status' => $status,
-            'epos_status' => self::mapped_epos_status($status),
+            'kitchen_status' => TTOS_WooCommerce::kitchen_status($order),
+            'epos_status' => self::mapped_epos_status(TTOS_WooCommerce::kitchen_status($order)),
             'total' => $order->get_total(),
             'currency' => $order->get_currency(),
             'payment_method' => $order->get_payment_method(),
@@ -1011,7 +990,7 @@ final class TTOS_Features {
             $sent = true;
         }
         if (TTOS_Settings::module_enabled('sms_updates')) {
-            self::send_order_sms($order, $order->get_status());
+            self::send_order_sms($order, TTOS_WooCommerce::kitchen_status($order));
             $sent = true;
         }
         if (!$sent) {
@@ -1107,11 +1086,23 @@ final class TTOS_Features {
         return '<section class="ttos-home-blocks"><p class="ttos-eyebrow">' . esc_html($s['hero_eyebrow']) . '</p><h1>' . esc_html($s['hero_title']) . '</h1><p>' . esc_html($s['hero_text']) . '</p><div class="ttos-home-offer"><strong>' . esc_html($s['offer_title']) . '</strong><span>' . esc_html($s['offer_text']) . '</span></div><a class="ttos-order-btn" href="' . esc_url($s['cta_url']) . '">' . esc_html($s['cta_label']) . '</a></section>';
     }
 
+    /** Native pages, not a silently truncated 1000-order snapshot. */
+    private static function exportable_orders(): \Generator {
+        for ($page = 1; ; $page++) {
+  $orders = wc_get_orders(array('type' => 'shop_order', 'limit' => 100, 'page' => $page,
+      'return' => 'objects', 'orderby' => 'ID', 'order' => 'ASC'));
+  if (!is_array($orders)) throw new RuntimeException('WooCommerce orders could not be loaded.');
+  foreach ($orders as $order) yield $order;
+  if (count($orders) < 100) break;
+        }
+    }
+
     public static function export_orders_csv(): void {
         if (!current_user_can('ttos_view_reports') || !check_admin_referer('ttos_export_orders_csv')) wp_die('Not allowed.');
         $rows = array();
         if (TTOS_WooCommerce::active()) {
-            foreach (wc_get_orders(array('limit'=>1000,'return'=>'objects')) as $o) {
+            foreach (self::exportable_orders() as $o) {
+                if (!$o instanceof WC_Order) continue;
                 $rows[] = array(
                     $o->get_id(),
                     $o->get_date_created() ? $o->get_date_created()->date('Y-m-d H:i:s') : '',
@@ -1148,9 +1139,9 @@ final class TTOS_Features {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . sanitize_file_name($filename) . '"');
         $out = fopen('php://output', 'w');
-        fputcsv($out, $headers);
+        TTOS_Accounting::write_csv_row($out, $headers);
         foreach ($rows as $row) {
-            fputcsv($out, $row);
+            TTOS_Accounting::write_csv_row($out, $row);
         }
         fclose($out);
         exit;

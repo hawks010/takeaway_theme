@@ -61,6 +61,12 @@ final class TTOS_Retention {
         }
 
         $user_id = (int) $users[0];
+        $user = get_userdata($user_id);
+        if (!$user || !is_email($user->user_email)) {
+            return self::html_response('<p>Unsubscribe link not found.</p>', 404);
+        }
+        TTOS_Production::unsubscribe_customer($user->user_email);
+        // Retained for callers of the legacy uid API; the sender also checks this flag.
         update_user_meta($user_id, '_ttos_retention_opt_out', '1');
 
         $site = get_bloginfo('name');

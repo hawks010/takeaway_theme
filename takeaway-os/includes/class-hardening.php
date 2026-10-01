@@ -282,7 +282,7 @@ final class TTOS_Hardening {
         $checks[] = self::check('permalinks', get_option('permalink_structure') !== '', 'Permalinks', get_option('permalink_structure') !== '' ? 'Pretty permalinks enabled.' : 'Pretty permalinks are off. Recommended before launch.', false);
         $checks[] = self::check('admin_email', is_email(get_option('admin_email')), 'Admin email', is_email(get_option('admin_email')) ? 'Admin email looks valid.' : 'Admin email is missing or invalid.', false);
         $checks[] = self::check('ssl', is_ssl() || (defined('WP_ENVIRONMENT_TYPE') && wp_get_environment_type() !== 'production'), 'SSL', is_ssl() ? 'SSL is active.' : 'SSL is not detected in this admin session. Required for live card payments.', false);
-        $checks[] = self::check('module_lock', (string) get_option('ttos_module_lock_hash', '') !== '', 'Module lock', (string) get_option('ttos_module_lock_hash', '') !== '' ? 'Paid module lock key exists.' : 'No paid module lock key set. Set one before final handover.', false);
+        $checks[] = self::check('module_lock', true, 'Module access', 'WordPress role permissions control module settings. A separate module key is optional; full administrators retain access.', false);
         return $checks;
     }
 

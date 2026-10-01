@@ -1,3 +1,7 @@
+# Backend candidate 1.3.13-rc.1
+
+This candidate preserves WooCommerce ownership of commerce, separates kitchen progress from payment status, and removes unnecessary handover traps. See the repository Codex backend report and executed CI results. External provider integrations and the full Growth package are not certified by this version label. The theme's bundled plugin ZIP must be rebuilt before distribution.
+
 # Takeaway OS v1.3.11
 
 Restaurant operating overlay for WordPress + WooCommerce. Pairs with Takeaway Theme v0.3.33.

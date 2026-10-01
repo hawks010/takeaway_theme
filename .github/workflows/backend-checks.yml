@@ -1,0 +1,175 @@
+name: Backend checks
+on:
+  push:
+    branches: [fix/backend-foundations-20260930]
+    paths: ['takeaway-os/**', 'takeaway-theme/**', 'tests/**', '.github/workflows/backend-checks.yml']
+  pull_request:
+    paths: ['takeaway-os/**', 'takeaway-theme/**', 'tests/**', '.github/workflows/backend-checks.yml']
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        php: ['8.2', '8.5']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - name: Syntax and isolated regressions
+        run: |
+          set -o pipefail
+          find takeaway-os -path '*/node_modules' -prune -o -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          php tests/backend/run.php | tee /tmp/regression.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regression-php-${{ matrix.php }}
+          path: /tmp/regression.txt
+          retention-days: 7
+  native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.5']
+    env:
+      TEST_OWNER_PASSWORD: disposable-fixture-password-only
+      WP_PATH: /tmp/ttos-wp
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: fixture-db-only
+          MYSQL_DATABASE: ttos_fixture
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pfixture-db-only"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          # Avoid inheriting dozens of unrelated PECL/database drivers from the runner.
+          extensions: none, ctype, curl, dom, exif, fileinfo, gd, iconv, intl, mbstring, mysqli, mysqlnd, openssl, phar, simplexml, sodium, tokenizer, xml, xmlreader, xmlwriter, zip
+          coverage: none
+          tools: none
+          # cli-server ignores enable_cli=0. Keep opcode caching, without opt-in PHP JIT.
+          ini-values: opcache.enable=1, opcache.jit=disable, pcre.jit=1, max_execution_time=30
+      - name: Install debugger for disposable runtime diagnosis
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gdb
+          sudo sysctl -w kernel.core_pattern=/tmp/ttos-php-core.%p
+      - name: Record disposable PHP runtime
+        run: |
+          { php -v; php --ini; php -m; php -r 'foreach (["opcache.enable_cli", "opcache.jit", "opcache.jit_buffer_size", "pcre.jit"] as $key) echo $key . "=" . ini_get($key) . PHP_EOL;'; } > /tmp/php-runtime.txt
+      - name: Create disposable WordPress and WooCommerce installation
+        id: fixture
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /tmp/wp-cli.phar
+          wp() { php /tmp/wp-cli.phar --path="$WP_PATH" "$@"; }
+          mkdir -p "$WP_PATH"
+          wp core download --version=7.1.2
+          wp config create --dbname=ttos_fixture --dbuser=root --dbpass=fixture-db-only --dbhost=127.0.0.1:3306
+          wp config set WP_ENVIRONMENT_TYPE local
+          wp config set TTOS_FIXTURE_ONLY true --raw
+          wp config set DISABLE_WP_CRON true --raw
+          wp config set WP_MEMORY_LIMIT 512M
+          wp core install --url=http://127.0.0.1:8080 --title='Disposable Takeaway fixture' --admin_user=fixtureadmin --admin_password="$TEST_OWNER_PASSWORD" --admin_email=admin@example.test --skip-email
+          wp option update home http://127.0.0.1:8080
+          wp option update siteurl http://127.0.0.1:8080
+          wp plugin install woocommerce --version=11.1.2
+          mkdir -p "$WP_PATH/wp-content/mu-plugins"
+          cp tests/native/safety.php "$WP_PATH/wp-content/mu-plugins/fixture-safety.php"
+          wp plugin activate woocommerce
+          wp option update woocommerce_custom_orders_table_enabled yes
+          cp -R takeaway-os "$WP_PATH/wp-content/plugins/takeaway-os"
+          wp plugin activate takeaway-os
+          wp eval 'echo "WP=" . get_bloginfo("version") . " Woo=" . WC_VERSION . " PHP=" . PHP_VERSION . PHP_EOL;' | tee /tmp/native-versions.txt
+      - name: Native HPOS and permissions tests
+        run: |
+          set -o pipefail
+          php /tmp/wp-cli.phar --path="$WP_PATH" eval-file "$GITHUB_WORKSPACE/tests/native/run.php" | tee /tmp/native-tests.txt
+      - name: Compare native checkout with Takeaway OS disabled and enabled
+        run: |
+          ulimit -c unlimited
+          python3 -u tests/native/runtime_probe.py --wp-path="$WP_PATH" --wp-cli=/tmp/wp-cli.phar --evidence-dir=/tmp/checkout-runtime-comparison
+      - name: Authenticated owner and native checkout HTTP smoke
+        run: |
+          set -euo pipefail
+          ulimit -c unlimited
+          php -S 127.0.0.1:8080 -t "$WP_PATH" > /tmp/php-server.log 2>&1 &
+          server_pid=$!
+          stop_server() {
+            kill "$server_pid" 2>/dev/null || true
+            wait "$server_pid" 2>/dev/null || true
+          }
+          trap stop_server EXIT
+          set +e
+          python3 -u tests/native/http_smoke.py > /tmp/http-tests.txt 2>&1
+          result=$?
+          set -e
+          cat /tmp/http-tests.txt
+          if [ "$result" -ne 0 ]; then
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              set +e
+              wait "$server_pid"
+              echo "PHP server exit=$?" | tee /tmp/server-exit.txt
+              set -e
+            fi
+            exit "$result"
+          fi
+          php /tmp/wp-cli.phar --path="$WP_PATH" eval-file "$GITHUB_WORKSPACE/tests/native/verify_checkout.php" | tee /tmp/checkout-verify.txt
+      - name: Repeat complete native HTTP scenarios with verified runtime settings
+        if: always() && steps.fixture.outcome == 'success' && matrix.php == '8.5'
+        run: |
+          ulimit -c unlimited
+          python3 -u tests/native/jit_probe.py --wp-path="$WP_PATH" --wp-cli=/tmp/wp-cli.phar --modes php-jit-off --repeats=10 --evidence-dir=/tmp/jit-runtime-comparison
+      - name: Real theme fulfilment session and HTTP journey
+        run: |
+          set -euo pipefail
+          php /tmp/wp-cli.phar --path="$WP_PATH" eval-file "$GITHUB_WORKSPACE/tests/native/fulfilment_assertions.php" | tee /tmp/fulfilment-assertions.txt
+          cp -R takeaway-theme "$WP_PATH/wp-content/themes/takeaway-theme"
+          php /tmp/wp-cli.phar --path="$WP_PATH" theme activate takeaway-theme
+          php -S 127.0.0.1:8080 -t "$WP_PATH" > /tmp/fulfilment-server.txt 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true' EXIT
+          python3 -u tests/native/fulfilment_http.py 2>&1 | tee /tmp/fulfilment-http.txt
+      - name: Rehearse shipping and resolved checkout address
+        run: |
+          set -euo pipefail
+          php /tmp/wp-cli.phar --path="$WP_PATH" eval-file "$GITHUB_WORKSPACE/tests/native/shipping_assertions.php" | tee /tmp/shipping-candidate.txt
+      - name: Capture reviewable source without production data
+        if: always()
+        run: |
+          mkdir -p /tmp/takeaway-review
+          git rev-parse HEAD > /tmp/takeaway-review/commit.txt
+          git archive --format=tar HEAD takeaway-os takeaway-theme tests docs/BACKEND-TODO-20260930.md > /tmp/takeaway-review/source.tar
+          for file in /tmp/php-runtime.txt /tmp/native-versions.txt /tmp/native-tests.txt /tmp/http-tests.txt /tmp/checkout-verify.txt /tmp/php-server.log /tmp/server-exit.txt /tmp/fulfilment-assertions.txt /tmp/fulfilment-server.txt /tmp/fulfilment-http.txt /tmp/shipping-candidate.txt; do
+            if [ -f "$file" ]; then cp "$file" /tmp/takeaway-review/; fi
+          done
+          if [ -d /tmp/checkout-runtime-comparison ]; then cp -R /tmp/checkout-runtime-comparison /tmp/takeaway-review/; fi
+          if [ -d /tmp/jit-runtime-comparison ]; then cp -R /tmp/jit-runtime-comparison /tmp/takeaway-review/; fi
+          for core in /tmp/ttos-php-core.*; do
+            if [ -f "$core" ]; then
+              gdb --batch -ex 'set pagination off' -ex 'info proc mappings' -ex 'info files' -ex 'x/20i $pc' -ex 'thread apply all bt full' "$(command -v php)" "$core" > "/tmp/takeaway-review/$(basename "$core")-backtrace.txt" 2>&1 || true
+            fi
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-backend-review-php-${{ matrix.php }}
+          path: /tmp/takeaway-review
+          retention-days: 7

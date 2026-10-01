@@ -3,7 +3,7 @@
  * Plugin Name:       Takeaway OS
  * Plugin URI:        https://inkfire.co.uk
  * Description:       A clean takeaway management overlay for WordPress and WooCommerce: launch wizard, menu builder, order cockpit, CRM, modules and restaurant settings.
- * Version:           1.3.12
+ * Version:           1.3.13-rc.4
  * Author:            Inkfire
  * Author URI:        https://inkfire.co.uk
  * Text Domain:       takeaway-os
@@ -13,7 +13,7 @@
 
 defined('ABSPATH') || exit;
 
-define('TTOS_VERSION', '1.3.12');
+define('TTOS_VERSION', '1.3.13-rc.4');
 define('TTOS_FILE', __FILE__);
 define('TTOS_DIR', plugin_dir_path(__FILE__));
 define('TTOS_URL', plugin_dir_url(__FILE__));
@@ -21,6 +21,7 @@ define('TTOS_BASENAME', plugin_basename(__FILE__));
 
 $ttos_files = array(
     'includes/class-settings.php',
+    'includes/class-packages.php',
     'includes/class-admin-shell.php',
     'includes/class-site-content.php',
     'includes/class-public-ui.php',
